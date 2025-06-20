@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.ModelDao" >
+    <resultMap id="model" type="com.bonus.bm.beans.ModelBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.bm.beans.ModelBean" resultMap="model">
+		SELECT mam.ID,mat.`NAME` as type,mam.`NAME`
+		FROM ma_model mam
+		LEFT JOIN ma_type mat ON mam.TYPE_ID = mat.ID
+		WHERE 1 = 1
+		<if test="param.keyWord!= null">
+			AND (
+			mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			or mam.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.bm.beans.ModelBean" resultMap="model">
+ 	    SELECT mam.ID,mat.`NAME` as type,mam.`NAME`
+		FROM ma_model mam
+		LEFT JOIN ma_type mat ON mam.TYPE_ID = mat.ID
+		WHERE mam.ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.bm.beans.ModelBean">
+		insert into ma_model(type_id,name) values (#{type},#{name})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.bm.beans.ModelBean">
+		update ma_model set 
+		type_id = #{type},
+		NAME = #{name}
+		where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.bm.beans.ModelBean">
+		delete from ma_model
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM ma_model WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findModel" parameterType="com.bonus.bm.beans.ModelBean" resultMap="model">
+		SELECT ID,NAME FROM ma_model
+ 	</select>
+ 	
+</mapper>

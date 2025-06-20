@@ -1,0 +1,30 @@
+package com.bonus.lease.dao;
+
+import java.util.List;
+
+import com.bonus.core.BonusBatis;
+import com.bonus.lease.beans.LeaseApplicationBean;
+import com.bonus.sys.BaseDao;
+
+//租赁申请
+@BonusBatis
+public interface LeaseApplicationDao extends BaseDao<LeaseApplicationBean>{
+
+	String findApplyNumber(LeaseApplicationBean o);
+
+	String findLeaseApplyNumber(LeaseApplicationBean o);
+
+	Integer deleteApply(LeaseApplicationBean o);
+
+	List<LeaseApplicationBean> getApplyNumberById();
+
+	void delByNumber(String applyNumber);
+
+	void delByNumber(LeaseApplicationBean leaseApplicationBean);
+
+	List<LeaseApplicationBean> getApplyNumberById(LeaseApplicationBean o);
+	
+	List<LeaseApplicationBean> getTaskDetails(LeaseApplicationBean o);
+
+	List<LeaseApplicationBean> getSubInfo(LeaseApplicationBean o);
+}

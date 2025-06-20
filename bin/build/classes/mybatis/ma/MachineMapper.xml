@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineDao" >
+    <resultMap id="machine" type="com.bonus.ma.beans.MachineBean"></resultMap>
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select mam.ID,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,
+		mav.`NAME` as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_NUM as deviceNum,
+		mam.OUT_FAC_NUM as outFactortNum,mat.BUY_PRICE as buyPrice,mam.BUY_TIME as buyTime,mam.QRCODE_URL as qrcodeUrl,
+		mam.PIC_URL as picUrl,mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,mat.PAY_PRICE as payPrice,
+		mam.DEVICE_STATUS as equipmentState,mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks
+		from ma_machines mam 
+		LEFT JOIN ma_type mat on mam.TYPE = mat.ID
+		LEFT JOIN ma_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN bm_area bma on bma.ID = mam.POSITION
+		LEFT JOIN ma_vender mav on mav.ID = mam.VENDER_ID
+ 	</select>
+ 	
+ 	<select id="getRoleBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,PARENT_ID as pId FROM ma_type WHERE IS_ACTIVE = '1'
+  	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	    select mam.ID,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,
+		mav.`NAME` as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_NUM as deviceNum,
+		mam.OUT_FAC_NUM as outFactortNum,mat.BUY_PRICE as buyPrice,mam.BUY_TIME as buyTime,mam.QRCODE_URL as qrcodeUrl,
+		mam.PIC_URL as picUrl,mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,mat.PAY_PRICE as payPrice,
+		mam.DEVICE_STATUS as equipmentState,mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks
+		from ma_machines mam 
+		LEFT JOIN ma_type mat on mam.TYPE = mat.ID
+		LEFT JOIN ma_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN bm_area bma on bma.ID = mam.POSITION
+		LEFT JOIN ma_vender mav on mav.ID = mam.VENDER_ID
+		WHERE mam.ID=#{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.ma.beans.MachineBean" useGeneratedKeys="true" keyProperty="id">
+		insert into ma_machines
+		(TYPE,IS_FIXED_ASSETS,HOUSE_ID,POSITION,IS_TRACK,IS_CHECK,DEVICE_NUM,
+		VENDER_ID,BUY_TIME,OUT_FAC_TIME,OUT_FAC_NUM,ASSETS_NUM,DEVICE_STATUS,
+		CYCLE_NUM,REMARK,IS_ACTIVE)
+		values (#{type},#{isFixedAssets},#{houseName},#{position},#{isTrack},#{isCheck},#{deviceNum},
+		#{venderName},#{buyTime},#{outFactortTime},#{outFactortNum},#{assetNum},#{equipmentState},#{outInNum},#{remarks},1)
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.ma.beans.MachineBean">
+		update MA_MACHINES
+        <set>
+            <if test="type !=null">
+               TYPE = #{type},
+            </if>
+             <if test="isFixedAssets !=null">
+              IS_FIXED_ASSETS = #{isFixedAssets},
+            </if>
+             <if test="houseName !=null">
+              HOUSE_ID = #{houseName},
+            </if>
+             <if test="position !=null">
+              POSITION = #{position},
+            </if>
+             <if test="isTrack !=null">
+              IS_TRACK = #{isTrack},
+            </if>
+             <if test="isCheck !=null">
+               IS_CHECK = #{isCheck},
+            </if>
+             <if test="deviceNum !=null">
+              DEVICE_NUM = #{deviceNum},
+            </if>
+             <if test="outFactortTime !=null">
+              OUT_FAC_TIME = #{outFactortTime},
+            </if>
+             <if test="outFactortNum !=null">
+              OUT_FAC_NUM = #{outFactortNum},
+            </if>
+             <if test="assetNum !=null">
+              ASSETS_NUM = #{assetNum},
+            </if>
+             <if test="equipmentState !=null">
+              DEVICE_STATUS = #{equipmentState},
+            </if>
+             <if test="outInNum !=null">
+              CYCLE_NUM = #{outInNum},
+            </if>
+             <if test="erpNum !=null">
+              ERP_NUM = #{erpNum},
+            </if>
+        </set>
+       where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.ma.beans.MachineBean">
+		delete from bm_area_type
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<update id="insertQRCode" parameterType="com.bonus.ma.beans.MachineBean">
+		update ma_machines
+		set QRCODE_URL = #{qrcodeUrl},
+		DEVICE_NUM = #{deviceNum},
+		ASSETS_NUM = #{assetNum},
+		BATCH_STATUS = 4
+		where ID = #{id}
+	</update>
+	
+	<update id="insertMachinesUrl" parameterType="com.bonus.ma.beans.MachineBean">
+		update ma_machines
+		set PIC_URL = #{picUrl}
+		where type = #{type}
+	</update>
+	
+	<select id="findStockNums" parameterType="com.bonus.ma.beans.MachineBean" resultType="java.lang.String">
+		SELECT COUNT(ID) 
+		FROM ma_machines 
+		WHERE BUY_TIME LIKE CONCAT('2018','%')
+		AND BATCH_STATUS >= 4
+	</select>
+ 	
+</mapper>

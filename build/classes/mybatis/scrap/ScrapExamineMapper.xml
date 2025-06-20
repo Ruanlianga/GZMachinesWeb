@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.scrap.dao.ScrapExamineDao" >
+    <resultMap id="scrap" type="com.bonus.scrap.beans.ScrapExamineBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.scrap.beans.ScrapExamineBean" resultMap="scrap">
+		SELECT
+	wsa.`CODE` AS scrapCode,
+	mmt.`NAME` as type,
+	mmt1.`NAME` as machine,
+	sad.ma_code as machineCode,
+	sad.num AS scrapNum,
+	wsa.CREATOR AS creator,
+	wsa.CREATE_TIME AS createTime,
+	wsa.AUDITOR AS auditor,
+	wsa.AUDIT_TIME AS auditTime,
+	sad.ID,
+	sad.type_id as typeId,
+  mmt.PARENT_ID as parentId
+FROM
+	scrap_apply_details sad
+	LEFT JOIN wf_scrap_apply wsa ON wsa.ID = sad.apply_id
+	LEFT JOIN mm_type mmt on mmt.id=sad.type_id
+	LEFT JOIN mm_type mmt1 on mmt.PARENT_ID = mmt1.ID
+  where 1 = 1
+     <if test="param.typetId != null and param.typetId !='' ">
+        and mmt.PARENT_ID = #{param.typetId}
+     </if>
+      <if test="param.typeParentId != null and param.typeParentId !='' ">
+        and sad.type_id = #{param.typeParentId}
+     </if>
+	<if test="param.keyWord != null and param.keyWord !='' ">
+			and(
+				mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') 
+				or mmt1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				 or wsa.CREATOR LIKE CONCAT('%',#{param.keyWord},'%')
+				 or wsa.AUDITOR LIKE CONCAT('%',#{param.keyWord},'%')
+				  or sad.ma_code LIKE CONCAT('%',#{param.keyWord},'%')
+				   or wsa.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+				    or wsa.AUDIT_TIME LIKE CONCAT('%',#{param.keyWord},'%')
+				     or  sad.ID   LIKE CONCAT('%',#{param.keyWord},'%')
+				      or wsa.AUDIT_TIME LIKE CONCAT('%',#{param.keyWord},'%')
+				       or wsa.CREATE_TIME LIKE CONCAT('%',#{param.keyWord},'%')
+				    
+			)
+	</if>
+	<if test="param.startTime!=null and param.startTime!='' and param.endTime!=null and param.endTime!='' ">
+		    and wsa.CREATE_TIME between #{param.startTime} and #{param.endTime}
+		    </if> 	
+	<!-- <if test="param.startTime !=null and param.startTime !='' and param.endTime !=null and param.endTime !=''" >
+	    and wsa.CREATE_TIME between #{param.startTime} and #{param.endTime}
+	</if> -->
+	</select>
+	
+    <select id="export" parameterType="com.bonus.scrap.beans.ScrapExamineBean" resultMap="scrap">
+		SELECT
+	wsa.`CODE` AS scrapCode,
+	sad.type_id AS type,
+	sad.ma_id AS machine,
+	sad.ma_code AS machineCode,
+	sad.num AS scrapNum,
+	wsa.CREATOR AS creator,
+	wsa.CREATE_TIME AS createTime,
+	wsa.AUDITOR AS auditor,
+	wsa.AUDIT_TIME AS auditTime 
+FROM
+	scrap_apply_details sad
+	LEFT JOIN wf_scrap_apply wsa ON wsa.ID = sad.apply_id
+	</select>
+    
+    
+    </mapper>

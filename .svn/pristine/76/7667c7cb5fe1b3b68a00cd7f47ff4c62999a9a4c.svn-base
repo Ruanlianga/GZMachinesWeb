@@ -1,0 +1,701 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.ReturnMaterialTaskRecordDao" >
+    <resultMap id="returnTask" type="com.bonus.rm.beans.ReturnMaterialTaskRecordBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" resultMap="returnTask">
+		SELECT DISTINCT wir.ID as id,wir.MODEL_ID as typeId,wla.`CODE` AS agreementCode,bu.`NAME` AS leaseName,bp.`NAME` AS projectName,mmt.`NAME` as maType,mt.`NAME` as maModel,
+			wtr.NUMBER AS number,wir.`CODE` as deviceCode,wir.TIME as returnMaterialTime,ROUND(wir.NUM) as thisBackNum,mt.IS_COUNT as isCount,wir.TYPE as type,pmo.`NAME` as companyName,wrd.OPERATOR as checker,
+        	mm.REMARK AS remark,bs.`NAME` as bsName
+        FROM wf_info_record wir
+			LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+			LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+			LEFT JOIN bm_subcontractors bs ON wtr.SUBCONTRACTORS_ID = bs.ID 
+			LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN pm_organization pmo on wtr.ORG_ID =  pmo.id
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID 
+			LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+			where wir.TYPE = 4 and wtr.IS_ACTIVE = 1 and left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+			<if test="param.companyId != 1">
+				and wtr.ORG_ID=#{param.companyId}
+	      </if>
+	      
+	      <if test="param.maType != null and param.maType !='' ">
+			and mmt.`NAME` like concat('%',#{param.maType},'%')
+		</if>
+		
+		<if test="param.maModel != null and param.maModel !='' ">
+			and mt.`NAME` like concat('%',#{param.maModel},'%')
+		</if>
+		
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				bu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				pmo.`NAME` like concat('%',#{param.keyWord},'%') OR
+				bp.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mmt.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mt.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wir.`CODE` like concat('%',#{param.keyWord},'%') OR
+				wtr.NUMBER like concat('%',#{param.keyWord},'%') OR
+				wla.`CODE` like concat('%',#{param.keyWord},'%') 
+			)
+		</if>
+		group by wir.ID
+ 	</select>
+ 	
+ 	<select id="findRMSheet" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" resultMap="returnTask">
+        SELECT bu.`NAME` as leaseName, bp.`NAME` as projectName,wat.AGREEMENT_ID as agreeId,
+		wla.`CODE` as agreementCode,mmt.`NAME` as maType,mt.`NAME` as maModel,mmt.ID as typeId,
+		ROUND(sum(wir.NUM)) as thisBackNum,wir.RM_STATUS as rmStatus,wtr.NUMBER as number,mt.ID as modelId,
+		wtr.OPERATION_TIME as returnMaterialTime,mt.UNIT,wtr.REMARK as taskRemark,
+		wir.REMARK as remarkMachine,bs.`NAME` as subcontractorName,wir.code deviceCode,mam.REMARK AS remark,pm.SIGN_URL as examineUser,pm2.SIGN_URL as approvalUser
+		FROM wf_task_record wtr
+		LEFT JOIN bm_subcontractors bs ON bs.ID = wtr.SUBCONTRACTORS_ID
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+		LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		LEFT JOIN mm_machines mam ON mam.ID = wir.MA_ID
+		LEFT JOIN pm_user pm ON pm.ID = wrd.EXAMINE_USER
+		LEFT JOIN pm_user pm2 ON pm2.ID = wrd.APPROVAL_USER
+		WHERE wtr.ID = #{id} AND wir.TYPE = 4
+		AND wir.NUM != "" AND wir.NUM != 0
+		GROUP BY mt.ID,wir.code,wir.RM_STATUS
+    </select>
+    <select id="findIdByTaskId" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" resultMap="returnTask">
+		SELECT 	wir.ID AS id
+		FROM wf_info_record wir
+		LEFT JOIN wf_return_material_details wrmd on wrmd.ID = wir.SUP_ID
+		WHERE wrmd.TASK_ID = #{taskId} AND wir.TYPE = 4 
+		AND wir.NUM != "" AND wir.NUM != 0
+    </select>
+    
+    <update id="updateRemarkbyTaskId" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" >
+ 		UPDATE wf_task_record 
+		SET REMARK = #{taskRemark}
+		WHERE ID = #{taskId}
+ 	</update> 
+ 	
+ 	<update id="updateRemarkMachinebyId" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" >
+ 		UPDATE wf_info_record 
+		SET REMARK = #{remarkMachine}
+		WHERE ID = #{id}
+ 	</update>
+ 	
+ 	<select id="findUnFinishContentDetails" parameterType="com.bonus.rm.beans.ReturnMaterialTaskRecordBean" resultMap="returnTask">
+ 		<!-- SELECT
+			wtr.id,
+			wtr.DEFINITION_ID AS definitionId,
+			wtr.NUMBER AS number,
+			wla.`CODE` as agreementCode,
+			bp.`NAME` AS projectName,
+			bu.`NAME` AS unitName,
+			wpd.NAME AS taskName,
+			wtd.NAME AS definitionName,
+			pu.`NAME` AS personName,
+			DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime,
+			task2.isExamine AS isExamine2,
+			task2.isApproval AS isApproval2,
+			task2.responer2 AS responer2,
+			task8.responer8 AS responer8,
+			task11.responer11 AS responer11,
+			task12.checkStatus AS checkStatus12,
+			task12.IS_EXAMINE AS isExamine12,
+			task12.IS_APPROVAL AS isApproval12,
+			task12.checker AS checker12,
+			task12.responer12 AS responer12,
+			task18.responer18 AS responer18,
+			task19.responer19 AS responer19,
+			task20.responer20 AS responer20,
+			task21.responer21 AS responer21,
+			task22.responer22 AS responer22,
+			task23.responer23 AS responer23,
+			task24.responer24 AS responer24,
+			task25.responer25 AS responer25 
+		FROM
+			wf_task_record wtr
+			LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+			LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+			LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN (
+					SELECT
+						wtr2.id AS wtr2Id,
+						wcd2.IS_EXAMINE AS isExamine,
+						wcd2.IS_APPROVAL AS isApproval,
+						pu2.NAME AS responer2 
+					FROM
+						wf_task_record wtr2
+						LEFT JOIN wf_collar_details wcd2 ON wcd2.TASK_ID = wtr2.ID
+						LEFT JOIN pm_user pu2 ON pu2.id = wcd2.CUSTOMER_SERVICE_REP 
+					WHERE
+						wtr2.IS_FINISH = 0 
+						AND wtr2.DEFINITION_ID = 2 
+			) task2 ON task2.wtr2Id = wtr.id
+			LEFT JOIN (
+					SELECT
+						wtr8.id,
+						pu8.`NAME` AS responer8 
+					FROM
+						wf_task_record wtr8
+						LEFT JOIN pm_user pu8 ON pu8.id = wtr8.CHECKER_ID 
+					WHERE
+						wtr8.IS_FINISH = 0 
+						AND wtr8.DEFINITION_ID = 8 
+			) task8 ON task8.id = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wrmd.TASK_ID,
+						pu.`NAME` AS responer11 
+					FROM
+						wf_return_material_details wrmd
+						LEFT JOIN wf_task_record wtr ON wtr.id = wrmd.TASK_ID
+						LEFT JOIN pm_user pu ON pu.id = wrmd.SERVICE_ID 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 11 
+			) task11 ON task11.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wnd.TASK_ID,
+						wnd.CHECK_STATUS as checkStatus,
+						wnd.IS_EXAMINE,
+						wnd.IS_APPROVAL,
+						pu.`NAME` AS checker,
+						puo.NAME AS responer12 
+					FROM
+						wf_new_details wnd
+						LEFT JOIN pm_user pu ON pu.id = wnd.CHECKER
+						LEFT JOIN pm_user puo ON puo.id = wnd.CUSTOMER_SERVICE_REP
+						LEFT JOIN wf_task_record wtr ON wtr.id = wnd.TASK_ID 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 12 
+			) task12 ON task12.TASK_ID = wtr.id
+			LEFT JOIN (
+					SELECT
+						wrd.TASK_ID,
+						pu.`NAME` AS responer18 
+					FROM
+						wf_repair_details wrd
+						LEFT JOIN wf_task_record wtr ON wtr.id = wrd.TASK_ID
+						LEFT JOIN pm_user pu ON pu.id = wrd.REPAIR_MAN 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 18 
+			) task18 ON task18.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wsd.TASK_ID,
+						pu.`NAME` AS responer19 
+					FROM
+						wf_scrap_details wsd
+						LEFT JOIN wf_task_record wtr ON wtr.id = wsd.TASK_ID
+						LEFT JOIN pm_user pu ON pu.id = wsd.SCRAP_CHECKER 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 19 
+			) task19 ON task19.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wtr.id,
+						pu.`NAME` AS responer20 
+					FROM
+						wf_task_record wtr
+						LEFT JOIN pm_user pu ON pu.id = wtr.CHECKER_ID 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 20 
+			) task20 ON task20.id = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wpsd.TASK_ID,
+						pu.NAME AS responer21 
+					FROM
+						wf_put_storage_details wpsd
+						LEFT JOIN pm_user pu ON pu.id = wpsd.CUSTOMER_SERVICE_REP
+						LEFT JOIN wf_task_record wtr ON wtr.id = wpsd.TASK_ID 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 21 
+			) task21 ON task21.TASK_ID = wtr.id
+			LEFT JOIN (
+					SELECT
+						wsd.TASK_ID,
+						pu.`NAME` AS responer22 
+					FROM
+						wf_scrap_details wsd
+						LEFT JOIN wf_task_record wtr ON wtr.id = wsd.TASK_ID
+						LEFT JOIN pm_user pu ON pu.id = wsd.SCRAP_CHECKER 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 22 
+			) task22 ON task22.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wrd.TASK_ID,
+						pu.`NAME` AS responer23 
+					FROM
+						wf_repair_details wrd
+						LEFT JOIN wf_task_record wtr ON wtr.id = wrd.TASK_ID
+						LEFT JOIN pm_user pu ON pu.id = wrd.REPAIR_MAN 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 23 
+			) task23 ON task23.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wrc.TASK_ID,
+						pu.`NAME` AS responer24 
+					FROM
+						wf_repair_check wrc
+						LEFT JOIN wf_task_record wtr ON wtr.id = wrc.TASK_ID
+						LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+						LEFT JOIN pm_user pu ON pu.id = wrd.CUSTOMER_SERVICE_REP 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 24 
+			) task24 ON task24.TASK_ID = wtr.ID
+			LEFT JOIN (
+					SELECT
+						wpsd.TASK_ID,
+						pu.NAME AS responer25 
+					FROM
+						wf_put_storage_details wpsd
+						LEFT JOIN pm_user pu ON pu.id = wpsd.CUSTOMER_SERVICE_REP
+						LEFT JOIN wf_task_record wtr ON wtr.id = wpsd.TASK_ID 
+					WHERE
+						wtr.IS_FINISH = 0 
+						AND wtr.DEFINITION_ID = 25 
+			) task25 ON task25.TASK_ID = wtr.id 
+		WHERE
+			wtr.IS_FINISH = '0'
+			AND wtr.IS_ACTIVE = 1 
+			AND wtr.id= #{id} AND wtr.DEFINITION_ID = #{definitionId}
+				
+		GROUP BY
+			wtr.id DESC -->
+		 
+		<if test="definitionId == 1 or definitionId == '1'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 1 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 2 or definitionId == '2'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 2 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 3 or definitionId == '3'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 3 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 4 or definitionId == '4'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 4 AND wtr.ID = #{id}
+		</if>
+		
+		<if test="definitionId == 5 or definitionId == '5'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 5 AND wtr.ID = #{id}
+				LIMIT 0,1
+		</if>
+		<if test="definitionId == 6 or definitionId == '6'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 6 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 7 or definitionId == '7'">
+			SELECT 
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM 
+				wf_task_record wtr
+				
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE 
+				wtr.DEFINITION_ID = 7 AND wtr.ID = #{id}
+		</if>
+		
+		<if test="definitionId == 8 or definitionId == '8'">
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, wrmd.OPERATOR as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 8 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 9 or definitionId == '9'">
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, wrmd.OPERATOR as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 9 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 10 or definitionId == '10'">
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, wrmd.OPERATOR as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.TASK_ID = wtr.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 10 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 11 or definitionId == '11'">
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, wrmd.OPERATOR as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				
+				wf_task_record wtr 
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.TASK_ID = wtr1.id
+
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wrmd.SERVICE_ID 
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+			  wtr.DEFINITION_ID = 11 AND wtr.ID = #{id} 
+				LIMIT 0,1
+		</if>	
+		<if test="definitionId == 12 or definitionId == '12'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName 
+			FROM
+				wf_new_details wnd
+				LEFT JOIN pm_user pu ON pu.id = wnd.CHECKER
+				LEFT JOIN pm_user pu2 ON pu2.id = wnd.CUSTOMER_SERVICE_REP
+				LEFT JOIN wf_task_record wtr ON wtr.id = wnd.TASK_ID 
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr.PROCESS_ID 
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 12 AND wtr.ID = #{id}
+		</if>	
+		
+		
+		
+		
+		<if test="definitionId == 18 or definitionId == '18'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode, pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_repair_details wrd ON wtr1.id = wrd.TASK_ID
+
+				LEFT JOIN pm_user pu ON pu.id = wrd.REPAIR_MAN 
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wrd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 18 AND wtr.ID = #{id}
+		</if>	
+		<if test="definitionId == 19 or definitionId == '19'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM	
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_task_record wtr2 ON wtr1.SUP_ID = wtr2.ID
+				LEFT JOIN wf_scrap_details wsd ON wtr2.ID = wsd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wtr2.OPERATION_USER
+				LEFT JOIN pm_user pu2 ON pu2.id = wsd.SCRAP_CHECKER
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wsd.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr2.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr2.PROCESS_ID 
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 19 AND wtr.ID = #{id}
+				LIMIT 0,1
+		</if>	
+		
+		<if test="definitionId == 20 or definitionId == '20'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 20 AND wtr.ID = #{id}
+		</if>	
+		<if test="definitionId == 21 or definitionId == '21'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 21 AND wtr.ID = #{21}
+		</if>	
+		<if test="definitionId == 22 or definitionId == '22'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 22 AND wtr.ID = #{id}
+		</if>	
+		<if test="definitionId == 23 or definitionId == '23'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 23 AND wtr.ID = #{id}
+		</if>	
+		<if test="definitionId == 24 or definitionId == '24'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 24 AND wtr.ID = #{id}
+		</if>
+		<if test="definitionId == 25 or definitionId == '25'">	
+			SELECT
+				wtr.ID as taskId,wtr.NUMBER as number,bu.`NAME` as unitName,bp.`NAME` as projectName,wpd.`NAME` as taskName
+				,wla.`CODE` as agreementCode,pu2.`NAME` as personName
+				,DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS createTime
+				,pu.`NAME` as operaTionName
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN wf_process_definition wpd ON wpd.ID = wtr1.PROCESS_ID 
+				LEFT JOIN pm_user pu ON pu.id = wtr1.CHECKER_ID 
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd.CUSTOMER_SERVICE_REP
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			WHERE
+				wtr.DEFINITION_ID = 21 AND wtr.ID = #{id}
+		</if>
+    </select>
+</mapper>

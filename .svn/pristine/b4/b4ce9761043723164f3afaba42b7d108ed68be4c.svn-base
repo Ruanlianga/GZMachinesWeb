@@ -1,0 +1,34 @@
+package com.bonus.index.service;
+
+import java.util.List;
+
+import com.bonus.index.beans.IndexHomeBean;
+import com.bonus.index.beans.IndexHomeResourseBean;
+import com.bonus.index.beans.PartFiveBean;
+import com.bonus.index.beans.PartThreeBean;
+import com.bonus.sys.BaseService;
+
+public interface IndexHomeService extends BaseService<IndexHomeBean>{
+
+	List<IndexHomeBean> getPartOneData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartTwoData(IndexHomeBean o);
+
+	List<PartThreeBean> getPartThreeData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartFourData(IndexHomeBean o);
+
+	List<PartFiveBean> getPartFiveData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartSixData(IndexHomeBean o);
+
+	void insertIndexInfo();
+
+	List<IndexHomeResourseBean> getHomeResource(IndexHomeResourseBean o);
+
+	List<IndexHomeResourseBean> getResource(IndexHomeResourseBean o);
+
+	int saveResourse(IndexHomeResourseBean o);
+
+	
+}

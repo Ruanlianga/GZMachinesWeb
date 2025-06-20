@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.cost.dao.ProjectCostDao">
+
+	<select id="queryProjectLeaseDetails" parameterType="com.bonus.cost.beans.ProjectLeaseCostDetail" resultType="com.bonus.cost.beans.ProjectLeaseCostDetail">
+		SELECT
+			wir.`CODE` AS machineCode,
+			'1' AS operateType,
+			mt2.`NAME` AS machineTypeName,
+			mt.`NAME` AS machineModel,mt.ID AS machineTypeId,
+			mt.UNIT AS machineModel,
+			mt.LEASE_PRICE AS price,
+			mm.REMARK as remark,
+			bu.`NAME` AS leaseUnit,
+			bp.`NAME` AS projectName,
+			wla.`CODE` AS taskCode,
+			wtr1.NUMBER AS taskCode,
+			ROUND(wir.num) AS leaseNum,
+			wtr.OPERATION_TIME AS operateTime,
+			wtr1.LEASE_PERSON AS operatePersonName,
+			pmo. NAME AS companyName,
+			pu.`NAME` as servicer,
+			bs.`NAME` as bsName
+		FROM wf_info_record wir
+		LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_task_record wtr2 ON wtr2.ID = wtr1.SUP_ID
+		LEFT JOIN wf_collar_apply wca ON wca.APPLY_NUMBER = wtr2.NUMBER
+		LEFT JOIN bm_subcontractors bs ON wca.SUBCONTRACTORS_ID = bs.ID 
+		LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.id
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+		LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID 
+		LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+		WHERE wir.TYPE = 2
+ 		and wtr.IS_ACTIVE = 1
+ 		and wla.PROJECT = #{param.projectId}
+	    <if test="param.machineTypeId != null">
+	        and wir.MODEL_ID = #{param.machineTypeId}
+	    </if>
+	    <if test="param.startTime != null and param.endTime != null ">
+			and left(wtr.OPERATION_TIME,10) between #{param.startTime} and #{param.endTime}
+		</if>
+	    <if test="param.keyWord != null and param.keyWord != ''">
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mt.UNIT LIKE CONCAT('%',#{param.keyWord},'%') OR
+				bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr.OPERATION_TIME LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr.LEASE_PERSON LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr1.NUMBER LIKE CONCAT('%',#{param.keyWord},'%') OR
+				pmo. NAME LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		GROUP BY wir.SUP_ID,wir.MODEL_ID,wir.`CODE`
+	 </select>
+
+	<select id="queryProjectReturnDetails" resultType="com.bonus.cost.beans.ProjectLeaseCostDetail">
+		SELECT DISTINCT
+ 			wir.ID as id,wir.MODEL_ID as machineTypeId,wla.`CODE` AS agreementCode,bu.`NAME` AS leaseUnit,
+			bp.`NAME` AS projectName,mmt.`NAME` as machineTypeName,mt.`NAME` as machineModel,mt.BUY_PRICE AS price,
+			wtr.NUMBER AS taskCode,wir.`CODE` as machineCode,wir.TIME as operateTime,ROUND(wir.NUM) as returnNum,
+			mt.IS_COUNT as isCount,wir.TYPE as type,pmo.`NAME` as companyName,wrd.OPERATOR as operatePersonName,
+			mm.REMARK AS remark,bs.`NAME` as bsName,wir.RM_STATUS as rmStatus,2 AS operateType,mt.LEASE_PRICE AS price
+		FROM wf_info_record wir
+		LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+		LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+		LEFT JOIN bm_subcontractors bs ON wtr.SUBCONTRACTORS_ID = bs.ID
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN pm_organization pmo on wtr.ORG_ID =  pmo.id
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+		where
+ 			wir.TYPE = 4 and wtr.IS_ACTIVE = 1 and wla.PROJECT = #{param.projectId}
+            <if test="param.machineTypeId != null">
+                and wir.MODEL_ID = #{param.machineTypeId}
+            </if>
+			and left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+			bu.`NAME` like concat('%',#{param.keyWord},'%') OR
+			pmo.`NAME` like concat('%',#{param.keyWord},'%') OR
+			bp.`NAME` like concat('%',#{param.keyWord},'%') OR
+			mmt.`NAME` like concat('%',#{param.keyWord},'%') OR
+			mt.`NAME` like concat('%',#{param.keyWord},'%') OR
+			wir.`CODE` like concat('%',#{param.keyWord},'%') OR
+			wtr.NUMBER like concat('%',#{param.keyWord},'%') OR
+			wla.`CODE` like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+		group by wir.ID
+	</select>
+
+	<select id="saveSettlement" resultType="int">
+		INSERT INTO wf_project_settlement(
+			ID,
+			PROJECT_ID,
+			PROJECT_NAME,
+			START_TIME,
+			END_TIME,
+			LEASE_COUNT,
+			RETURN_COUNT,
+			CREATE_TIME,
+			CREATE_USER,
+			DEL_FLAG
+		) VALUES (
+			#{id},
+			#{projectId},
+			#{projectName},
+			#{startTime},
+			#{endTime},
+			#{leaseCount},
+			#{returnCount},
+			#{createTime},
+			#{createUser},
+			0
+		)
+	</select>
+
+
+	<insert id="saveSettlementDetails" parameterType="java.util.List">
+		insert into wf_project_settlement_details(
+			ID,
+			SETTLEMENT_ID,
+			OPERATE_TYPE,
+			MACHINE_TYPE_ID,
+			MACHINE_TYPE_NAME,
+			MACHINE_CODE,
+			MACHINE_MODEL,
+			MACHINE_UNIT,
+			PRICE,
+			LEASE_NUM,
+			RETURN_NUM,
+			LEASE_UNIT,
+			OPERATE_PERSON_NAME,
+			OPERATE_DATE,
+			TASK_CODE
+		) values
+			<foreach collection="list" item="item" index="index" separator=",">
+				(
+					#{item.id},
+					#{item.settlementId},
+					#{item.operateType},
+					#{item.machineTypeId},
+					#{item.machineTypeName},
+					#{item.machineCode},
+					#{item.machineModel},
+					#{item.machineUnit},
+					#{item.price},
+					#{item.leaseNum},
+					#{item.returnNum},
+					#{item.leaseUnit},
+					#{item.operatePersonName},
+					#{item.operateDate},
+					#{item.taskCode}
+				)
+			</foreach>
+	</insert>
+
+</mapper>

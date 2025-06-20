@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.ReturnMaterialTaskDao" >
+    <resultMap id="returnMaterialTask" type="com.bonus.rm.beans.ReturnMaterialTaskBean"></resultMap>
+    
+   	<resultMap id="returnDetails" type="com.bonus.rm.beans.ReturnMaterialDetailsBean"></resultMap>
+	
+     <select id="findBackRecord" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean"  resultMap="returnDetails">
+			 	SELECT DISTINCT
+				wir.ID AS id,
+				wat.AGREEMENT_ID AS agreementId,
+				wir.SUP_ID AS taskId,
+				wir.MODEL_ID AS modelId,
+				wir.MA_ID as maId,
+				wir.`CODE` AS deviceCode,
+				LEFT ( wir.TIME, 10 ) AS backTime,
+				ROUND( SUM(wir.NUM)) AS backNum,
+				mt.IS_COUNT AS isCount
+			
+			FROM
+				wf_info_record wir
+				LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+				LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID 
+			WHERE
+				wir.TYPE = 4 
+				and  wrd.TASK_ID = #{id}
+			GROUP BY
+				wir.MODEL_ID,wir.MA_ID
+ 	</select>
+    
+    
+    <select id="findByPage" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultMap="returnMaterialTask">
+		SELECT wtr.id,pmo.name as companyName,wtr.OPERATION_TIME as returnMaterialTime,bu.`NAME` as unitName,wtr.CHECKER_ID as checkerId,
+		bp.`NAME` as workName,wtr.LEASE_PERSON as userName,wtr.PHONE,wtr.NUMBER,pu.`NAME` as checker,
+		wla.ID as agreementId,wla.`CODE` as agreementCode,wtr.IS_FINISH as isFinish,wtr.REMARK,bs.NAME AS subcontractors
+		FROM wf_task_record wtr 
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID 
+		LEFT JOIN bm_subcontractors bs ON wtr.SUBCONTRACTORS_ID = bs.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		WHERE wtr.IS_ACTIVE = 1 AND wtr.PROCESS_ID = 3 AND wtr.DEFINITION_ID = 8
+		AND wtr.OPERATION_TIME >= CONCAT(#{param.startTime},' 00:00:00') 
+		and CONCAT(#{param.endTime},' 23:59:59') >= wtr.OPERATION_TIME 
+		<if test="param.orgId != 1 and param.orgId != '1'">
+				and wtr.org_id=#{param.orgId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				pmo.name like concat('%',#{param.keyWord},'%') OR
+				bu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				bp.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wtr.LEASE_PERSON like concat('%',#{param.keyWord},'%') OR
+				wtr.NUMBER like concat('%',#{param.keyWord},'%') OR
+				pu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wla.`CODE` like concat('%',#{param.keyWord},'%') OR
+				wtr.REMARK like concat('%',#{param.keyWord},'%') 
+			)
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="findAllTask" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultMap="returnMaterialTask">
+		SELECT wtr.id,wtr.OPERATION_TIME as returnMaterialTime,bu.id as unitId,bu.`NAME` as unitName,wtr.CHECKER_ID as checkerId,
+		bp.`NAME` as workName,bp.id as workId,wtr.LEASE_PERSON as userName,wtr.PHONE,wtr.NUMBER,pu.`NAME` as checker,
+		wla.ID as agreementId,wla.`CODE` as agreementCode,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr 
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID AND wtr.CHECKER_ID = 8
+		WHERE wtr.IS_ACTIVE = 1 AND wtr.PROCESS_ID = 3 AND wtr.DEFINITION_ID = 8
+		AND wtr.IS_FINISH = #{isFinish} 
+		AND wtr.CHECKER_ID = #{checkerId}
+		ORDER BY wtr.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<select id="findDevByUnitId" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultMap="returnMaterialTask">
+		SELECT unitId,unitName,workName,workId,agreementCode,typeName as deviceName,a.isCount AS isCount,
+		modelName as deviceModel,UNIT as deviceUnit,SUM(leaseNum) as leaseNum,agreementId,modelId,
+		SUM(backNum) as returnNum,SUM(leaseNum) - SUM(backNum) usingNum
+		FROM(
+		SELECT bu.ID AS unitId,bu.`NAME` as unitName,bp.`NAME` as workName,bp.ID AS workId,
+		wla.`CODE` as agreementCode,mmt.`NAME` as typeName,mt.IS_COUNT AS isCount,
+		mt.`NAME` as modelName,mt.UNIT,SUM(wir.NUM) as leaseNum,
+		"0" as backNum,wla.ID as agreementId,mt.ID as modelId
+		FROM wf_task_record wtr 
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+		LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		WHERE wir.TYPE = 2 and wtr.IS_ACTIVE = 1
+		GROUP BY wla.ID,mt.ID
+		UNION
+		SELECT bu.ID AS unitId,bu.`NAME` as unitName,bp.`NAME` as workName,bp.ID AS workId,
+		wla.`CODE` as agreementCode,mmt.`NAME` as typeName,mt.IS_COUNT AS isCount,
+		mt.`NAME` as modelName,mt.UNIT,"0" as leaseNum,
+		SUM(wir.NUM) as backNum,wla.ID as agreementId,mt.ID as modelId
+		FROM wf_task_record wtr
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+		LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		WHERE wir.TYPE = 4  and wtr.IS_ACTIVE = 1
+		GROUP BY wla.ID,mt.ID
+		) a
+		WHERE a.unitId = #{param.unitId} and a.workId = #{param.workId}
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				a.typeName like concat('%',#{param.keyWord},'%') OR
+				a.modelName like concat('%',#{param.keyWord},'%') 
+			)
+		</if>
+		AND a.isCount = 1
+		GROUP BY a.agreementId,a.modelId
+		HAVING (SUM(a.leaseNum) - SUM(a.backNum)) != 0
+ 	</select>
+ 	
+ 	<select id="findDevByWorkId" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultMap="returnMaterialTask">
+		SELECT wtr.id,wtr.OPERATION_TIME as returnMaterialTime,bu.`NAME` as unitName,wtr.CHECKER_ID as checkerId,
+		bp.`NAME` as workName,bp.id as workId,wtr.LEASE_PERSON as userName,wtr.PHONE,wtr.NUMBER,pu.`NAME` as checker,
+		wla.ID as agreementId,wla.`CODE` as agreementCode,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr 
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID AND wtr.CHECKER_ID = 8
+		WHERE wtr.IS_ACTIVE = 1 AND wtr.PROCESS_ID = 3 AND wtr.DEFINITION_ID = 8
+		AND wtr.IS_FINISH = #{isFinish} 
+		AND wtr.CHECKER_ID = #{checkerId}
+		ORDER BY wtr.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultMap="returnMaterialTask">
+        SELECT wtr.OPERATION_TIME as returnMaterialTime,bu.`NAME` as unitName,
+		bp.`NAME` as workName,wtr.LEASE_PERSON as userName,wtr.PHONE,wtr.NUMBER,
+		wla.ID as agreementId,wla.`CODE` as agreementCode,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr,wf_agreement_task wat,wf_lease_agreement wla,
+		bm_unit bu,bm_project bp
+		WHERE wtr.ID = wat.TASK_ID AND wat.AGREEMENT_ID = wla.ID
+		AND wla.LEASE_COMPANY = bu.ID AND wla.PROJECT = bp.ID
+		AND wtr.IS_ACTIVE = 1 AND wtr.PROCESS_ID = 3 AND wtr.DEFINITION_ID = 8
+		AND wtr.ID = #{id}
+    </select>
+    
+    <select id="findNumber" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_task_record wtr
+		WHERE wtr.OPERATION_TIME LIKE CONCAT("%",#{returnMaterialTime},"%")
+		AND wtr.DEFINITION_ID = 8
+ 	</select>
+    
+    <insert id="insert" >
+    	insert into wf_collar_apply
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="applyNumber != null">
+				APPLY_NUMBER,
+			</if>
+			<if test="proposer != null">
+				PROPOSER,
+			</if>
+			<if test="applyTime != null">
+				APPLY_TIME,
+			</if>
+			<if test="phone != null">
+				PHONE,
+			</if>
+			<if test="agreementId != null">
+				AGREEMENT_ID,
+			</if>
+			<if test="operator != null">
+				OPERATOR,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			IS_SURE,IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="applyNumber != null">
+				#{applyNumber},
+			</if>
+			<if test="proposer != null">
+				#{proposer},
+			</if>
+			<if test="applyTime != null">
+				#{applyTime},
+			</if>
+			<if test="phone != null">
+				#{phone},
+			</if>
+			<if test="agreementId != null">
+				#{agreementId},
+			</if>
+			<if test="operator != null">
+				#{operator},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			0,1
+		</trim>
+    </insert>
+ 	
+ 	<delete id="delete" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean">
+ 		delete from wf_process_record where id = #{id}
+ 	</delete>
+ 	
+ 	<update id="update" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean">
+ 		update wf_task_record
+        <set>
+             <if test="remark !=null">
+              REMARK = #{remark},
+            </if>
+            <if test="isFinish != null">
+               IS_FINISH = #{isFinish},
+            </if>
+            <if test="userName != null">
+               LEASE_PERSON = #{userName},
+            </if>
+             <if test="phone != null">
+              PHONE = #{phone},
+            </if>
+            <if test="checkerId != null">
+              CHECKER_ID = #{checkerId},
+            </if>
+        </set>
+ 		where id = #{id}
+ 	</update>
+ 	
+ 	<update id="updateBean" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean">
+ 		update wf_task_record
+        <trim prefix="set" suffixOverrides=",">
+            <if test="remark !=null and remark !=''">
+               	REMARK = #{remark},
+            </if>
+            <if test="isFinish != null and isFinish !=''">
+                IS_FINISH = #{isFinish},
+            </if>
+            <if test="userName != null and userName !=''">
+                LEASE_PERSON = #{userName},
+            </if>
+            <if test="phone != null and phone !=''">
+              	PHONE = #{phone},
+            </if>
+            <if test="checkerId != null and checkerId !=''">
+              	CHECKER_ID = #{checkerId},
+            </if>
+        </trim>
+ 		where id = #{id}
+ 	</update>
+ 	
+    <delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wf_collar_apply WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<update id="deleteTask" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean">
+		update 
+			wf_task_record
+		set 
+			is_active = 0
+		where 
+			id = #{id}
+			
+	</update>
+
+	
+	 	<update id="updateAudit" parameterType="com.bonus.rm.beans.ReturnMaterialTaskBean">
+ 		update wf_return_material_details
+               set IS_EXAMINE = 1
+ 		where task_id = #{id}
+ 	</update>
+	
+</mapper>

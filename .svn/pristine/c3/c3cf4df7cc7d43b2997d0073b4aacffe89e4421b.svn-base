@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MaStockDao" >
+
+    <resultMap id="stock" type="com.bonus.ma.beans.MaStockBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.MaStockBean" resultMap="stock">
+		  
+SELECT
+a.maType AS deviceName,a.maUnit AS unit,a.maModel AS deviceModel,IF(a.stockNum is NULL,0,ROUND(a.stockNum)) as stockNum, a.isCount,
+        (IF(g.outNum IS NULL,0,g.outNum) - IF(b.repairNum IS NULL,0,b.repairNum)) AS leaseNum,IF(c.repairNum is null,0,c.repairNum) AS repairNum,
+        IF((b.repairNum - d.inputNum - e.scrapNum) IS NULL,0,(b.repairNum - d.inputNum - e.scrapNum)) AS repairedNum,IF(f.scrapNum IS NULL,0,f.scrapNum) AS scrapNum,
+        (a.stockNum + (IF(g.outNum IS NULL,0,g.outNum) - IF(b.repairNum IS NULL,0,b.repairNum)) + IF(c.repairNum is null,0,c.repairNum) +
+         IF((b.repairNum - d.inputNum - e.scrapNum) IS NULL,0,(b.repairNum - d.inputNum - e.scrapNum)) + IF(f.scrapNum IS NULL,0,f.scrapNum)) as stockNums
+
+   FROM
+        (
+			SELECT mtt.`NAME` AS maType,mt.`NAME` AS maModel,mt.ID AS modelId,mt.IS_COUNT AS isCount,
+			mt.UNIT AS maUnit,mt.NUM AS stockNum,'' AS outNum,'' AS repairNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN ma_org_relation mor ON mt.ID = mor.TYPE_ID
+			WHERE mt.`LEVEL` = 4 
+ 				 <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			</if> 
+         )a
+       LEFT JOIN (
+ 			SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS repairNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			WHERE wir.TYPE = 4 
+            <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			</if> 
+ 
+ 			GROUP BY wir.MODEL_ID
+		)b ON a.modelId = b.modelId
+       LEFT JOIN (
+			SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS repairNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			WHERE wir.TYPE IN (4,6)  AND wir.RM_STATUS != 11 AND wir.RM_STATUS = 2
+ 			  <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			</if> 
+ 			GROUP BY wir.MODEL_ID
+		)c ON a.modelId = c.modelId
+       LEFT JOIN (
+       		SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS inputNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			WHERE wir.TYPE = 3
+ 		   <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			</if> 
+ 			GROUP BY wir.MODEL_ID
+		)d ON a.modelId = d.modelId
+       LEFT JOIN (
+      		SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS scrapNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			WHERE (wir.TYPE = 4 AND wir.RM_STATUS IN (3,4)) OR (wir.TYPE = 8 AND wir.RM_STATUS IN (10,4))
+ 			  <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			</if> 
+ 			GROUP BY wir.MODEL_ID
+		)e ON a.modelId = e.modelId
+       LEFT JOIN (
+       		SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS scrapNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			WHERE (wir.TYPE = 4 AND wir.RM_STATUS = 4) OR (wir.TYPE = 8 AND wir.RM_STATUS = 4)
+ 			  <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND mor.ORG_ID = #{param.companyId}
+			  </if> 
+ 			GROUP BY wir.MODEL_ID
+		    )f ON a.modelId = f.modelId
+
+
+            LEFT JOIN (
+       		SELECT mt.`NAME` AS maType,mtt.`NAME` AS maModel,mtt.ID AS modelId,
+			mtt.UNIT AS maUnit,mtt.NUM AS stockNum,SUM(wir.NUM) AS outNum
+			FROM mm_type mt
+			LEFT JOIN mm_type mtt ON mt.ID = mtt.PARENT_ID
+			LEFT JOIN ma_org_relation mor ON mtt.ID = mor.TYPE_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = mtt.ID
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+			LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID AND wcd.MODEL_ID = wir.MODEL_ID
+			WHERE wir.TYPE = 2 AND wtr.IS_FINISH = 1 AND wcd.IS_APPROVAL = 1
+
+            <if test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+				AND wtr.ORG_ID = #{param.companyId}
+			</if>
+			GROUP BY wir.MODEL_ID
+        )g ON a.modelId = g.modelId
+
+        where 1=1
+ 
+        <if test="param.deviceName != null and param.deviceName != ''">
+                and a.maType like concat('%',#{param.deviceName},'%')
+        </if>
+        <if test="param.deviceModel != null and param.deviceModel != ''">
+                and a.maModel like concat('%',#{param.deviceModel},'%')
+        </if>
+        GROUP BY a.modelId
+ 	</select>
+ 	
+ 	<select id="findByPageTwo" parameterType="com.bonus.ma.beans.MaStockBean" resultMap="stock">
+		SELECT 	DISTINCT mat2.`NAME` as deviceName,mat1.`NAME` as deviceModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,mam.DEVICE_CODE as deviceCode,
+				mam.QRCODE as qrCode,mam.BATCH_STATUS as status,mam.IS_SCRAP as isScrap
+		FROM ma_machines mam
+		LEFT JOIN ma_status mas on mas.BATCH_STATUS = mam.BATCH_STATUS
+		LEFT JOIN ma_type mat1 on mat1.ID = mam.TYPE
+		LEFT JOIN ma_type mat2 on mat2.ID = mat1.PARENT_ID
+		where mat1.ID = #{param.typeId}  
+		<if test="param.status == 5 or param.status == '5'">
+			and mam.BATCH_STATUS = 5
+		</if>
+		<if test="param.status == 6 or param.status == '6'">
+			and mam.BATCH_STATUS = 6
+		</if>
+		<if test="param.status == 7 or param.status == '7'">
+			and mam.BATCH_STATUS in(7,8,13,14,16,17)
+		</if>
+		<if test="param.status == 9 or param.status == '9'">
+			and mam.BATCH_STATUS in(4,9)
+		</if>
+		<if test="param.status == 11 or param.status == '11'">
+			and mam.BATCH_STATUS in(11,12)
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				mam.DEVICE_CODE like concat('%',#{param.keyWord},'%') OR
+				mam.QRCODE like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select>
+ 	
+ 	<select id="findStockDetails" parameterType="com.bonus.ma.beans.MaStockBean" resultMap="stock">
+		SELECT 	DISTINCT mat2.`NAME` as deviceName,mat1.`NAME` as deviceModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,mam.DEVICE_CODE as deviceCode,
+				mam.QRCODE as qrCode,mam.BATCH_STATUS as status,mam.IS_SCRAP as isScrap
+		FROM ma_machines mam
+		LEFT JOIN ma_status mas on mas.BATCH_STATUS = mam.BATCH_STATUS
+		LEFT JOIN ma_type mat1 on mat1.ID = mam.TYPE
+		LEFT JOIN ma_type mat2 on mat2.ID = mat1.PARENT_ID
+		where mat1.ID = #{param.typeId} 
+	
+		<if test="param.status == null or param.status == ''">
+		    and  mas.MA_STATUS != 11 
+		</if> 
+		
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				mam.DEVICE_CODE like concat('%',#{param.keyWord},'%') OR
+				mam.QRCODE like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select>
+ 	
+ 	 <select id="findStockLoss" parameterType="com.bonus.ma.beans.MaStockBean" resultMap="stock">
+		  
+    SELECT DISTINCT  deviceName,maId,typeId,deviceModel,leaseNum,returnNum,buyPrice,deviceUnit,deviceCode,qrCode,isCount,isBalance
+           FROM(
+           SELECT 	 DISTINCT bat.AGREEMENT_ID as agreementId,mtb.`NAME` as deviceName,ttm.MA_ID as maId,mta.ID as typeId,mta.`NAME` as deviceModel,
+				     mta.UNIT as deviceUnit,left(bmc.CREATE_TIME,10) as leaseDate,bma.SETTLEMENT_TIME as settlementTime,mta.LEASE_PRICE as leasePrice,
+				     COUNT(ttm.MA_ID) as leaseNum,0 returnNum,mta.BUY_PRICE as buyPrice,mam.DEVICE_CODE as deviceCode,mam.QRCODE as qrCode,mta.IS_COUNT AS isCount, bma.IS_BALANCE  as isBalance
+		   FROM ba_ma_collar bmc
+		   LEFT JOIN ba_agreement_task bat ON bmc.ID = bat.TASK_ID
+		   LEFT JOIN tm_task_ma ttm ON bmc.ID = ttm.TASK_ID
+           LEFT JOIN ma_machines mam ON ttm.MA_ID = mam.ID
+		   LEFT JOIN ma_type mta ON mam.TYPE = mta.ID
+	       LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+	       LEFT JOIN ba_ma_agreement bma ON bat.AGREEMENT_ID = bma.ID
+		WHERE  bma.IS_BALANCE = #{param.isBalance}  AND mta.ID = #{param.typeId}
+		GROUP BY maId,left(bmc.CREATE_TIME,10)
+   UNION
+    SELECT 	DISTINCT bat.AGREEMENT_ID as agreementId,mtb.`NAME` as deviceName,ttm.MA_ID as maId,mta.ID as typeId,mta.`NAME` as deviceModel,
+				mta.UNIT as deviceUnit,left(bmb.CREATE_TIME,10) as returnDate,bma.SETTLEMENT_TIME as settlementTime,mta.LEASE_PRICE as leasePrice,
+                0 leaseNum,COUNT(ttm.MA_ID) as returnNum,mta.BUY_PRICE as buyPrice,mam.DEVICE_CODE as deviceCode,mam.QRCODE as qrCode,mta.IS_COUNT AS isCount, bma.IS_BALANCE  as isBalance
+		FROM ba_ma_back bmb
+		LEFT JOIN ba_agreement_task bat ON bmb.ID = bat.TASK_ID
+		LEFT JOIN tm_task_ma ttm ON bmb.ID = ttm.TASK_ID
+        LEFT JOIN ma_machines mam ON ttm.MA_ID = mam.ID
+		LEFT JOIN ma_type mta ON mam.TYPE = mta.ID
+		LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+        LEFT JOIN ba_ma_agreement bma ON bat.AGREEMENT_ID = bma.ID
+		WHERE  bma.IS_BALANCE = #{param.isBalance} AND mta.ID = #{param.typeId}
+		GROUP BY maId,left(bmb.CREATE_TIME,10)
+   ) a
+	where 1 = 1 and leaseNum - returnNum > 0
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				deviceName like concat('%',#{param.keyWord},'%') OR
+				deviceModel like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select> 
+</mapper>

@@ -1,0 +1,131 @@
+package com.bonus.index.service;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.core.DateTimeHelper;
+import com.bonus.index.beans.IndexHomeBean;
+import com.bonus.index.beans.IndexHomeResourseBean;
+import com.bonus.index.beans.PartFiveBean;
+import com.bonus.index.beans.PartOneBean;
+import com.bonus.index.beans.PartThreeBean;
+import com.bonus.index.beans.PartTwoBean;
+import com.bonus.index.dao.IndexHomeDao;
+import com.bonus.sys.BaseServiceImp;
+import com.bonus.sys.UserShiroHelper;
+import com.bonus.sys.beans.UserBean;
+
+@Service("indexHome")
+public class IndexHomeServiceImp extends BaseServiceImp<IndexHomeBean> implements IndexHomeService{
+
+	@Autowired
+	private IndexHomeDao dao;
+
+	@Override
+	public List<IndexHomeBean> getPartOneData(IndexHomeBean o) {
+		
+		return dao.getPartOneData(o);
+	}
+
+	@Override
+	public List<IndexHomeBean> getPartTwoData(IndexHomeBean o) {
+		
+		return dao.getPartTwoData(o);
+	}
+
+	@Override
+	public List<PartThreeBean> getPartThreeData(IndexHomeBean o) {
+		
+		return dao.getPartThreeData(o);
+	}
+
+	@Override
+	public List<IndexHomeBean> getPartFourData(IndexHomeBean o) {
+		
+		return dao.getPartFourData(o);
+	}
+
+	@Override
+	public List<PartFiveBean> getPartFiveData(IndexHomeBean o) {
+	
+		return dao.getPartFiveData(o);
+	}
+
+	@Override
+	public List<IndexHomeBean> getPartSixData(IndexHomeBean o) {
+	
+		return dao.getPartSixData(o);
+	}
+
+	@Override
+	public void insertIndexInfo() {
+		
+		String res = "";
+		int rs = 0;
+		try {
+			rs  = createOver();
+	        
+			rs = createInput();
+		
+		
+			res = "1";
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			res = "-1";
+		}
+	}
+
+	private int createInput() {
+		int rs = 0;
+		PartTwoBean two = dao.getInputview();
+		
+		PartTwoBean type = dao.getTypeview();
+		
+		two.setEquipmentCount(type.getEquipmentCount());
+		two.setTime(DateTimeHelper.getNowTime());
+		two.setDeviceCount(type.getDeviceCount());
+		rs = dao.insertPartTwo(two);
+		return rs;
+	}
+
+	private int createOver() {
+		int rs = 0;
+		PartOneBean one = dao.getOverview();
+		one.setTime(DateTimeHelper.getNowTime());
+		rs = dao.insertPartOne(one);
+		return rs;
+	}
+
+	@Override
+	public List<IndexHomeResourseBean> getHomeResource(IndexHomeResourseBean o) {
+		
+		return dao.getHomeResource(o);
+	}
+
+	@Override
+	public List<IndexHomeResourseBean> getResource(IndexHomeResourseBean o) {
+		return dao.getResource(o);
+	}
+
+	@Override
+	public int saveResourse(IndexHomeResourseBean o) {
+
+		List<String> list = Arrays.asList(o.getList());
+		if(list !=null && list.size()>0){
+			dao.deleteResourse(o);
+			 
+			for(int i=0 ; i<list.size(); i++){
+				String rsId = list.get(i) ;
+				o.setRsId(rsId);
+				dao.insertResourse(o);
+			}
+		}
+		
+		return 0;
+	}
+	
+}
+

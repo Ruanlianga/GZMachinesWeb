@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.LibNumsInventoryDao">
+
+	<resultMap id="inventory" type="com.bonus.ma.beans.LibNumsInventoryBean"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.LibNumsInventoryBean"
+		resultMap="inventory">
+		SELECT mli.ID,mta.id as maModelId,mtb.`NAME` as maTypeName,mta.`NAME` as maModelName,
+		IF(mta.NUM is null,0,mta.NUM) as num,mli.IS_PROFIT as isProfit,mli.IN_NUMS as inNums,mli.REMARK,mta.unit,pmo.name as companyName
+		FROM ma_lib_inventroy mli
+		LEFT JOIN mm_type mta ON mli.TYPE_ID = mta.ID
+		LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = mli.ORG_ID
+		WHERE ISNULL(mli.IS_PROFIT)
+		<if test="param.orgId != 1 and param.orgId != '1'">
+			and mli.org_id=#{param.orgId}
+		</if>
+	</select>
+
+	<select id="find" parameterType="com.bonus.ma.beans.LibNumsInventoryBean"
+		resultMap="inventory">
+		SELECT mli.ID,mta.id as maModelId,pmo.name as companyName,mtb.`NAME` as maTypeName,mta.`NAME` as maModelName,mta.NUM as num,
+		mli.IS_PROFIT as isProfit,mli.IN_NUMS as inNums,mli.REMARK,mta.unit
+		FROM ma_lib_inventroy mli
+		LEFT JOIN mm_type mta ON mli.TYPE_ID = mta.ID
+		LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = mli.ORG_ID
+		WHERE mli.ID = #{id}
+	</select>
+	
+	<select id="findByModelId" parameterType="com.bonus.ma.beans.LibNumsInventoryBean"
+		resultType="java.lang.String">
+		SELECT SUM(mli.ID) FROM ma_lib_inventroy mli
+		WHERE mli.TYPE_ID = #{maModelId} AND ISNULL(mli.IS_PROFIT)
+	</select>
+
+	<insert id="insert" parameterType="com.bonus.ma.beans.LibNumsInventoryBean">
+		insert into ma_lib_inventroy (TYPE_ID,org_id) VALUES  (#{maModelName},#{orgId});
+	</insert>
+
+	<update id="update" parameterType="com.bonus.ma.beans.LibNumsInventoryBean">
+		update ma_lib_inventroy
+		<set>
+            <if test="remark != null">
+              	REMARK = #{remark},
+            </if>
+             <if test="isProfit != null">
+              	IS_PROFIT = #{isProfit},
+            </if>
+             <if test="inNums != null">
+              	IN_NUMS = #{inNums},
+            </if>
+             <if test="createTime != null">
+              	CREATE_TIME = #{createTime},
+            </if>
+         </set>
+		where ID = #{id}
+	</update>
+	
+	<update id="addLibs" parameterType="com.bonus.ma.beans.LibNumsInventoryBean">
+		update ma_lib_inventroy
+		<set>
+             <if test="remark != null">
+              	REMARK = #{remark},
+            </if>
+             <if test="isProfit != null">
+              	IS_PROFIT = #{isProfit},
+            </if>
+             <if test="inNums != null">
+              	IN_NUMS = #{inNums},
+            </if>
+         </set>
+		where ID = #{id}
+	</update>
+
+	<delete id="delete" parameterType="com.bonus.ma.beans.LibNumsInventoryBean">
+		delete from ma_lib_inventroy 
+		where ID = #{id}
+	</delete>
+
+</mapper>

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.LeaseApplicationDao" >
+    <resultMap id="leaseApplication" type="com.bonus.lease.beans.LeaseApplicationBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultMap="leaseApplication">
+		SELECT wca.ID,wca.APPLY_NUMBER as applyNumber,wca.PROPOSER,wca.PHONE,wca.APPLY_TIME as applyTime,
+		wca.AGREEMENT_ID as agreementId,bu.`NAME` as unitName,bp.`NAME` as workName,bp.ID as projectType,wca.IS_SURE as isSure,
+		wla.`CODE` as agreementCode,wca.OPERATOR,wca.OPERATION_TIME as operationTime,wca.REMARK,bs.`NAME` as subcontractors,wtr.ID AS taskId
+		FROM wf_collar_apply  wca
+		LEFT JOIN wf_lease_agreement wla ON wca.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN bm_subcontractors bs ON wca.SUBCONTRACTORS_ID = bs.ID
+		LEFT JOIN wf_task_record wtr ON wtr.NUMBER = wca.APPLY_NUMBER
+		WHERE left(wca.APPLY_TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+		and wca.IS_ACTIVE = 1
+		<if test="param.companyId != 1 and param.companyId != '1' and param.companyId !='' and param.companyId !=null ">
+		AND wtr.ORG_ID = #{param.companyId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				wca.APPLY_NUMBER LIKE CONCAT('%',#{param.keyWord},'%')
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bs.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultMap="leaseApplication">
+        SELECT wca.ID,wca.APPLY_NUMBER as applyNumber,wca.PROPOSER,wca.PHONE,wca.APPLY_TIME as applyTime,
+		wca.AGREEMENT_ID as agreementId,bu.`NAME` as unitName,bp.`NAME` as workName,wca.IS_SURE as isSure,
+		wla.`CODE` as agreementCode,wca.OPERATOR,wca.OPERATION_TIME as operationTime,wca.REMARK
+		FROM wf_collar_apply  wca
+		LEFT JOIN wf_lease_agreement wla ON wca.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		WHERE wca.IS_ACTIVE = 1 AND wca.ID = #{id}
+    </select>
+    
+    <select id="findApplyNumber" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_collar_apply wca
+		WHERE wca.APPLY_TIME LIKE CONCAT("%",#{applyTime},"%")
+ 	</select>
+    
+    <select id="findLeaseApplyNumber" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_collar_apply wca
+		WHERE wca.APPLY_TIME LIKE CONCAT("%",#{applyTime},"%")
+		AND wca.IS_SURE = 1
+ 	</select>
+    
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    	insert into wf_collar_apply
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="applyNumber != null">
+				APPLY_NUMBER,
+			</if>
+			<if test="proposer != null">
+				PROPOSER,
+			</if>
+			<if test="applyTime != null">
+				APPLY_TIME,
+			</if>
+			<if test="phone != null">
+				PHONE,
+			</if>
+			<if test="agreementId != null">
+				AGREEMENT_ID,
+			</if>
+			<if test="operator != null">
+				OPERATOR,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			<if test="subcontractors != null">
+				SUBCONTRACTORS_ID,
+			</if>
+			IS_SURE,IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="applyNumber != null">
+				#{applyNumber},
+			</if>
+			<if test="proposer != null">
+				#{proposer},
+			</if>
+			<if test="applyTime != null">
+				#{applyTime},
+			</if>
+			<if test="phone != null">
+				#{phone},
+			</if>
+			<if test="agreementId != null">
+				#{agreementId},
+			</if>
+			<if test="operator != null">
+				#{operator},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			<if test="subcontractors != null">
+				#{subcontractors},
+			</if>
+			0,1
+		</trim>
+    </insert>
+ 	
+ 	<delete id="delete" parameterType="com.bonus.lease.beans.LeaseApplicationBean">
+ 		delete from wf_process_record where id = #{id}
+ 	</delete>
+ 	
+ 	<update id="update" parameterType="com.bonus.lease.beans.LeaseApplicationBean">
+ 		update wf_collar_apply
+        <set>
+             <if test="proposer !=null">
+              PROPOSER = #{proposer},
+            </if>
+             <if test="applyTime !=null">
+              APPLY_TIME = #{applyTime},
+            </if>
+            <if test="phone != null">
+               PHONE = #{phone},
+            </if>
+            <if test="isSure != null">
+               IS_SURE = #{isSure},
+            </if>
+             <if test="remark != null">
+              REMARK = #{remark},
+            </if>
+        </set>
+ 		where id = #{id}
+ 	</update>
+ 	
+    <delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wf_collar_apply WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="getTaskDetails" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultType="com.bonus.lease.beans.LeaseApplicationBean">
+ 		SELECT wcd.ID
+			FROM wf_collar_details wcd 
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wcd.TASK_ID
+			LEFT JOIN wf_task_record wtr2 ON wtr2.ID = wtr.SUP_ID
+			LEFT JOIN wf_collar_apply wca ON wca.ID = wtr2.SUP_ID
+			WHERE wca.ID = #{id} AND LEFT(wtr.OPERATION_TIME,10) = LEFT(wca.APPLY_TIME,10)
+ 	</select>
+	
+	<update id="deleteApply" parameterType="com.bonus.lease.beans.LeaseApplicationBean">
+		update 
+			wf_collar_apply
+		set
+		    is_active = 0
+		where 
+			id = #{id} 
+	</update>
+	
+	<select id="getApplyNumberById" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultType="com.bonus.lease.beans.LeaseApplicationBean">
+ 		SELECT wca.APPLY_NUMBER as applyNumber FROM wf_collar_apply wca WHERE ID = #{id}
+ 	</select>
+	<delete id="delByNumber" parameterType="java.util.List">
+		DELETE FROM	wf_task_record WHERE NUMBER = #{applyNumber}
+	</delete>
+	
+   <select id="getSubInfo" parameterType="com.bonus.lease.beans.LeaseApplicationBean" resultType="com.bonus.lease.beans.LeaseApplicationBean">
+ 		SELECT
+				bs.ID,
+				bs.`NAME` as subcontractors
+			FROM
+				wf_collar_apply wca 
+				LEFT JOIN bm_subcontractors bs on wca.SUBCONTRACTORS_ID = bs.ID 
+			WHERE
+				wca.AGREEMENT_ID = #{agreementId}
+				ORDER BY wca.ID desc
+				LIMIT 1
+ 	</select>
+
+    <select id="getPlanIsExistProject" resultType="int">
+		select count(1) from t_pro_plan_info where pro_id = #{projectId}
+    </select>
+
+    <update id="updateProjectOutOrderNum">
+		update t_pro_plan_info set out_order_num = out_order_num + 1 where pro_id = #{proId}
+	</update>
+
+    <insert id="insertProjectOutOrderNum">
+		insert into t_pro_plan_info(pro_id,need_num,plan_num,record_num,out_num,status,tz_num,out2_num,record2_num)
+			values(#{proId},0,0,1,0,0,0,0,1)
+	</insert>
+
+    <select id="getLeaseOrderIsExistProject" resultType="int">
+		select id from t_plan_out where pro_id = #{projectId} and create_day = CURRENT_DATE
+	</select>
+
+    <insert id="insertLeaseOrderByProject" useGeneratedKeys="true" keyProperty="id">
+		insert into t_plan_out(pro_id,consignor,shipment_date,remarks,create_time,create_day,creater)
+			values(#{proId},#{userName},CURRENT_DATE,#{remarks},now(),CURRENT_DATE,#{createUser})
+	</insert>
+
+    <insert id="insertLeaseOutOrderDetails">
+		INSERT INTO t_plan_out_detail (out_id, type, name, module, unit, module_id, fh_num, tz_num, remarks, data_type)
+		VALUES (#{planOutId}, #{type}, #{name}, #{module}, #{unit}, #{moduleId}, #{fhNum}, 0, #{remarks}, '2')
+		ON DUPLICATE KEY UPDATE fh_num = fh_num + #{fhNum}
+	</insert>
+
+    <update id="updateProjectPlanOutNum">
+		update
+			t_pro_plan_info
+		set
+		   out_num = out_num + #{fhNum},
+		   status = '2',
+		   last_day = CURRENT_DATE,out2_num = out2_num + #{fhNum}
+		where pro_id = #{proId}
+	</update>
+</mapper>

@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.scrap.dao.ScrapDetailsDao" >
+    <resultMap id="scrap" type="com.bonus.scrap.beans.ScrapDetailsBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wsd.ID as id,wsd.is_active as isActive,ROUND(wsd.SCRAP_NUM) AS scrapNum,mt.`NAME` AS modelName,wsd.SCRAP_TIME AS scrapTime,
+		mtt.`NAME` AS typeName,pu.`NAME` AS scrapChecker,wsd.SCRAP_PERSON as scrapPersonId,puu.`NAME` AS scrapPerson,
+		wsd.OPERATION_TIME as operationTime
+		FROM wf_scrap_details wsd
+		LEFT JOIN mm_type mt ON mt.ID = wsd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_CHECKER
+		LEFT JOIN pm_user puu ON puu.ID = wsd.SCRAP_PERSON
+		WHERE left(wsd.OPERATION_TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+    GROUP BY wsd.TASK_ID,wsd.MODEL_ID
+ 	</select>
+ 	
+	<update id="update" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_scrap_details set SCRAP_PERSON = #{scrapPerson},	SCRAP_CHECKER = #{scrapPerson}
+       	where ID = #{id}
+	</update>
+	
+	<update id="addScrapReason" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_scrap_details set 
+		IS_SURE = #{isSure},
+		SCRAP_TIME = #{scrapTime},
+		ALSCRAP_NUM = #{alScrapNum}
+       	where ID = #{id}
+	</update>
+	
+	<update id="surePeople" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_scrap_details set is_active = 0
+       	where ID = #{id}
+	</update>
+	
+	<update id="updateInfo" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_info_record set RM_STATUS = #{rmStatus}
+       	where ID = #{infoId}
+	</update>
+	
+ 	 <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    	insert wf_scrap_details
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="modelId != null">
+				MODEL_ID,
+			</if>
+			<if test="scrapTime != null">
+				SCRAP_TIME,
+			</if>
+			<if test="scrapNum != null">
+				SCRAP_NUM,
+				</if>
+			<if test="scrapChecker != null">
+				SCRAP_CHECKER,
+			</if>
+			<if test="scrapPerson != null">
+				SCRAP_PERSON,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="checkId != null">
+				CHECK_ID,
+			</if>
+			<if test="isSure != null">
+				IS_SURE,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="modelId != null">
+				#{modelId},
+			</if>
+			<if test="scrapTime != null">
+				#{scrapTime},
+			</if>
+			<if test="scrapNum != null">
+				#{scrapNum},
+			</if>
+			<if test="scrapChecker != null">
+				#{scrapChecker},
+			</if>
+			<if test="scrapPerson != null">
+				#{scrapPerson},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="checkId != null">
+				#{checkId},
+			</if>
+			<if test="isSure != null">
+				#{isSure},
+			</if>
+			1,
+		</trim>
+    </insert>
+    
+ 	 <select id="findScrapTask" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wtr.SUP_ID AS supId,wsd.OPERATION_TIME AS operationTime,wtr.NUMBER AS scrapNumber,
+		bp.`NAME` AS projectName,bu.`NAME` AS companyName,wsd.IS_SURE AS isSure,
+ 	  	pu.`NAME` AS scrapChecker,wsd.MODEL_ID AS modelId,wsd.TASK_ID AS taskId,
+		if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS typeName,
+		wtr.DEFINITION_ID AS definitionId
+		FROM wf_task_record wtr
+		LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wtr.ID
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_CHECKER
+		LEFT JOIN mm_type mt ON mt.ID = wsd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wtr.DEFINITION_ID IN (19,22,26) AND wsd.IS_ACTIVE = 0
+		<if test="isSure != null and isSure !='' ">
+			AND wsd.IS_SURE = #{isSure}
+		</if>			
+		<if test="keyWord != null and keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR wtr1.NUMBER LIKE CONCAT('%',#{keyWord},'%')	
+				OR bu.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+			)
+		</if>
+		AND wsd.SCRAP_PERSON = #{id}
+		GROUP BY wsd.TASK_ID
+ 	</select>
+
+ 	<select id="findScrapTaskDetails" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wsd.TASK_ID AS taskId,mt.`NAME` AS modelName,mtt.`NAME` AS typeName,
+		ROUND(wsd.SCRAP_NUM) AS scrapNum,pu.`NAME` AS scrapChecker,mt.IS_COUNT AS isCount,
+		wsd.OPERATION_TIME as operationTime,wsd.MODEL_ID AS modelId,wsd.ID as id,
+		ROUND(IF(wsd.ALSCRAP_NUM IS NULL,0,wsd.ALSCRAP_NUM)) as alScrapNum,wsd.CHECK_ID AS checkId,
+		wsd.IS_SURE AS isSure
+		FROM wf_scrap_details wsd 
+		LEFT JOIN mm_type mt ON mt.ID = wsd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_CHECKER
+		WHERE wsd.TASK_ID = #{taskId}
+		GROUP BY wsd.ID
+ 	</select>
+ 	
+ 	  <select id="findScrapDevice" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wsd.TASK_ID AS taskId, wir.`CODE` AS deviceCode,mt.`NAME` AS modelName,mtt.`NAME` AS typeName,
+			mt.IS_COUNT AS isCount,ROUND(wir.NUM) AS scrapNum,wir.MODEL_ID as modelId,wir.RM_STATUS as isFinish,wir.ID as infoId,
+			wsd.ID as id
+			FROM wf_info_record wir
+			LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+			LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+			LEFT JOIN wf_task_record wtr1 ON wtr.ID = wtr1.SUP_ID
+			LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wtr1.ID AND wir.MODEL_ID = wsd.MODEL_ID
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			WHERE wsd.TASK_ID = #{taskId} AND wir.TYPE = 4 AND wsd.MODEL_ID = #{modelId}
+			AND (wir.RM_STATUS = 3 OR wir.RM_STATUS = 4 )
+			GROUP BY wir.ID
+ 	</select>
+ 	
+ 	  <select id="findReturnScrapDevice" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wsd.TASK_ID AS taskId, wir.`CODE` AS deviceCode,mt.`NAME` AS modelName,mtt.`NAME` AS typeName,
+			mt.IS_COUNT AS isCount,wir.MODEL_ID as modelId,wir.RM_STATUS as isFinish,wir.ID as infoId,
+			wsd.ID as id,wsd.CHECK_ID AS checkId
+			FROM wf_info_record wir
+			LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+			LEFT JOIN wf_scrap_details wsd ON wsd.CHECK_ID = wrc.ID AND wir.MODEL_ID = wsd.MODEL_ID
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			WHERE wsd.TASK_ID = #{taskId} AND wsd.MODEL_ID = #{modelId}
+			AND wir.RM_STATUS IN (4,10) AND wsd.ID IS not NULL
+			GROUP BY wir.ID
+ 	</select>
+ 	
+ 	  <select id="findAlScrapNum" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT ROUND(wsd.ALSCRAP_NUM) AS alScrapNum
+			FROM wf_scrap_details wsd 
+			WHERE wsd.TASK_ID = #{taskId}  AND wsd.MODEL_ID = #{modelId}
+ 	</select>
+ 	  <select id="findCheckTaskId" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT DISTINCT wrc.TASK_ID AS taskId
+			FROM wf_scrap_details wsd
+			LEFT JOIN wf_repair_check wrc ON wrc.ID = wsd.CHECK_ID
+			WHERE wsd.TASK_ID = #{taskId}
+ 	</select>
+ 	
+ 	  <select id="findInfoNums" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT SUM(wfd.num) AS nums
+			FROM wf_info_record wfd
+			WHERE wfd.SUP_ID = #{taskId} AND wfd.MODEL_ID = #{modelId} AND wfd.TYPE = 7 AND wfd.RM_STATUS = 4
+ 	</select>
+ 	
+ 	  <select id="findInfoId" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT DISTINCT wir.ID AS infoId
+			FROM wf_info_record wir
+			LEFT JOIN wf_return_material_details wrmd ON wrmd.ID = wir.SUP_ID
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wrmd.TASK_ID
+			LEFT JOIN wf_task_record wtr1 ON wtr1.SUP_ID = wtr.ID
+			LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wtr1.ID AND wsd.MODEL_ID = wir.MODEL_ID
+			WHERE wsd.TASK_ID = #{taskId} AND wsd.MODEL_ID = #{modelId}
+			AND wir.TYPE = 4 AND wir.RM_STATUS = 3
+			<if test="deviceCode != null and deviceCode !='' ">
+			AND wir.`CODE` = #{deviceCode}
+		</if>
+ 	</select>
+ 	
+ 	  <select id="findCheckInfo" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wir.ID AS infoId
+			FROM wf_info_record wir
+			LEFT JOIN wf_repair_check wrc ON wir.SUP_ID = wrc.TASK_ID
+			LEFT JOIN wf_scrap_details wsd ON wsd.CHECK_ID = wrc.ID
+			WHERE wsd.TASK_ID = #{taskId} AND wir.MODEL_ID = #{modelId}
+			AND wir.TYPE = 8 AND wir.RM_STATUS = 10
+			<if test="deviceCode != null and deviceCode !='' ">
+			AND wir.`CODE` = #{deviceCode}
+		</if>
+ 	</select>
+ 	
+ 	<update id="updateScrapNum" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_scrap_details set SCRAP_NUM = #{scrapNum}
+       	where CHECK_ID = #{checkId} and MODEL_ID = #{modelId}
+	</update>
+	
+	  <select id="getRepeatData" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		SELECT wsd.TASK_ID AS taskId
+			FROM wf_scrap_details wsd
+		
+			WHERE wsd.TASK_ID = #{taskId} AND wsd.MODEL_ID = #{modelId}
+		limit 1
+ 	</select>
+ 	
+ 	 <select id="getScrapIndexList" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+     	  SELECT
+			wsd.MODEL_ID as modelId,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as modelName,
+			SUM(wsd.SCRAP_NUM) as scrap,
+			SUM(ROUND(wsd.ALSCRAP_NUM)) as alScrapNum ,
+			SUM(ROUND(wsd.SCRAP_NUM)) - SUM(ROUND(wsd.ALSCRAP_NUM)) as scrapingNum,
+			mt.IS_COUNT as isCount,
+			0 as  isFinish
+			FROM
+			wf_scrap_details wsd 
+			LEFT JOIN mm_type mt on wsd.MODEL_ID = mt.id
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+			where 1=1 and wsd.SCRAP_PERSON is not null
+		<if test="keyWord != null and keyWord !='' ">
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				
+			)
+		</if>
+			GROUP BY wsd.MODEL_ID
+			HAVING scrapingNum > 0
+     	
+ 	</select>
+ 	
+ 	
+	  <select id="getScrapedIndexList" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+
+     	
+     	  SELECT
+			wsd.MODEL_ID as modelId,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as modelName,
+			SUM(wsd.SCRAP_NUM) as scrap,
+			SUM(wsd.ALSCRAP_NUM) as alScrapNum ,
+			mt.IS_COUNT as isCount,
+			0 as  isFinish
+			FROM
+			wf_scrap_details wsd 
+			LEFT JOIN mm_type mt on wsd.MODEL_ID = mt.id
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+			where 1=1 
+		<if test="keyWord != null and keyWord !='' ">
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				
+			)
+		</if>
+			GROUP BY wsd.MODEL_ID
+			HAVING alScrapNum > 0
+     	
+ 	</select>
+ 	
+ 	
+ 	  <select id="findScrapCodeList" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		 		 SELECT
+					wir.ID,
+					wir.MODEL_ID as modelId,
+					mt2.`NAME` as typeName,
+					mt.`NAME` as modelName,
+					wir.`CODE` as deviceCode,
+					wir.RM_STATUS as rmStatus,
+					mm.REMARK as remark,
+					mm.batch_status as batchStatus
+				FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mm on wir.CODE = mm.DEVICE_CODE
+				LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+				WHERE  wir.MODEL_ID = #{modelId} and wir.TYPE = 9 AND wir.RM_STATUS = 3
+	
+			<if test="keyWord != null and keyWord !='' ">
+			
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				OR wir.`CODE` LIKE CONCAT('%',#{keyWord},'%')	
+				
+			)
+		</if>
+ 	</select>
+ 	
+ 	 <select id="getMatchScrapList" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+			SELECT
+				wsd.ID as id,
+				wsd.TASK_ID as taskId,
+				wsd.MODEL_ID as modelId,
+				mt.`NAME` as typeName,
+				mt2.`NAME` as modelName,
+				ROUND(wsd.SCRAP_NUM) as scrapNum,
+				ROUND(wsd.ALSCRAP_NUM) as alScrapNum,
+				ROUND(wsd.SCRAP_NUM) - ROUND(wsd.ALSCRAP_NUM) as paraNum,
+				mt.IS_COUNT as isCount
+			FROM wf_scrap_details wsd
+			LEFT JOIN mm_type mt ON mt.ID = wsd.MODEL_ID
+			LEFT JOIN mm_type mt2 ON mt2.ID = mt.PARENT_ID
+			where wsd.MODEL_ID = #{modelId} 
+			
+			HAVING paraNum &gt; 0
+     	
+ 	</select>
+ 	
+ 	<update id="updateScrapStatus" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" >
+		update wf_info_record set
+				RM_STATUS = #{rmStatus}
+				
+       	where ID = #{id}
+	</update>
+	
+	 <update id="updateDeviceStatus" parameterType="com.bonus.repair.beans.RepairDetailsBean" >
+		update mm_machines set
+				batch_status = #{batchStatus}
+				
+       	where type = #{modelId} and DEVICE_CODE = #{deviceCode}
+	</update>
+	
+	<update id="updateScrapDetails" parameterType="com.bonus.repair.beans.RepairDetailsBean" >
+		update wf_scrap_details set
+		
+		<if test="isSure != null and isSure != ''">
+				is_sure = #{isSure},
+		</if>
+		<if test="thisScrapNum != null and thisScrapNum != ''">
+			ALSCRAP_NUM = (ifnull(ALSCRAP_NUM,0) + #{thisScrapNum}),
+		</if>
+		<if test="scrapTime != null and scrapTime != ''">
+				SCRAP_TIME = #{scrapTime}
+		</if>
+       	where id =#{id}
+	</update>
+	
+	 <insert id="insertScrapRecord">
+    	insert wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null and taskId != ''">
+				SUP_ID,
+			</if>
+			<if test="modelId != null and modelId != ''">
+				MODEL_ID,
+			</if>
+			<if test="deviceCode != null and deviceCode != ''">
+				CODE,
+			</if>
+			<if test="scrapTime != null and scrapTime != ''">
+				TIME,
+			</if>
+			<if test="thisScrapNum != null and thisScrapNum != '' ">
+				NUM,
+			</if>
+			<if test="infoType != null and infoType != ''">
+				TYPE,
+			</if>
+			<if test="rmStatus != null and rmStatus != ''">
+				RM_STATUS,
+			</if>
+			<if test="scrapPart != null and scrapPart != ''">
+				SCRAP_REASON,
+			</if>
+			<if test="scrapUrl != null and scrapUrl != ''">
+				SCRAP_URL,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null and taskId != ''">
+				#{taskId},
+			</if>
+			<if test="modelId != null and modelId != ''">
+				#{modelId},
+			</if>
+			<if test="deviceCode != null and deviceCode != ''">
+				#{deviceCode},
+			</if>
+			<if test="scrapTime != null and scrapTime != ''">
+				#{scrapTime},
+			</if>
+			<if test="thisScrapNum != null and thisScrapNum != '' ">
+				#{thisScrapNum},
+			</if>
+			<if test="infoType != null and infoType != ''">
+				#{infoType},
+			</if>
+			<if test="rmStatus != null and rmStatus != ''">
+				#{rmStatus},
+			</if>
+			<if test="scrapPart != null and scrapPart != ''">
+				#{scrapPart},
+			</if>
+			<if test="scrapUrl != null and scrapUrl != ''">
+				#{scrapUrl},
+			</if>
+		</trim>
+    </insert>
+ 	
+ 	 <select id="findScrapCodeListFinish" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="scrap">
+		 		 SELECT
+				wir.ID,
+				wir.MODEL_ID as modelId,
+				mt2.`NAME` as typeName,
+				mt.`NAME` as modelName,
+				wir.`CODE` as deviceCode,
+				wir.RM_STATUS as rmStatus,
+				mm.REMARK as remark,
+				wir.TIME as scrapTime,
+				mm.batch_status as batchStatus
+				FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mm on wir.CODE = mm.DEVICE_CODE
+				LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+				WHERE  wir.MODEL_ID = #{modelId} and wir.TYPE = 9 AND wir.RM_STATUS = 14
+	
+			<if test="keyWord != null and keyWord !='' ">
+			
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				OR wir.`CODE` LIKE CONCAT('%',#{keyWord},'%')	
+				
+			)
+		</if>
+ 	</select>
+ 	
+    
+</mapper>

@@ -1,0 +1,296 @@
+package com.bonus.bm.beans;
+
+public class ProjectManageBean {
+
+	private int id; // 工程ID
+	private String name; // 工程名称
+	private String num; // 工程编号
+	private String typeId; // 工程类别ID
+	private String typeId1; // 參數
+	private String typeName; // 工程类别名称
+	private String volId; // 电压等级ID
+	private String volId1; // 參數
+	private String volName; // 电压等级名称
+	private String companyId; // 公司ID
+	private String companyId1; // 參數
+	private String companyName; // 公司名称
+	private String manager; // 项目经理
+	private String nature; // 项目性质
+	private String telphone; // 联系电话
+	private String phone; // 手机
+	private String fax; // 传真
+	private String address; // 工程属地
+	private String remarks; // 备注
+	private String materialClerk; // 材料员
+	private String clerkPhone; // 材料员联系方式
+	private String isBalanceEnd; // 是否已结算完成
+	private String isBal; // 參數
+	private String startTime;
+	private String endTime;
+	private String timeType; // 时间类型，区分是项目创建时间黑市项目结算时间，0是创建时间，1是结算时间
+	private String settleTime; // 结算时间
+	private String keyWord;
+	private String unitId;
+	private String kilometer; //公里数
+	private String projectTime;
+
+	public String getProjectTime() {
+		return projectTime;
+	}
+
+	public void setProjectTime(String projectTime) {
+		this.projectTime = projectTime;
+	}
+
+	public String getKilometer() {
+		return kilometer;
+	}
+
+	public void setKilometer(String kilometer) {
+		this.kilometer = kilometer;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getNum() {
+		return num;
+	}
+
+	public void setNum(String num) {
+		this.num = num;
+	}
+
+	public String getTypeId() {
+		return typeId;
+	}
+
+	public void setTypeId(String typeId) {
+		this.typeId = typeId;
+	}
+
+	public String getTypeId1() {
+		return typeId1;
+	}
+
+	public void setTypeId1(String typeId1) {
+		this.typeId1 = typeId1;
+	}
+
+	public String getTypeName() {
+		return typeName;
+	}
+
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+
+	public String getVolId() {
+		return volId;
+	}
+
+	public void setVolId(String volId) {
+		this.volId = volId;
+	}
+
+	public String getVolId1() {
+		return volId1;
+	}
+
+	public void setVolId1(String volId1) {
+		this.volId1 = volId1;
+	}
+
+	public String getVolName() {
+		return volName;
+	}
+
+	public void setVolName(String volName) {
+		this.volName = volName;
+	}
+
+	public String getCompanyId() {
+		return companyId;
+	}
+
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
+	}
+
+	public String getCompanyId1() {
+		return companyId1;
+	}
+
+	public void setCompanyId1(String companyId1) {
+		this.companyId1 = companyId1;
+	}
+
+	public String getCompanyName() {
+		return companyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+
+	public String getManager() {
+		return manager;
+	}
+
+	public void setManager(String manager) {
+		this.manager = manager;
+	}
+
+	public String getNature() {
+		return nature;
+	}
+
+	public void setNature(String nature) {
+		this.nature = nature;
+	}
+
+	public String getTelphone() {
+		return telphone;
+	}
+
+	public void setTelphone(String telphone) {
+		this.telphone = telphone;
+	}
+
+	public String getPhone() {
+		return phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	public String getFax() {
+		return fax;
+	}
+
+	public void setFax(String fax) {
+		this.fax = fax;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getRemarks() {
+		return remarks;
+	}
+
+	public void setRemarks(String remarks) {
+		this.remarks = remarks;
+	}
+
+	public String getMaterialClerk() {
+		return materialClerk;
+	}
+
+	public void setMaterialClerk(String materialClerk) {
+		this.materialClerk = materialClerk;
+	}
+
+	public String getClerkPhone() {
+		return clerkPhone;
+	}
+
+	public void setClerkPhone(String clerkPhone) {
+		this.clerkPhone = clerkPhone;
+	}
+
+	public String getIsBalanceEnd() {
+		return isBalanceEnd;
+	}
+
+	public void setIsBalanceEnd(String isBalanceEnd) {
+		this.isBalanceEnd = isBalanceEnd;
+	}
+
+	public String getIsBal() {
+		return isBal;
+	}
+
+	public void setIsBal(String isBal) {
+		this.isBal = isBal;
+	}
+
+	public String getKeyWord() {
+		return keyWord;
+	}
+
+	public void setKeyWord(String keyWord) {
+		this.keyWord = keyWord;
+	}
+
+	public String getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	public String getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+
+	public String getTimeType() {
+		return timeType;
+	}
+
+	public void setTimeType(String timeType) {
+		this.timeType = timeType;
+	}
+
+	public String getSettleTime() {
+		return settleTime;
+	}
+
+	public void setSettleTime(String settleTime) {
+		this.settleTime = settleTime;
+	}
+
+	public String getUnitId() {
+		return unitId;
+	}
+
+	public void setUnitId(String unitId) {
+		this.unitId = unitId;
+	}
+
+	@Override
+	public String toString() {
+		return "ProjectManageBean [id=" + id + ", name=" + name + ", num=" + num + ", typeId=" + typeId + ", typeId1="
+				+ typeId1 + ", typeName=" + typeName + ", volId=" + volId + ", volId1=" + volId1 + ", volName="
+				+ volName + ", companyId=" + companyId + ", companyId1=" + companyId1 + ", companyName=" + companyName
+				+ ", manager=" + manager + ", nature=" + nature + ", telphone=" + telphone + ", phone=" + phone
+				+ ", fax=" + fax + ", address=" + address + ", remarks=" + remarks + ", materialClerk=" + materialClerk
+				+ ", clerkPhone=" + clerkPhone + ", isBalanceEnd=" + isBalanceEnd + ", isBal=" + isBal + ", startTime="
+				+ startTime + ", endTime=" + endTime + ", timeType=" + timeType + ", settleTime=" + settleTime
+				+ ", keyWord=" + keyWord + "]";
+	}
+}

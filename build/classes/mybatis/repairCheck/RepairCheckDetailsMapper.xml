@@ -1,0 +1,675 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.repairCheck.dao.RepairCheckDetailsDao" >
+    <resultMap id="repairCheck" type="com.bonus.repairCheck.beans.RepairCheckDetailsBean"></resultMap>
+    
+ 	 <select id="findCheckTask" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT wrc.OPERATION_TIME AS operationTime,wtr.NUMBER AS checkNumber,
+			bp.`NAME` AS projectName,bu.`NAME` AS unitName,wrc.TASK_ID AS taskId,
+			if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS typeName,
+			wtr.IS_FINISH AS isFinish,wtr2.NUMBER AS repairNumber,wtr.ORG_ID AS companyId,wtr.is_split as isSplit
+			FROM wf_repair_check wrc
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wrc.TASK_ID 
+			LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN wf_repair_details wrd ON wrd.ID = wrc.REPAIR_ID
+			LEFT JOIN wf_task_record wtr2 ON wtr2.ID = wrd.TASK_ID
+			LEFT JOIN mm_type mt ON mt.ID = wrc.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			WHERE wtr.IS_FINISH = #{isFinish}
+			<if test="companyId != 1 and companyId != '1' and companyId !='' and companyId !=null ">
+				AND wtr1.ORG_ID = #{companyId}
+			</if>
+			
+			<if test="startTime != null and startTime != '' and endTime != null and endTime != '' ">
+				AND(
+					wrc.OPERATION_TIME
+					BETWEEN #{startTime} AND #{endTime}
+				)
+			</if>
+			<!-- 如果关键字keyword不为空，则进行模糊匹配，为空则查询所有结果 -->
+			<if test="keyWord != null and keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR wrc.OPERATION_TIME LIKE CONCAT('%',#{keyWord},'%')	
+				OR wtr.NUMBER LIKE CONCAT('%',#{keyWord},'%')	
+				OR wtr2.NUMBER LIKE CONCAT('%',#{keyWord},'%')	
+			)
+			</if>
+			GROUP BY wrc.TASK_ID
+			
+ 	</select>
+ 	
+ 	  <select id="findCheckTaskDetails" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT wrc.TASK_ID AS taskId,wrc.ID AS id,mt.`NAME` AS modelName,ROUND(wrc.ALCHECK_NUM) AS alCheckNum,
+			mtt.`NAME` AS typeName,wrc.CHECK_NUM AS checkNum,mt.IS_COUNT AS isCount,
+			wrc.IS_SURE AS isSure,wrc.MODEL_ID AS modelId,wir.SUP_ID AS infoSupId,
+			wir.RM_STATUS AS isFinish,wtr.SUP_ID AS supId,
+			if(#{isSplit}, wrd.ALREPAIR_NUM -IFNULL(split_repair_num,0), IFNULL(this_repair_num,0) ) as repairNum ,
+			if(#{isSplit}, wrd.SCRAP_NUM - IFNULL(split_scrap_num,0), IFNULL(this_scrap_num,0)) AS scrapNum,
+		
+			pu.`NAME` AS repairMan 
+			FROM wf_repair_check wrc
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wrc.TASK_ID 
+			LEFT JOIN wf_repair_details wrd ON wrd.ID = wrc.REPAIR_ID
+			LEFT JOIN wf_info_record wir ON wir.SUP_ID = wrd.TASK_ID 
+			LEFT JOIN mm_type mt ON mt.ID = wrc.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+			WHERE wrc.TASK_ID = #{taskId} AND (wir.RM_STATUS IN (5,6,7,8,9,10,11))
+			AND wir.TYPE = 6
+			<if test="keyWord != null and keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+			)
+			</if>
+			GROUP BY wrc.MODEL_ID
+ 	</select>
+ 	
+ 	<select id="getCheckIndexList" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select * FROM (
+					SELECT
+				wrc.TASK_ID as taskId,
+				wrc.MODEL_ID AS modelId,
+				mt.`NAME` AS modelName,
+				pu.`NAME` AS repairMan ,
+				mtt.`NAME` AS typeName,
+				sum( IFNULL(ROUND(wrc.CHECK_NUM),0) - IFNULL(ROUND(wrc.ALCHECK_NUM),0)  ) AS repairNum,
+				sum( IFNULL(ROUND(wrc.SCRAP_NUM),0) - IFNULL(ROUND(wrc.ALSCRAP_NUM),0) ) AS scrapNum,
+				mt.IS_COUNT AS isCount,
+				GROUP_CONCAT(DISTINCT wrc.REPAIR_ID) as repairIds 
+				FROM 
+				wf_repair_check wrc
+				LEFT JOIN mm_type mt ON mt.ID = wrc.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.ID = wrc.REPAIR_ID
+				LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+				where 1=1
+				<if test="keyWord != null and keyWord !='' ">
+				AND(
+					mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+					OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				)
+				</if>
+					GROUP BY wrc.MODEL_ID
+				)a 
+			WHERE (a.repairNum +a.scrapNum) >0
+		
+ 	</select>
+ 	
+ 		<select id="getCheckedIndexList" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select * FROM (
+					SELECT
+					wrc.TASK_ID as taskId,
+		wrc.MODEL_ID AS modelId,
+		mt.`NAME` AS modelName,
+		pu.`NAME` AS repairMan ,
+		mtt.`NAME` AS typeName,
+		sum( IFNULL(ROUND(wrc.CHECK_NUM),0)  ) AS repairNum,
+		sum( IFNULL(ROUND(wrc.ALCHECK_NUM),0)  ) AS alCheckNum,
+		sum( IFNULL(ROUND(wrc.ALSCRAP_NUM),0) ) AS alScrapNum,
+		
+		(sum( IFNULL(ROUND(wrc.ALCHECK_NUM),0) )  + sum( IFNULL(ROUND(wrc.ALSCRAP_NUM),0))) AS checkNum,
+		mt.IS_COUNT AS isCount,
+		GROUP_CONCAT(DISTINCT wrc.REPAIR_ID) as repairIds 
+		FROM 
+		wf_repair_check wrc
+		LEFT JOIN mm_type mt ON mt.ID = wrc.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN wf_repair_details wrd ON wrd.ID = wrc.REPAIR_ID
+		
+		LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+		where 1=1
+		<if test="keyWord != null and keyWord !='' ">
+		AND(
+			mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+		)
+		</if>
+			GROUP BY wrc.MODEL_ID
+		)a 
+			WHERE a.checkNum > 0 
+		
+ 	</select>
+ 	
+ 		
+ 	 <select id="getMaxRepairTime" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+	 SELECT
+		    wir.ID,
+			wir.TIME as repairTime,
+			wir.REMARK
+		FROM
+		wf_info_record wir
+	  
+			WHERE wir.TYPE = 6 AND MODEL_ID =#{modelId}
+			
+			order by  wir.TIME desc
+			limit 1
+    </select>
+    
+ 	 <select id="getMaxCheckTime" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+	 SELECT
+		    wir.ID,
+			wir.TIME as checkTime,
+			wir.REMARK
+		FROM
+		wf_info_record wir
+	  
+			WHERE wir.TYPE = 8 AND MODEL_ID =#{modelId}
+			
+			order by  wir.TIME desc
+			limit 1
+    </select>
+    
+ 	
+ 		<select id="getCheckedNumList" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT
+		    wir.ID,
+		    mt2.`NAME` as typeName,
+			mt.`NAME` as modelName,
+			wir.`CODE`,
+			wir.NUM as checkNum,
+			wir.RM_STATUS as rmStatus,
+			wir.TIME as operationTime,
+			wir.REMARK
+		FROM
+		wf_info_record wir
+	   	LEFT JOIN mm_type mt on wir.MODEL_ID = mt.id
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+			WHERE wir.TYPE = 8 AND MODEL_ID = #{modelId}
+			AND LEFT(wir.TIME,10) BETWEEN #{startTime} and #{endTime} 
+			<if test="keyWord != null and keyWord !='' ">
+				AND(
+					mtt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+					OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+				)
+			</if>
+		ORDER BY wir.TIME DESC
+		
+ 	</select>
+ 	
+ 	<select id="getCheckId" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+ 		SELECT ID as checkId,(ifNULL(ROUND(CHECK_NUM),0)-ifNull(ROUND(ALCHECK_NUM),0)) as checkNum,
+		(ifNULL(ROUND(SCRAP_NUM),0)-ifNull(ROUND(ALSCRAP_NUM),0)) as scrapNum,TASK_ID as taskId,MODEL_ID as modelId
+		from wf_repair_check 
+		where  MODEL_ID = #{modelId}
+		HAVING checkNum + scrapNum > 0
+ 	</select>
+ 	
+	<select id="getRepairCodeList" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select DISTINCT mm.DEVICE_CODE as deviceCode, mm.REMARK as remark,wir.RM_STATUS as rmStatus,wir.id as wirId,mm.id as mmId,wir.SUP_ID as taskId
+		from wf_info_record wir
+		left join mm_machines mm on mm.DEVICE_CODE = wir.CODE
+		where wir.MODEL_ID = #{modelId}
+			and wir.TYPE = 8 and wir.RM_STATUS in (5,6) 
+		<if test="keyWord != null and keyWord !='' ">
+		AND(
+			wir.code LIKE CONCAT('%',#{keyWord},'%')
+			OR mm.REMARK LIKE CONCAT('%',#{keyWord},'%')	
+		)
+		</if>
+ 	</select>
+ 	<select id="getRepairCodeList1" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select DISTINCT mm.DEVICE_CODE as deviceCode, mm.REMARK as remark,wir.RM_STATUS as rmStatus,wir.id as wirId,mm.id as mmId,wir.TIME as checkTime
+		from wf_info_record wir
+		left join mm_machines mm on mm.DEVICE_CODE = wir.CODE
+		where wir.MODEL_ID = #{modelId}
+			and wir.TYPE = 8 and wir.RM_STATUS in (8,10,11) and LEFT(wir.TIME,10) BETWEEN #{startTime} AND #{endTime}
+		<if test="keyWord != null and keyWord !='' ">
+		AND(
+			wir.code LIKE CONCAT('%',#{keyWord},'%')
+			OR mm.REMARK LIKE CONCAT('%',#{keyWord},'%')	
+		)
+		</if>
+		ORDER BY wir.TIME DESC
+ 	</select>
+ 	<update id="updateCheckNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_repair_check set
+		IS_SURE = #{isSure},
+		<if test="alCheckNum != null and alCheckNum != ''">
+			ALCHECK_NUM = (ifnull(ALCHECK_NUM,0) + #{alCheckNum}),
+		</if>
+		<if test="alScrapNum != null and alScrapNum != ''">
+			ALSCRAP_NUM = (ifnull(ALSCRAP_NUM,0) + #{alScrapNum}),
+		</if>
+		CHECK_TIME = now()
+       	where ID = #{checkId}
+	</update>
+ 	
+ 	<select id="findCheckDevice" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+ 	 SELECT mt.`NAME` AS modelName,mtt.`NAME` AS typeName,wir.`CODE` AS deviceCode,
+			wir.SUP_ID AS infoSupId,wrc.ID AS id,ROUND(wrc.CHECK_NUM) AS checkNum,wrc.TASK_ID AS taskId,
+			wrc.MODEL_ID AS modelId,wir.RM_STATUS as isFinish,wtr.SUP_ID AS supId,wir.ID as infoId,mm.BATCH_STATUS as batchStatus,mm.REMARK as remark
+			FROM wf_info_record wir
+			LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wrd.TASK_ID
+			LEFT JOIN wf_repair_check wrc ON wrc.REPAIR_ID = wrd.ID and wir.MODEL_ID = wrc.MODEL_ID
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID 
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN mm_machines mm ON wir.`CODE` = mm.DEVICE_CODE
+			WHERE wrc.TASK_ID = #{taskId} AND wir.TYPE = 6 
+			AND (wir.RM_STATUS IN (5,6,8,9,10)) 
+			and mt.IS_COUNT = #{isCount} and wrc.MODEL_ID = #{modelId}
+				<if test="isSplit != null and  isSplit != '' ">
+				and wir.is_split =1
+			</if>
+				<if test="keyWord != null and keyWord !='' ">
+			AND(
+				wir.`CODE` LIKE CONCAT('%',#{keyWord},'%')
+				OR mm.REMARK LIKE CONCAT('%',#{keyWord},'%')	
+			)
+		</if>
+			GROUP BY wir.id
+			ORDER BY isFinish
+ 	</select>
+ 	
+	<update id="update" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_repair_check set 
+		IS_SURE = #{isSure},
+		ALCHECK_NUM = #{alCheckNum},
+		CHECK_TIME = #{checkTime}
+       	where ID = #{id}
+	</update>
+	
+ 	 <insert id="insert">
+    	insert wf_repair_check
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="modelId != null">
+				MODEL_ID,
+			</if>
+			<if test="checkTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="checkNum != null">
+				CHECK_NUM,
+			</if>
+			<if test="scrapNum != null">
+				SCRAP_NUM,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="repairId != null">
+				REPAIR_ID,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="modelId != null">
+				#{modelId},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="checkNum != null">
+				#{checkNum},
+			</if>
+			<if test="scrapNum != null">
+				#{scrapNum},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="repairId != null">
+				#{repairId},
+			</if>
+			1,
+		</trim>
+    </insert>
+    
+ 	 <select id="findAlRepairNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT ROUND(wrd.ALREPAIR_NUM) AS alRepairNum
+			FROM wf_repair_details wrd 
+			WHERE wrd.TASK_ID = #{taskId}  AND wrd.MODEL_ID = #{modelId}
+ 	</select>
+ 	
+ 	 <select id="findDeviceRmstatus" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT RM_STATUS AS rmStatus
+		FROM wf_info_record
+		WHERE SUP_ID = #{infoSupId} AND MODEL_ID = #{modelId} AND TYPE = 6 and `CODE` = #{deviceCode}
+ 	</select>
+ 	
+ 	 <select id="findInputNumById" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT ROUND(wri.INPUT_NUM) AS inputNum
+		FROM wf_repair_input wri
+		WHERE wri.CHECK_ID = #{id} and MODEL_ID  = #{modelId}
+ 	</select>
+ 	
+ 	  <select id="findScrapNumById" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT ROUND(SCRAP_NUM) AS scrapNum
+			FROM wf_scrap_details 
+			WHERE CHECK_ID = #{id} and MODEL_ID  = #{modelId}
+ 	</select>
+ 	
+ 	  <select id="findRepairNumById" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT REPAIR_NUM AS repairNum
+			FROM wf_repair_details 
+			WHERE CHECK_ID = #{id} and MODEL_ID  = #{modelId}
+ 	</select>
+ 	
+ 	  <select id="findAlCheckNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT ROUND(ALCHECK_NUM) AS alCheckNum
+			FROM wf_repair_check 
+			WHERE ID = #{id}
+ 	</select>
+ 	
+ 	  <select id="findIsSure" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT *
+			FROM wf_repair_check 
+			WHERE TASK_ID = #{taskId} AND IS_SURE = #{isSure}
+			GROUP BY MODEL_ID
+ 	</select>
+ 	  <select id="getAlCherckNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT IFNULL(ROUND(CHECK_NUM),0) - IFNULL(ROUND(ALCHECK_NUM),0) as checkInNum,
+		IFNULL(ROUND(SCRAP_NUM),0) - IFNULL(ROUND(ALSCRAP_NUM),0) as scrapInNum,
+		ROUND(alcheck_num) as alCheckNum,ROUND(alscrap_num) as alScrapNum,task_id as taskId,model_id as modelId
+			FROM wf_repair_check  
+			WHERE TASK_ID = #{taskId} AND MODEL_ID = #{modelId}
+ 	</select>
+ 	  <select id="findDefinitionId" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT DISTINCT wtr.DEFINITION_ID as definitionId
+			FROM wf_task_record wtr
+			LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wtr.ID
+			WHERE wrc.TASK_ID = #{taskId} AND MODEL_ID = #{modelId}
+ 	</select>
+ 	
+ 	  <update id="updateInfo" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_info_record set RM_STATUS = #{rmStatus}
+       	where SUP_ID = #{infoSupId} AND MODEL_ID = #{modelId} AND TYPE = 6
+       	<if test="isSplit != null">
+			AND IS_SPLIT = 1
+		</if>
+	</update>
+	
+ 	  <update id="updateDeviceInfo" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_info_record set RM_STATUS = #{rmStatus}
+       	where `CODE` = #{deviceCode} AND MODEL_ID = #{modelId} AND TYPE = 6
+	</update>
+	
+	<update id="updateCheckPassStatus" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_info_record set
+		RM_STATUS = #{rmStatus},
+		TIME = now(),
+		USER_ID = #{userId}
+       	where ID = #{wirId}
+	</update>
+	
+	<update id="updateCheckPassMMStatus" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update mm_machines set
+		BATCH_STATUS = #{batchStatus}
+       	where ID = #{mmId}
+	</update>
+	
+	<update id="updateWrcNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_repair_check set
+		<if test="alCheckNum != null and alCheckNum != ''">
+			ALCHECK_NUM = #{alCheckNum},
+		</if>
+		<if test="alScrapNum != null and alScrapNum != ''">
+			ALSCRAP_NUM = #{alScrapNum},
+		</if>
+		OPERATION_TIME = now()
+       	where MODEL_ID = #{modelId} and TASK_ID = #{taskId}
+	</update>
+    
+    <insert id="insertWirRecord">
+    	insert wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="supId != null">
+				SUP_ID,
+			</if>
+			<if test="modelId != null">
+				MODEL_ID,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+				TIME,
+			<if test="number != null">
+				NUM,
+			</if>
+			<if test="typeId != null">
+				TYPE,
+			</if>
+			<if test="rmStatus != null">
+				RM_STATUS,
+			</if>
+			<if test="userId != null">
+				USER_ID,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="supId != null">
+				#{supId},
+			</if>
+			<if test="modelId != null">
+				#{modelId},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+				now(),
+			<if test="number != null">
+				#{number},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="rmStatus != null">
+				#{rmStatus},
+			</if>
+			<if test="userId != null">
+				#{userId},
+			</if>
+		</trim>
+    </insert>
+    
+    <select id="getNewCheckCodeDate" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select wir.SUP_ID as taskId,id as wirId
+		from wf_info_record wir
+		where wir.MODEL_ID = #{modelId} and wir.CODE = #{deviceCode} and type=4 
+		order by TIME desc 
+		limit 1
+ 	</select>
+	
+	 <insert id="insertCheckDetails">
+    	insert wf_repair_check
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="modelId != null">
+				MODEL_ID,
+			</if>
+			<if test="checkTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="checkNum != null">
+				CHECK_NUM,
+			</if>
+			<if test="scrapNum != null">
+				SCRAP_NUM,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="repairId != null">
+				REPAIR_ID,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="modelId != null">
+				#{modelId},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="checkNum != null">
+				#{checkNum},
+			</if>
+			<if test="scrapNum != null">
+				#{scrapNum},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="repairId != null">
+				#{repairId},
+			</if>
+			1,
+		</trim>
+    </insert>
+    
+    <select id="getOneDataFromWrd" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		select id as checkId
+		from wf_repair_details 
+		where MODEL_ID = #{modelId}
+		order by OPERATION_TIME desc 
+		limit 1
+ 	</select>
+ 	
+ 	<update id="updateWirRmStatus" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_info_record set
+		RM_STATUS = #{rmStatus},
+		TIME = now()
+       	where ID = #{wirId}
+	</update>
+	
+	<update id="updateMMBatchStatus" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update mm_machines set
+		BATCH_STATUS = #{batchStatus}
+       	where TYPE = #{modelId} and DEVICE_CODE = #{deviceCode}
+	</update>
+	
+	<update id="updateWrcCheckNum" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_repair_check set
+		<if test="alCheckNum != null and alCheckNum != ''">
+			ALCHECK_NUM = (ifnull(ALCHECK_NUM,0) + #{alCheckNum}),
+		</if>
+		<if test="alScrapNum != null and alScrapNum != ''">
+			alscrap_num = (ifnull(ALSCRAP_NUM,0) + #{alScrapNum}),
+		</if>
+		OPERATION_TIME = now()
+       	where MODEL_ID = #{modelId} and TASK_ID = #{taskId}
+	</update>
+	
+	<update id="updateReturnData" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_repair_details set
+		<if test="newRepairUnqualifiedNum != null and newRepairUnqualifiedNum != ''">
+			REPAIR_NUM = (ifnull(REPAIR_NUM,0) + #{newRepairUnqualifiedNum}),
+		</if>
+		<if test="newScrapUnqualifiedNum != null and newScrapUnqualifiedNum != ''">
+			REPAIR_NUM = (ifnull(REPAIR_NUM,0) + #{newScrapUnqualifiedNum}),
+		</if>
+		OPERATION_TIME = now()
+       	where id = #{checkId}
+	</update>
+	
+	 <insert id="insertTowsd" useGeneratedKeys="true" keyProperty="id">
+    	insert into wf_task_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="number != null">
+				NUMBER,
+			</if>
+			<if test="isSplit != null">
+				IS_SPLIT,
+			</if>
+			<if test="isFinish != null">
+				IS_FINISH,
+			</if>
+			
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="number != null">
+				#{number},
+			</if>
+			<if test="isFinish != null">
+				#{isFinish},
+			</if>
+			<if test="isSplit != null">
+				#{isSplit},
+			</if>
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			1,
+		</trim>
+    </insert>
+    
+    <insert id="insertNewDetail" parameterType="com.bonus.pis.beans.PutInStorageBean" useGeneratedKeys="true" >
+		insert into wf_put_storage_details
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maModelId != null">
+				MODEL_ID,
+			</if>
+			<if test="prePutNum != null">
+				PRE_PUT_NUM,
+			</if>
+			<if test="checkId != null">
+				CHECK_ID,
+			</if>
+			PUT_TIME,
+			IS_SURE,
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maModelId != null">
+				#{maModelId},
+			</if>
+			<if test="prePutNum != null">
+				#{prePutNum},
+			</if>
+			<if test="checkId != null">
+				#{checkId},
+			</if>
+			now(),
+			0,
+			1,
+			
+		</trim>
+	</insert>
+	
+	 <select id="findCompanyId" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" resultMap="repairCheck">
+		SELECT COMPANY_ID as companyId FROM pm_user WHERE ID = #{userId}
+ 	</select>
+	
+	 <update id="updateInfoType" parameterType="com.bonus.repairCheck.beans.RepairCheckDetailsBean" >
+		update wf_info_record set 
+		<if test="taskId != null">
+			 TIME = #{operationTime},
+		</if>
+		RM_STATUS = #{rmStatus} ,USER_ID = #{userId}
+       	where ID = #{wirId}
+	</update>
+	
+</mapper>

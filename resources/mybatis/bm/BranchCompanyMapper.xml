@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.BranchCompanyDao" >
+
+    <select id="getBranchCompany" resultType="com.bonus.bm.beans.BranchCompanyBean" parameterType="com.bonus.bm.beans.BranchCompanyBean">
+        select ID,`NAME`,`CODE` from bm_company where IS_ACTIVE=1
+    </select>
+    
+    <delete id="delete" parameterType="com.bonus.bm.beans.BranchCompanyBean">
+        update bm_company set IS_ACTIVE = 0 where id = #{id}
+    </delete>
+    
+    <select id="findByPage" resultType="com.bonus.bm.beans.BranchCompanyBean" parameterType="com.bonus.bm.beans.BranchCompanyBean">
+		select ID,`NAME`,`CODE` from bm_company 
+		where IS_ACTIVE = 1
+		<if test="param.keyWord !=null">
+		   and (
+		   		`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   		`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+		   ) 
+		</if> 
+    </select>
+    
+    <insert id="insert" parameterType="com.bonus.bm.beans.BranchCompanyBean"> 
+       	insert into bm_company(name,`CODE`,is_active) values (#{name},#{code},1)
+    </insert>
+    
+    <select id="find" resultType="com.bonus.bm.beans.BranchCompanyBean" parameterType="com.bonus.bm.beans.BranchCompanyBean">
+        select ID,`NAME`,`CODE`
+        from bm_company 
+        where IS_ACTIVE = 1  and ID=#{id}
+    </select>
+    
+    <select id="findByNameAndCode" resultType="com.bonus.bm.beans.BranchCompanyBean">
+        select ID,`NAME`,`CODE`
+        from bm_company 
+        where `NAME` = #{name} or `code` = #{code} and IS_ACTIVE = 1
+    </select>
+
+    <update id="update" parameterType="com.bonus.bm.beans.BranchCompanyBean">
+       	update bm_company set NAME =#{name},`CODE` = #{code} where id=#{id}
+    </update>
+    
+</mapper>

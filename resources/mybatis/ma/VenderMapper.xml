@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.VenderDao">
+
+	<resultMap id="vender" type="com.bonus.ma.beans.VenderBean"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.VenderBean"
+		resultMap="vender">
+		SELECT ID as id,`NAME`,ADDRESS,COMPANY_MAN as companyMan,
+		MAIN_PERSON as mainPerson,PHONE,SCOPE_BUSINESS as scopeBusiness,
+		REMARK,PIC_URL as picUrl,PIC_NAME as picName
+		FROM mm_vender
+		WHERE 1 = 1 and IS_ACTIVE = 1
+		<if test="param.keyWord!= null">
+			AND (
+			`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR ADDRESS LIKE CONCAT('%',#{param.keyWord},'%')
+			OR COMPANY_MAN LIKE CONCAT('%',#{param.keyWord},'%')
+			OR MAIN_PERSON LIKE CONCAT('%',#{param.keyWord},'%')
+			OR PHONE LIKE CONCAT('%',#{param.keyWord},'%')
+			OR SCOPE_BUSINESS LIKE CONCAT('%',#{param.keyWord},'%')
+			OR REMARK LIKE CONCAT('%',#{param.keyWord},'%')
+			OR PIC_URL LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+
+	</select>
+
+	<select id="find" parameterType="com.bonus.ma.beans.VenderBean"
+		resultMap="vender">
+		SELECT ID as id,`NAME`,ADDRESS,COMPANY_MAN as companyMan,
+		MAIN_PERSON as mainPerson,PHONE,SCOPE_BUSINESS as scopeBusiness,
+		REMARK,PIC_URL as picUrl
+		FROM mm_vender
+		WHERE ID = #{id} and IS_ACTIVE = 1
+	</select>
+
+	<insert id="insertBean" parameterType="com.bonus.ma.beans.VenderBean">
+		insert into mm_vender
+		(NAME,ADDRESS,COMPANY_MAN,MAIN_PERSON,PHONE,SCOPE_BUSINESS,REMARK,PIC_URL,IS_ACTIVE)
+		values
+		(#{name},#{address},#{companyMan},#{mainPerson},#{phone},#{scopeBusiness},#{remark},#{picUrl},"1")
+	</insert>
+
+	<update id="update" parameterType="com.bonus.ma.beans.VenderBean">
+		update mm_vender set
+		<!-- <set> <if test="name != null"> NAME = #{name}, </if> <if test="address 
+			!=null"> ADDRESS = #{address}, </if> <if test="companyMan !=null"> COMPANY_MAN 
+			= #{companyMan}, </if> <if test="mainPerson != null"> MAIN_PERSON = #{mainPerson}, 
+			</if> <if test="phone != null"> PHONE = #{phone}, </if> <if test="scopeBusiness 
+			!= null"> SCOPE_BUSINESS = #{scopeBusiness}, </if> <if test="notes != null"> 
+			NOTES = #{notes}, </if> <if test="picUrl != null"> PIC_URL = #{picUrl} </if> 
+			</set> where ID = #{id} -->
+
+		NAME = #{name},
+		ADDRESS = #{address},
+		COMPANY_MAN = #{companyMan},
+		MAIN_PERSON = #{mainPerson},
+		PHONE = #{phone},
+		SCOPE_BUSINESS = #{scopeBusiness},
+		REMARK = #{remark}
+		where ID = #{id}
+	</update>
+
+	<update id="updateVend" parameterType="com.bonus.ma.beans.VenderBean">
+		update mm_vender set
+		PIC_NAME = #{picName},
+		PIC_URL = #{picUrl}
+		where ID = #{id}
+	</update>
+
+	<delete id="delete" parameterType="com.bonus.ma.beans.VenderBean">
+		update mm_vender set IS_ACTIVE
+		= 0
+		where ID = #{id}
+	</delete>
+
+	<delete id="deleteBatch" parameterType="java.util.List">
+		update mm_vender set IS_ACTIVE = 0 WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+
+	<select id="findVender" parameterType="com.bonus.ma.beans.VenderBean"
+		resultMap="vender">
+		SELECT ID,NAME FROM mm_vender where IS_ACTIVE = 1
+	</select>
+
+	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+
+	<select id="maVenderTree" parameterType="com.bonus.ma.beans.VenderBean"
+		resultMap="ZNode">
+		SELECT *
+		FROM (
+		SELECT ID,`NAME`,'0' as pId
+		FROM mm_vender
+		WHERE IS_ACTIVE = 1
+		) res
+		WHERE res.`NAME` LIKE CONCAT('%',#{name},'%')
+	</select>
+
+	<select id="makeeper" parameterType="com.bonus.ma.beans.VenderBean"
+		resultMap="ZNode">
+		SELECT *
+		from (SELECT ID,`NAME`,'0' as pId FROM pm_user
+		WHERE ORG_ID = 7 and POST_ID = 2
+		) pmu
+		WHERE pmu.`NAME` LIKE CONCAT('%',#{name},'%')
+	</select>
+</mapper>

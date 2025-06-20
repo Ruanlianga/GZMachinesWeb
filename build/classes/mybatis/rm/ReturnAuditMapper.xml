@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.ReturnAuditDao" >
+    <resultMap id="returnAudit" type="com.bonus.rm.beans.ReturnAuditBean">
+    	<id column="id" property="id"/>
+    	<result column="taskId" property="taskId"/>
+    	<result column="modelId" property="modelId"/>
+    	<result column="checkerId" property="checkerId"/>
+    	<result column="companyId" property="companyId"/>
+    </resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT
+			bp.`NAME` AS projectName,
+			bu.`NAME` AS unitName,
+			wfd.ID AS id,
+			mt.`NAME` AS modelName,
+			mtt.`NAME` AS typeName,
+			pu.`NAME` AS operator,
+			wtr.LEASE_PERSON AS leasePerson,
+			SUM( wir.NUM ) AS maNum,
+			wfd.TASK_ID AS taskId,
+			wfd.IS_APPROVAL AS isApproval,
+			wfd.OPERATION_TIME AS operationTime,
+			wfd.MODEL_ID AS modelId,
+			wla.code agreeCode,
+			wtr.NUMBER as number,
+			wtr.CHECKER_ID AS checkerId ,
+			pmo.name as companyName,
+			 wat.AGREEMENT_ID as agreementId
+			
+		FROM
+			wf_task_record wtr
+			LEFT JOIN wf_return_material_details wfd ON wfd.TASK_ID = wtr.ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wfd.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN wf_info_record wir ON wir.SUP_ID = wfd.ID
+			LEFT JOIN pm_user pu ON pu.ID = wtr.CHECKER_ID 
+			LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		WHERE
+			wtr.DEFINITION_ID = '8' 
+			
+			AND wtr.IS_FINISH = '1' 
+			AND wfd.TASK_ID IS NOT NULL
+			AND wfd.IS_EXAMINE = '1'
+		   <if test="param.isApproval != 2 and param.isApproval != '2'">
+				and wfd.IS_APPROVAL=#{param.isApproval}
+				AND wir.TYPE = 4 
+			</if>
+		   <if test="param.isApproval == 2 or param.isApproval == '2'">
+				and wfd.IS_APPROVAL=#{param.isApproval}
+				AND wir.TYPE = 10
+			</if>
+		   <if test="param.orgId != 1 and param.orgId != '1'">
+				and wtr.org_id=#{param.orgId}
+			</if>
+			<if test="param.startTime != null and param.startTime != '' and param.endTime != null and param.endTime != ''">
+				AND LEFT(wfd.OPERATION_TIME,10) BETWEEN #{param.startTime} AND #{param.endTime}
+			</if>
+			<if test="param.keyWord != null">
+				and ( 
+				   pmo.name LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   wla.code LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   wtr.NUMBER LIKE CONCAT('%',#{param.keyWord},'%')
+				)
+			</if>
+			
+		GROUP BY
+			wir.MODEL_ID,
+			wfd.TASK_ID 
+		ORDER BY wfd.IS_EXAMINE asc,wfd.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<select id="findAuditByPage" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT
+			bp.`NAME` AS projectName,
+			bu.`NAME` AS unitName,
+			wfd.ID AS id,
+			mt.`NAME` AS modelName,
+			mtt.`NAME` AS typeName,
+			pu.`NAME` AS operator,
+			wtr.LEASE_PERSON AS leasePerson,
+			SUM( wir.NUM ) AS maNum,
+			wfd.TASK_ID AS taskId,
+			wfd.IS_EXAMINE AS isExamine,
+			wfd.OPERATION_TIME AS operationTime,
+			wfd.MODEL_ID AS modelId,
+			wla.code agreeCode,
+			wtr.NUMBER as number,
+			wtr.CHECKER_ID AS checkerId ,
+			pmo.name as companyName,
+			 wat.AGREEMENT_ID as agreementId
+			
+		FROM
+			wf_task_record wtr
+			LEFT JOIN wf_return_material_details wfd ON wfd.TASK_ID = wtr.ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wfd.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN wf_info_record wir ON wir.SUP_ID = wfd.ID
+			LEFT JOIN pm_user pu ON pu.ID = wtr.CHECKER_ID 
+			LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		WHERE
+			wtr.DEFINITION_ID = '8' 
+			
+			AND wtr.IS_FINISH = '1' 
+			AND wfd.TASK_ID IS NOT NULL
+		   <if test="param.isExamine != 2 and param.isExamine != '2'">
+				and wfd.IS_EXAMINE=#{param.isExamine}
+				AND wir.TYPE = 4 
+			</if>
+			   <if test="param.isExamine == 2 or param.isExamine == '2'">
+				and wfd.IS_EXAMINE=#{param.isExamine}
+				AND wir.TYPE = 10
+			</if>
+		   <if test="param.orgId != 1 and param.orgId != '1'">
+				and wtr.org_id=#{param.orgId}
+			</if>
+			<if test="param.startTime != null and param.startTime != '' and param.endTime != null and param.endTime != ''">
+				AND LEFT(wfd.OPERATION_TIME,10) BETWEEN #{param.startTime} AND #{param.endTime}
+			</if>
+			<if test="param.keyWord != null">
+				and ( 
+				   pmo.name LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   wla.code LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   wtr.NUMBER LIKE CONCAT('%',#{param.keyWord},'%')
+				)
+			</if>
+			
+		GROUP BY
+			wir.MODEL_ID,
+			wfd.TASK_ID 
+		ORDER BY wfd.IS_EXAMINE asc,wfd.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<select id="findManyId" resultMap="returnAudit" parameterType="java.lang.Integer">
+ 		SELECT
+			wfd.id,
+			wfd.TASK_ID as taskId,
+			wfd.MODEL_ID as modelId,
+			wtr.CHECKER_ID as checkerId
+		from
+			wf_return_material_details wfd
+		LEFT JOIN wf_task_record wtr on wtr.id = wfd.TASK_ID
+		where
+			wfd.id = #{id}
+ 	</select>
+ 	
+ 	<select id="findPutInAudit" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT wpsd .IS_EXAMINE AS isExamine,wfd.SERVICE_ID AS serviceId,pu.`NAME` AS operator,
+			bp.`NAME` as projectName,bu.`NAME` AS unitName,mt.`NAME` AS typeName,mtt.`NAME` AS modelName,
+			SUM(wir.NUM) AS maNum,wpsd.PUT_TIME AS operationTime,wfd.TASK_ID AS taskId,wfd.MODEL_ID AS modelId,
+			wla.code agreeCode,pmo.name as companyName,
+			pmu.`NAME` AS customerSrep,wrtr.CHECKER_ID as checkerId
+			FROM wf_task_record wtr
+			LEFT JOIN wf_return_material_details wfd ON wfd.TASK_ID = wtr.SUP_ID
+			LEFT JOIN wf_task_record wrtr on wrtr.ID = wtr.SUP_ID
+			LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wtr.ID  AND wfd.MODEL_ID = wpsd.MODEL_ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wfd.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN pm_user pu ON pu.ID = wrtr.CHECKER_ID
+			LEFT JOIN pm_user pmu ON pmu.ID = wfd.SERVICE_ID
+			LEFT JOIN wf_info_record wir ON wir.SUP_ID = wpsd.TASK_ID AND wir.MODEL_ID = wpsd.MODEL_ID
+			LEFT JOIN pm_organization pmo ON pmo.id = wrtr.ORG_ID
+		WHERE wtr.PROCESS_ID = 3 AND wpsd.ID is not null and wir.TYPE = 3
+		
+		<if test="param.orgId != 1 and param.orgId != '1'">
+				and wrtr.org_id=#{param.orgId}
+			</if>
+		<if test="param.startTime != null and param.startTime != '' and param.endTime != null and param.endTime != ''">
+				AND wfd.OPERATION_TIME BETWEEN #{param.startTime} AND #{param.endTime}
+			</if>
+			<if test="param.keyWord != null">
+				and ( 
+				   bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				   wla.code LIKE CONCAT('%',#{param.keyWord},'%')
+				)
+			</if>
+		GROUP BY wfd.TASK_ID,wfd.MODEL_ID
+		order by wfd.IS_EXAMINE asc,wfd.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<update id="isExamine" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		update wf_return_material_details set IS_EXAMINE = '1',EXAMINE_USER = #{examineUser}
+       	where TASK_ID = #{taskId} and MODEL_ID = #{modelId}
+	</update>
+	
+	<update id="isApproval" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		update wf_return_material_details set IS_APPROVAL = '1',APPROVAL_USER = #{approvalUser}
+       	where TASK_ID = #{taskId} and MODEL_ID = #{modelId}
+	</update>
+	
+	<update id="batchAudit" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		UPDATE 
+			wf_return_material_details 
+		SET 
+			IS_EXAMINE = '1' 
+		WHERE ID in(
+			<foreach item="id" collection="ids" open="" separator=","
+				close="">
+				#{id}
+			</foreach>
+			)
+	</update>
+	
+ 	 <select id="findNumber" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_task_record wtr
+		WHERE wtr.OPERATION_TIME LIKE CONCAT("%",#{operationTime},"%")
+		AND wtr.DEFINITION_ID = 18
+ 	</select>
+ 	
+ 	 <select id="findScrapNumber" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_task_record wtr
+		WHERE wtr.OPERATION_TIME LIKE CONCAT("%",#{operationTime},"%")
+		AND wtr.DEFINITION_ID = 19
+ 	</select>
+	
+ 	<select id="findPutInTaskId" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT wtr.ID AS id
+			FROM wf_task_record wtr
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = '11'
+ 	</select>
+ 	
+ 	<select id="findDeviceNums" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT a.num AS num,b.repairNum AS repairNum,c.scrapNum AS scrapNum
+			FROM(
+			SELECT SUM(wir.NUM) AS num
+			FROM wf_info_record wir
+			WHERE wir.SUP_ID = #{id} AND wir.MODEL_ID = #{modelId} AND wir.TYPE = 4
+			AND wir.RM_STATUS = 1) a,
+			(SELECT SUM(wir.NUM) AS repairNum
+			FROM wf_info_record wir
+			WHERE wir.SUP_ID = #{id} AND wir.MODEL_ID = #{modelId} AND wir.TYPE = 4
+			AND wir.RM_STATUS = 2) b,
+			(SELECT SUM(wir.NUM) AS scrapNum
+			FROM wf_info_record wir
+			WHERE wir.SUP_ID = #{id} AND wir.MODEL_ID = #{modelId} AND wir.TYPE = 4
+			AND wir.RM_STATUS = 3) c
+ 	</select>
+ 	
+ 	 	
+ 	 	<update id="updateExStatus" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		update 
+			wf_return_material_details 
+		 <set>
+            <if test="isExamine != null">
+				IS_EXAMINE = #{isExamine},
+			</if>
+            <if test="isApproval != null">
+				IS_APPROVAL = #{isApproval},
+			</if>
+            <if test="examineUser != null">
+				EXAMINE_USER = #{examineUser},
+			</if>
+            <if test="approvalUser != null">
+				APPROVAL_USER = #{approvalUser},
+			</if>
+            <if test="auditRemark != null">
+				audit_remark = #{auditRemark},
+			</if>
+            <if test="approvalRemark != null">
+				APPROVAL_REMARK = #{approvalRemark},
+			</if>
+			IS_SURE = '0'
+        </set>
+
+       	  	where ID = #{id}
+	</update>
+	
+ 	 	<update id="updateMaStatus" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		update mm_machines set BATCH_STATUS = '6'
+       	where ID = #{id}
+	</update>
+ 	
+	
+	<select id="findBackRecord" parameterType="com.bonus.rm.beans.ReturnAuditBean" resultMap="returnAudit">
+		SELECT
+			wir.ID as id,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as modelName,
+			wir.MODEL_ID as modelId,
+			wir.MA_ID as maId,
+			ROUND(wir.NUM) as maNum,
+			left(wir.TIME,10) as backTime
+			FROM
+			wf_return_material_details wmd
+			LEFT JOIN wf_info_record wir on wmd.ID = wir.SUP_ID
+			LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			WHERE wmd.ID = #{id} and wir.type = 4
+
+ 	</select>
+ 	
+ 	 	<update id="updateInfoData" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+		update wf_info_record set type = '10' , IS_ACTIVE = '0'
+       	where ID = #{id}
+	</update>
+	
+	<select id="findPutCodebyInfo" parameterType="com.bonus.rm.beans.PutInStorageTaskBean" resultMap="returnAudit">
+		SELECT
+			wir.`CODE` as deviceCode,
+			wir.MODEL_ID as modelId,
+			wir.MA_ID as maId,
+			mtt.IS_COUNT as isCount
+			FROM wf_info_record wir 
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wir.SUP_ID = #{supId} AND wir.MODEL_ID = #{maModelId} AND wir.TYPE = 4 AND wir.RM_STATUS = 1
+ 	</select>
+ 	
+ 	<select id="findScrapCodebyInfo" parameterType="com.bonus.scrap.beans.ScrapDetailsBean" resultMap="returnAudit">
+		SELECT
+			wir.`CODE` as deviceCode,
+			wir.MODEL_ID as modelId,
+			wir.MA_ID as maId
+			FROM wf_info_record wir 
+		WHERE wir.SUP_ID = #{supId} AND wir.MODEL_ID = #{modelId} AND wir.TYPE = 4 AND wir.RM_STATUS = 3
+ 	</select>
+ 	
+ 	 <insert id="insertInfo" parameterType="com.bonus.rm.beans.ReturnAuditBean">
+	    insert into wf_info_record
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				<if test="taskId != null">
+					SUP_ID,
+				</if>
+				<if test="modelId != null">
+					MODEL_ID,
+				</if>
+				<if test="deviceCode != null">
+					CODE,
+				</if>
+				<if test="operationTime != null">
+					TIME,
+				</if>
+				<if test="num != null">
+					NUM,
+				</if>
+				<if test="type != null">
+					TYPE,
+				</if>
+				<if test="maId != null">
+					MA_ID,
+				</if>
+				<if test="rmStatus != null">
+					RM_STATUS,
+				</if>
+			</trim>
+			<trim prefix="values (" suffix=")" suffixOverrides=",">
+				<if test="taskId != null">
+					#{taskId},
+				</if>
+				<if test="modelId != null">
+					#{modelId},
+				</if>
+				<if test="deviceCode != null">
+					#{deviceCode},
+				</if>
+				<if test="operationTime != null">
+					#{operationTime},
+				</if>
+				<if test="num != null">
+					#{num},
+				</if>
+				<if test="type != null">
+					#{type},
+				</if>
+				<if test="maId != null">
+					#{maId},
+				</if>
+				<if test="rmStatus != null">
+					#{rmStatus},
+				</if>
+			</trim>
+    
+    </insert>
+	
+</mapper>

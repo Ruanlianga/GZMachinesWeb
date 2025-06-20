@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.GpsBindingDao">
+ 	<resultMap id="gisBean" type="com.bonus.ma.beans.GpsBindingBean"></resultMap>
+   
+    
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.GpsBindingBean" resultMap="gisBean">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId ,mam.GPS_CODE gisCode,mam.DEVICE_TYPE as deviceType  
+		from mm_machines mam 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where 1=1  and  mam.DEVICE_CODE is not null and mam.DEVICE_TYPE=1
+		<if test='param.orgId !=null and param.orgId!="" and   param.orgId !="1" '>
+			and  rel.ORG_ID=#{param.orgId}
+		</if>
+		<if test="param.batchStatus != 0">
+			and mas.MA_STATUS = #{param.batchStatus}
+		</if>
+		
+		<if test="param.typeName != null and param.typeName != ''">
+			and matt.`NAME` = #{param.typeName}
+		</if>
+		<if test="param.type != null and param.type != ''">
+			and mat.`NAME` = #{param.type}
+		</if>
+		<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.BATCH_STATUS LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mav.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+		order by mam.ID desc
+ 	</select>
+ 	
+ 	
+ 	
+ 	<select id="findByPageTwo" parameterType="com.bonus.ma.beans.GpsBindingBean" resultMap="gisBean">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId ,mam.GPS_CODE gisCode,mam.DEVICE_TYPE as deviceType,u.NAME as userName,gb.BINDING_TIME as bindingTime,
+				if(mam.GPS_CODE is null,"未绑定","已绑定") as bindStatus
+		from mm_machines mam 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		LEFT JOIN gps_binding gb ON gb.MA_ID=mam.id
+		LEFT JOIN pm_user u ON u.id=gb.USER_ID
+		where 1=1  and  mam.DEVICE_CODE is not null and mam.DEVICE_TYPE=2 
+		<if test='param.orgId !=null and param.orgId!="" and   param.orgId !="1" '>
+			and  rel.ORG_ID=#{param.orgId}
+		</if>
+		<if test="param.batchStatus != 0">
+			and mas.MA_STATUS = #{param.batchStatus}
+		</if>
+		
+		<if test="param.bindStatus == 1">
+			and mam.GPS_CODE is not null
+		</if>
+		
+		<if test="param.bindStatus == 2">
+			and mam.GPS_CODE is null
+		</if>
+		
+		<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.BATCH_STATUS LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mav.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') or
+			    u.NAME LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+		Group by deviceCode
+		order by mam.ID desc
+ 	</select>
+ 	
+ 	<select id="findGpsFlowPage" parameterType="com.bonus.ma.beans.GpsBindingBean" resultMap="gisBean">
+ 	select 	DISTINCT
+				mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode,mam.DEVICE_TYPE as deviceType
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId ,mam.GPS_CODE  ,flow.OPERTER_TIME  optTime,flow.OPERTER,user.`NAME`  ,user.LOGIN_NAME userName
+				,flow.GIS_CODE  gisCode,flow.type gisType
+		from ma_gis_code_flow flow
+		LEFT JOIN	mm_machines mam  on flow.MA_ID=mam.id
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		left join  pm_user user on user.id=flow.OPERTER
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where 1=1  and  mam.id is not null 
+	 	<if test='param.orgId !=null and param.orgId!="" and   param.orgId !="1" '>
+				and  rel.ORG_ID=#{param.orgId}
+			</if>
+			<if test="param.batchStatus != 0">
+				and mas.MA_STATUS = #{param.batchStatus}
+			</if>
+			<if test="param.deviceType != 0">
+				and mam.DEVICE_TYPE = #{param.deviceType}
+			</if>
+			<if test="param.typeName != null and param.typeName != ''">
+				and matt.`NAME` = #{param.typeName}
+			</if>
+			<if test="param.type != null and param.type != ''">
+				and mat.`NAME` = #{param.type}
+			</if>
+			<if test="param.keyWord !=null and param.keyWord !=''">
+			    and (
+				    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+				    mam.BATCH_STATUS LIKE CONCAT('%',#{param.keyWord},'%') OR
+				  	flow.GIS_CODE  LIKE CONCAT('%',#{param.keyWord},'%') OR
+				  	user.LOGIN_NAME  LIKE CONCAT('%',#{param.keyWord},'%') 
+			    )
+			</if>
+
+ 	</select>
+ 	
+ 	
+	<select id="getGisCodeBylist"  parameterType="com.bonus.ma.beans.GpsBindingBean" resultMap="gisBean">
+		select 	distinct mam.ID, mam.GPS_CODE gisCode 
+		from mm_machines mam 
+		WHERE   mam.GPS_CODE=#{gisCode}
+	</select>
+	<update id="updateGisCode" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		update  mm_machines set  GPS_CODE=#{gisCode} where id=#{id}
+	</update>
+	<update id="unBoundGps" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		update  mm_machines set  GPS_CODE=null  where id=#{id}
+	</update>
+	<insert id="insertGisCodeFlow" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		insert into   ma_gis_code_flow(
+		 GIS_CODE,OPERTER,OPERTER_TIME,MA_ID,TYPE
+		)values(
+			#{gisCode},#{opter},#{optTime},#{id},#{type}
+		)
+	</insert>
+	<insert id="insertGpsBding" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		insert into   gps_binding(
+		 GPS_CODE,BINDING_TIME,USER_ID,DEVICE_CODE,IS_ACTIVE,BIND_STATUS,MA_ID
+		)values(
+			#{gisCode},#{optTime},#{opter},#{deviceCode},1,1,#{maId}
+		)
+	</insert>
+	<delete id="deleteGpsBding" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		delete from gps_binding where MA_ID=#{id} 
+	</delete>
+		<delete id="deleteGpsCode" parameterType="com.bonus.ma.beans.GpsBindingBean">
+		delete from gps_position_device where GPS_CODE=#{gisCode} 
+	</delete>
+	<insert id ='insertGssLocation' parameterType="com.bonus.ma.beans.GpsBindingBean">
+			insert  into gps_position_device
+			(GPS_CODE,GPS_STATUS,IS_ACTIVE) values (#{gisCode},1,1)
+	</insert>
+</mapper>

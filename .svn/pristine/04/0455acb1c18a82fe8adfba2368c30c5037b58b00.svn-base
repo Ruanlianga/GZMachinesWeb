@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineTypeDao" >
+
+    <resultMap id="machineType" type="com.bonus.ma.beans.MachineTypeBean"></resultMap>
+    
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+ 	
+ 	<select id="getRoleBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,PARENT_ID as pId FROM ma_type WHERE IS_ACTIVE = '1'
+  	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		insert into bm_area_type(name) values (#{name})
+	</insert>
+	
+	<select id="getMainTree" resultType="com.bonus.sys.beans.ZNode">
+		<!-- select DISTINCT mat3.ID as id,mat3.`NAME` as name,mat3.PARENT_ID as pId 
+		from ma_type mat
+		LEFT JOIN ma_type mat2 on mat2.PARENT_ID = mat.ID
+		LEFT JOIN ma_type mat3 on mat3.PARENT_ID = mat2.ID
+		WHERE mat.PARENT_ID = 0
+		UNION  -->
+		select * from (
+			select DISTINCT  mat2.ID as id,mat2.`NAME` as name,mat2.PARENT_ID as pId,mat2.TIME as time
+			from ma_type mat
+			LEFT JOIN ma_type mat2 on mat2.PARENT_ID = mat.ID
+			WHERE mat.PARENT_ID = 0
+			UNION 
+			select DISTINCT  mat.ID as id,mat.`NAME` as name,mat.PARENT_ID as pId,mat.TIME as time
+			from ma_type mat
+			WHERE mat.PARENT_ID = 0
+		) a order by name,time desc
+	</select>
+
+	<insert id="treeInsert" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		INSERT into ma_type
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				ID,
+			</if>
+			<if test="name !=null">
+				NAME,
+			</if>
+			<if test="parentId !=null">
+				PARENT_ID,
+			</if>
+			TIME,IS_ACTIVE,
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				#{id},
+			</if>
+			<if test="name !=null">
+				#{name},
+			</if>
+			<if test="parentId !=null">
+				#{parentId},
+			</if>
+			NOW(),
+		</trim>
+	</insert>
+
+	<update id="treeUpdate" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		UPDATE ma_type
+		<set>
+			<if test="name !=null">
+				NAME = #{name},
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<delete id="treeDelete" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		DELETE from ma_type where id=#{id}
+	</delete>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		select mat.ID as id,mat.`NAME` as name
+		from ma_type mat 
+		where mat.PARENT_ID = #{param.parentId}
+		<if test="param.keyWord != null">
+		    and (
+			    mat.`NAME` like CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+	</select>
+
+	<insert id="insert" parameterType="com.bonus.ma.beans.MachineTypeBean"> 
+        INSERT into ma_type
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id !=null">
+                ID,
+            </if>
+            <if test="name !=null">
+                NAME,
+            </if>
+            <if test="parentId !=null">
+                PARENT_ID,
+            </if>
+            <if test="weight !=null">
+                WEIGHT,
+            </if>
+            <if test="unit !=null">
+                UNIT,
+            </if>
+            <if test="leasePrice !=null">
+                LEASE_PRICE,
+            </if>
+            <if test="payPrice !=null">
+                PAY_PRICE,
+            </if>
+            <if test="buyPrice !=null">
+                BUY_PRICE,
+            </if>
+            <if test="isTest !=null">
+                IS_TEST,
+            </if>
+            TIME,IS_ACTIVE,
+        </trim>
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+            <if test="id !=null">
+                #{id},
+            </if>
+            <if test="name !=null">
+                #{name},
+            </if>
+            <if test="parentId !=null">
+                #{parentId},
+            </if>
+            <if test="weight !=null">
+                #{weight},
+            </if>
+            <if test="unit !=null">
+                #{unit},
+            </if>
+            <if test="leasePrice !=null">
+                #{leasePrice},
+            </if>
+            <if test="payPrice !=null">
+                #{payPrice},
+            </if>
+            <if test="buyPrice !=null">
+                #{buyPrice},
+            </if>
+            <if test="isTest !=null">
+                isTest,
+            </if>
+            NOW(),1,
+        </trim>
+    </insert>
+
+	<select id="find" resultType="com.bonus.ma.beans.MachineTypeBean" parameterType="com.bonus.ma.beans.MachineTypeBean">
+        select mat.ID as id,mat.PARENT_ID as parentId,mat.`NAME` as name
+		from ma_type mat 
+		where mat.ID=#{id}
+    </select>
+	
+	<update id="update" parameterType="com.bonus.ma.beans.MachineTypeBean">
+        update ma_type
+        <set>
+            <if test="name !=null">
+                NAME=#{name},
+            </if>
+        </set>
+        where ID =#{id}
+	</update>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findFirstName" parameterType="com.bonus.ma.beans.MachineTypeBean" resultMap="machineType">
+		SELECT ID,PARENT_ID as parentId,`NAME`
+		FROM ma_type WHERE PARENT_ID = #{parentId}
+ 	</select>
+	
+	<select id="findLastId" resultType="com.bonus.ma.beans.MachineTypeBean">
+		select * 
+		from ma_type 
+		order by ID DESC
+		limit 1
+	</select>
+	
+	<select id="findDetails" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		select 	DISTINCT mat.ID as id,mat.`NAME`,mat.WEIGHT as weight,
+				mat.UNIT as unit,mat.LEASE_PRICE as leasePrice,mat.PAY_PRICE as payPrice,
+				mat.BUY_PRICE as buyPrice,mat2.`NAME` as parentName,pmu.`NAME` as keeper
+		from ma_type mat 
+		LEFT JOIN ma_type mat2 on mat2.ID = mat.PARENT_ID
+		LEFT JOIN ma_type mat3 on mat3.ID = mat2.PARENT_ID
+		LEFT JOIN ma_type mat4 on mat4.ID = mat3.PARENT_ID
+		LEFT JOIN ma_keeper_type mkt on mkt.TYPE_ID = mat.ID
+		LEFT JOIN pm_user pmu on pmu.ID = mkt.USER_ID
+		where mat4.PARENT_ID = 0 and mat.PARENT_ID = #{param.parentId}
+		<if test="param.keyWord != null">
+			 and mat.`NAME` like CONCAT('%',#{param.keyWord},'%')
+		</if>
+	</select>
+	
+	<select id="findModel" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		select 	DISTINCT mat.ID as id,mat.`NAME`,mat.WEIGHT as weight,
+				mat.UNIT as unit,mat.LEASE_PRICE as leasePrice,mat.PAY_PRICE as payPrice,
+				mat.BUY_PRICE as buyPrice,mat.IS_TEST as isTest,mat2.`NAME` as parentName,
+				pmu.`NAME` as keeper
+		from ma_type mat 
+		LEFT JOIN ma_type mat2 on mat2.ID = mat.PARENT_ID
+		LEFT JOIN ma_type mat3 on mat3.ID = mat2.PARENT_ID
+		LEFT JOIN ma_type mat4 on mat4.ID = mat3.PARENT_ID
+		LEFT JOIN ma_keeper_type mkt on mkt.TYPE_ID = mat.ID
+		LEFT JOIN pm_user pmu on pmu.ID = mkt.USER_ID
+		where mat.ID = #{id}
+	</select>
+	
+	<update id="updateModel" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update ma_type
+		set `NAME` = #{name},
+		WEIGHT = #{weight},
+		UNIT = #{unit},
+		LEASE_PRICE = #{leasePrice},
+		PAY_PRICE = #{payPrice},
+		BUY_PRICE = #{buyPrice},
+		IS_TEST = #{isTest}
+		where id = #{id}
+	</update>
+	
+</mapper>

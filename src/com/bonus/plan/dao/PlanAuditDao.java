@@ -1,0 +1,88 @@
+package com.bonus.plan.dao;
+
+import java.util.List;
+
+import com.bonus.plan.beans.*;
+import org.apache.ibatis.annotations.Param;
+
+import com.bonus.core.BonusBatis;
+import com.bonus.sys.BaseDao;
+
+@BonusBatis
+public interface PlanAuditDao extends BaseDao<PlanApplyAuditBean> {
+	
+	/**
+	 * 获取 日计划 
+	 * @param applyId
+	 * @return
+	 */
+	PlanApplyBean getPlanApplyDta(@Param("applyId")String  applyId);
+	/**
+	 * 修改审核数据
+	 * @param o
+	 */
+	void updatePlanAudit(AuditBean o);
+	/**
+	 * 插入审核记录
+	 * @param vo
+	 */
+	void insertAuditRecord(AuditBean vo);
+	/**
+	 * 查询本次审核的数据数量
+	 * @param applyId
+	 * @return
+	 */
+	List<PlanDataDetailBean> getPlanDetails(@Param("applyId")String applyId);
+	/**
+	 * 依据modoule 和类型 查询 历史工程所需
+	 * @param proId
+	 * @param moduleId
+	 * @return
+	 */
+	ProNeedInfoBean getProNeedInfo(@Param("proId")String proId, @Param("moduleId")String moduleId);
+	/**
+	 * 新增工程所需量
+	 * @param bean
+	 */
+	void insertProNeedInfo(ProNeedInfoBean bean);
+	/**
+	 * 更新工程needNum
+	 * @param bean
+	 */
+	void updateNeedNum(ProNeedInfoBean bean);
+
+	int updateProPlanOutInfo(ProNeedInfoBean bean);
+
+	/**
+	 * 按照工程查询 计划 -发货信息
+	 * @param proId
+	 * @return
+	 */
+	ProPlanInfoBean getProPlanInfo(@Param("proId")String proId);
+	/**
+	 * 查询本次计划申请需要总量
+	 * @param applyId
+	 * @return
+	 */
+	int getPlanNeedNum(@Param("applyId")String applyId);
+	/**
+	 * 插入工程数据
+	 * @param proPlanInfo
+	 */
+	void insertProPlanInfo(ProPlanInfoBean proPlanInfo);
+	/**
+	 * 更新工程数据
+	 * @param proPlanInfo
+	 */
+	void updateProPlanInfo(ProPlanInfoBean proPlanInfo);
+
+
+	/**
+	 * 新增出库单 记录
+	 * @param vo
+	 * @return
+	 */
+	int insertProPlanOutInfo(ProOutInfoVo vo);
+	
+
+}

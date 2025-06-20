@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.RepairInputDao" >
+    <resultMap id="repairInput" type="com.bonus.lease.beans.RepairInputBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+		SELECT wob.OUT_NUM as batchNum
+		FROM wa_out_device wod
+		LEFT JOIN ma_machines mam ON wod.DEVICE_NUM = mam.DEVICE_NUM
+		LEFT JOIN wa_out_batch wob ON wod.OUT_ID = wob.ID
+		WHERE wod.`STATUS` = 3
+		GROUP BY wob.OUT_NUM
+		
+ 	</select>
+ 	
+ 	<select id="findDetails" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+		SELECT wri.ID as repairId,wri.BATCH_NUM as batchNum,
+		wri.BATCH_TIME as batchTime,maa.`NAME` as machinesName,
+		mab.MODEL as model,wri.MACHINES_NUM as machinesNum,
+		wri.MACHINES_UNIT as machinesUnit,wri.MACHINES_WEIGHT as machinesWeight,
+		wri.NOTES,wri.BATCH_STATUS as batchStatus
+		FROM wa_repair_input wri
+		LEFT JOIN ma_machines maa ON wri.MACHINES_NAME = maa.ID
+		LEFT JOIN ma_machines mab ON wri.MODEL = mab.ID
+		WHERE wri.IS_ACTIVE = 1 AND wri.PARENT_ID != 0
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+ 	    SELECT wri.ID as repairId,wri.PARENT_ID as parentId,
+		wri.BATCH_NUM as batchNum,wri.BATCH_TIME as batchTime,
+		pma.`NAME` as checkPerson,pmb.`NAME` as repairPerson,
+		wri.notes
+		FROM wa_repair_input wri 
+		LEFT JOIN pm_user pma ON wri.CHECK_PERSON = pma.ID
+		LEFT JOIN pm_user pmb ON wri.REPAIR_PERSON = pmb.ID
+		WHERE wri.IS_ACTIVE = 1 AND wri.PARENT_ID = 0
+		and wri.ID = #{repairId}
+ 	</select>
+ 	
+ 	<select id="findByBatch" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+ 	    SELECT wri.ID as repairId,wri.BATCH_NUM as batchNum,
+		wri.BATCH_TIME as batchTime,maa.`NAME` as machinesName,
+		mab.MODEL as model,wri.MACHINES_NUM as machinesNum,
+		wri.MACHINES_UNIT as machinesUnit,wri.MACHINES_WEIGHT as machinesWeight,
+		wri.NOTES,wri.BATCH_STATUS as batchStatus
+		FROM wa_repair_input wri
+		LEFT JOIN ma_machines maa ON wri.MACHINES_NAME = maa.ID
+		LEFT JOIN ma_machines mab ON wri.MODEL = mab.ID
+		WHERE wri.IS_ACTIVE = 1 AND wri.PARENT_ID != 0
+		and wri.ID = #{repairId}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.lease.beans.RepairInputBean">
+		insert into wa_repair_input
+		(PARENT_ID,BATCH_NUM,BATCH_TIME,CHECK_PERSON,REPAIR_PERSON,NOTES,IS_ACTIVE) 
+		values 
+		(0,#{batchNum},#{batchTime},#{checkPerson},#{repairPerson},#{notes},1)
+	</insert>
+	
+ 	
+ 	<insert id="addDetails" parameterType="com.bonus.lease.beans.RepairInputBean">
+		insert into wa_repair_input
+		(PARENT_ID,BATCH_NUM,BATCH_TIME,MACHINES_NAME,MODEL,MACHINES_NUM,MACHINES_UNIT,MACHINES_WEIGHT,NOTES,BATCH_STATUS,IS_ACTIVE) 
+		values 
+		(#{parentId},#{batchNum},#{batchTime},#{machinesName},#{model},#{machinesNum},#{machinesUnit},#{machinesWeight},#{notes},#{batchStatus},1)
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.lease.beans.RepairInputBean">
+		update wa_repair_input set
+		CHECK_PERSON = #{checkPerson},
+		REPAIR_PERSON = #{repairPerson},
+		NOTES = #{notes}
+		where ID = #{repairId}
+	</update>
+	
+ 	<update id="updateDetails" parameterType="com.bonus.lease.beans.RepairInputBean">
+		update wa_repair_input set
+		MACHINES_NAME = #{machinesName},
+		MODEL = #{model},
+		MACHINES_NUM = #{machinesNum},
+		MACHINES_UNIT = #{machinesUnit},
+		MACHINES_WEIGHT = #{machinesWeight},
+		NOTES = #{notes},
+		BATCH_STATUS = #{batchStatus}
+		where ID = #{repairId}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.lease.beans.RepairInputBean">
+		delete from wa_repair_input
+		where ID = #{repairId}
+	</delete>
+	
+	<delete id="delDetails" parameterType="com.bonus.lease.beans.RepairInputBean">
+		delete from wa_repair_input
+		where ID = #{repairId}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wa_repair_input WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.repairId}
+		</foreach>
+		)
+	</delete>
+	
+	<delete id="delBatchDetails" parameterType="java.util.List">
+		DELETE FROM wa_repair_input WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.repairId}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findByOutNums" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+		SELECT wod.DEVICE_NUM as deviceNum,wob.OUT_NUM as batchNum,
+		mam.ID as machinesId,mam.`NAME` as machinesName,mam.MODEL
+		FROM wa_out_device wod
+		LEFT JOIN ma_machines mam ON wod.DEVICE_NUM = mam.DEVICE_NUM
+		LEFT JOIN wa_out_batch wob ON wod.OUT_ID = wob.ID
+		WHERE wod.`STATUS` = 3
+		AND wob.OUT_NUM =  #{param.batchNum}
+ 	</select>
+ 	
+ 	<insert id="insertBackMachine" parameterType="com.bonus.lease.beans.BackMachineBean">
+ 		insert into wa_repair_input
+		(PARENT_ID,BATCH_NUM,BATCH_TIME,MACHINES_NAME,MODEL,MACHINES_NUM,INVOICE_NUM,INVOICE_URL,MACHINES_UNIT,MACHINES_WEIGHT,NOTES,BATCH_STATUS,IS_ACTIVE) 
+		values 
+		(#{param.parentId},#{param.outNum},#{param.outTime},#{param.machinesId},#{param.modelId},#{param.pickNum},#{param.invoiceNum},#{param.invoiceUrl},#{param.machinesUnit},#{param.machinesWeight},#{param.notes},#{param.batchStatus},1)
+ 	</insert>
+ 	
+ 	<select id="findRepairBatch" parameterType="com.bonus.lease.beans.RepairInputBean" resultMap="repairInput">
+ 	    SELECT wri.ID as repairId,wri.parent_id as parentId,wri.BATCH_NUM as batchNum,
+ 	    wri.BATCH_TIME as batchTime,pma.`NAME` as repairPerson,pmb.`NAME` as checkPerson,
+ 	    wri.NOTES,wri.BATCH_STATUS as batchStatus
+		FROM wa_repair_input wri
+		LEFT JOIN pm_user pma ON wri.REPAIR_PERSON = pma.ID
+		LEFT JOIN pm_user pmb ON wri.CHECK_PERSON = pmb.ID
+		WHERE wri.IS_ACTIVE = 1 AND wri.BATCH_STATUS = 6
+		AND wri.PARENT_ID = 0
+ 	</select>
+ 	
+</mapper>

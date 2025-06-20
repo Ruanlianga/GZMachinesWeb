@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.data.dao.FenceDao" >
+
+    <resultMap id="fence" type="com.bonus.data.beans.FenceBean"></resultMap>
+    
+
+	<select id="findNoPage" parameterType="com.bonus.data.beans.FenceBean" resultType="com.bonus.data.beans.FenceBean">
+	SELECT ID as id,
+	NAME as name,
+	IS_OPEN as isOpen,
+	POINTS as points 
+	from bm_warehouse where IS_ACTIVE = 1
+	 <if test="param.keyWord != null and param.keyWord != ''">
+     	and (NAME like CONCAT('%',#{param.keyWord},'%') or 
+		    POINTS like CONCAT('%',#{param.keyWord},'%') or 
+		    IS_OPEN like CONCAT('%',#{param.keyWord},'%'))
+	</if>
+	</select>
+	
+	<select id="find" parameterType="com.bonus.data.beans.FenceBean" resultType="com.bonus.data.beans.FenceBean">
+		SELECT ID as id,NAME as name,LAT as lat,LON as lon, IS_OPEN  as isOpen ,RADIUS as radius
+	    from bm_warehouse 
+	    where IS_ACTIVE =1  and ID=#{id}
+	</select>	
+	
+	<select id="findFence" parameterType="com.bonus.data.beans.FenceBean" resultType="com.bonus.data.beans.FenceBean">
+		SELECT  DISTINCT   bmw.ID as id, NAME as name, bmd.DEVICE_CODE as deviceCode,bds.`STATUS` as statusName
+		from bm_warehouse bmw 
+	    LEFT JOIN bm_device bmd on bmd.WAREHOUSE_ID = bmw.id
+	    LEFT JOIN bm_device_status bds on bds.ID = bmd.DEVICE_STATUS
+	    where bmw.IS_ACTIVE = 1   and bds.ID = 1
+	</select>
+	
+	<update id="delete" parameterType="com.bonus.data.beans.FenceBean">
+        update bm_warehouse set IS_ACTIVE = '0'
+        where ID =#{id}
+	</update>
+	
+	<update id="update" parameterType="com.bonus.data.beans.FenceBean">
+        update bm_warehouse set NAME = #{name},LAT = #{lat},LON = #{lon},IS_OPEN = #{isOpen},
+        RADIUS = #{radius}
+        where ID = #{id}
+	</update>
+ 
+	<insert id="insert" parameterType="com.bonus.data.beans.FenceBean"> 
+		insert into bm_warehouse
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				NAME,
+			</if>
+			<if test="isOpen != null">
+				IS_OPEN,
+			</if>
+			<if test="points != null">
+				POINTS,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name},
+			</if>
+			<if test="isOpen != null">
+				#{isOpen},
+			</if>
+			<if test="points != null">
+				#{points},
+			</if>
+			1,
+		</trim>
+   </insert>
+</mapper>

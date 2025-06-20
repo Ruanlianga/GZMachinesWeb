@@ -1,0 +1,310 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.ReceiveDetailsDao" >
+    <resultMap id="receiveDetails" type="com.bonus.lease.beans.ReceiveDetailsBean"></resultMap>
+    
+    <resultMap id="projectStorageMap" type="com.bonus.newSettlement.beans.MaTypeProjectStorageBean">
+    	<id column="id" property="id" jdbcType="INTEGER" />
+	    <result column="agreementId" property="agreement.id" />
+	    <result column="typeId" property="type.id" />
+	    <result column="num" property="num" />
+	    <result column="price" property="price" />
+	    <result column="startDate" property="startDate" />
+	    <result column="endDate" property="endDate" />
+	    <result column="maId" property="machine.id" />
+	    <result column="isCount" property="isCount" />
+    </resultMap>
+    
+    <select id="findProjectStorageListByTaskId" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="projectStorageMap">
+		SELECT DISTINCT
+				wir.ID AS id,
+				wat.AGREEMENT_ID AS agreementId,
+				wir.MODEL_ID AS typeId,
+				wir.MA_ID as maId,
+				LEFT ( wmo.OUT_TIME, 10 ) AS startDate,
+				ROUND( wir.NUM) AS num,
+				mt.LEASE_PRICE AS price,
+				mt.IS_COUNT AS isCount
+				FROM
+				wf_info_record wir
+				LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+				LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID 
+				WHERE
+				wir.TYPE = 2 
+				AND wmo.TASK_ID = #{taskId} AND wir.MODEL_ID = #{typeId}
+				GROUP BY
+				wir.ID
+	</select>
+    
+    
+    <select id="findByPage" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" resultMap="receiveDetails">
+		SELECT
+				wcd.ALREADY_COLLAR_NUM AS alreadyCollerNum,
+				mtt.`NAME` AS maType,
+				mt.`NAME` AS maModel,
+				mt.UNIT AS maUnit,
+				mt.LEASE_PRICE AS leasePrice,
+				wcd.PRE_COLLAR_NUM AS preCollerNum,
+				wcd.IS_SURE AS isSure,
+				pu.`NAME` AS checker,
+				puu.`NAME` AS customerSrep,
+				wcd.CHECKER AS checkerId,
+				wcd.CUSTOMER_SERVICE_REP AS customerSrepId,
+				wcd.TASK_ID AS taskId,
+				wcd.MODEL_ID AS maModelId,
+				wcd.ID ,
+				wcd.IS_EXAMINE as isExamine,
+				wcd.IS_APPROVAL as isApproval,
+				wcd.audit_remark as auditRemark,
+				wcd.approval_remark as approvalRemark 
+			FROM
+				wf_collar_details wcd
+				LEFT JOIN mm_type mt ON wcd.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+				LEFT JOIN pm_user pu ON pu.ID = wcd.CHECKER
+				LEFT JOIN pm_user puu ON puu.ID = wcd.CUSTOMER_SERVICE_REP 
+			WHERE wcd.TASK_ID= #{param.taskId}
+			AND wcd.IS_ACTIVE = 1
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+			 mt.`NAME` like concat('%',#{param.keyWord},'%') 
+			OR mtt.`NAME` like concat('%',#{param.keyWord},'%') 
+			) 
+		</if>
+		GROUP BY mt.ID
+		ORDER BY wcd.IS_SURE,wcd.id desc
+ 	</select>
+ 	
+    <select id="findAuditing" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" resultMap="receiveDetails">
+		SELECT a.nums AS ckeckNum, b.nums AS outNum,a.checker AS checker,
+			b.customerSrep AS customerSrep,a.maModel AS maType,a.maType AS maModel
+			FROM(SELECT DISTINCT mt.`NAME` AS maType,mtt.`NAME` AS maModel,
+			woc.ALREDY_CHECK_NUM AS nums,pu.`NAME` AS checker
+			from wf_collar_details wcd 
+			LEFT JOIN wf_task_record wtr ON wtr.SUP_ID = wcd.TASK_ID
+			LEFT JOIN wf_outstock_check woc ON woc.TASK_ID = wtr.ID
+			LEFT JOIN mm_type mt ON mt.ID = woc.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN pm_user pu ON pu.ID = woc.CHECKER
+			WHERE wtr.DEFINITION_ID = 4 AND woc.IS_SURE = 1) a,
+			(SELECT DISTINCT mt.`NAME` AS maType,mtt.`NAME` AS maModel,
+			woc.ALREDY_COLLAR_NUM AS nums,pu.`NAME` AS customerSrep
+			FROM wf_collar_details wcd 
+			LEFT JOIN wf_task_record wtr ON wtr.SUP_ID = wcd.TASK_ID
+			LEFT JOIN wf_ma_outstock woc ON woc.TASK_ID = wtr.ID
+			LEFT JOIN mm_type mt ON mt.ID = woc.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN pm_user pu ON pu.ID = woc.OUT_PERSON
+			WHERE wtr.DEFINITION_ID = 5 AND woc.IS_SURE = 1) b
+			GROUP BY a.maModel
+ 	</select>
+ 	
+    <select id="find" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" resultMap="receiveDetails">
+       SELECT wcd.ALREADY_COLLAR_NUM AS alreadyCollerNum,mtt.`NAME` AS maType,mt.`NAME` AS maModel,
+			mt.UNIT AS maUnit,mt.LEASE_PRICE AS leasePrice,wcd.PRE_COLLAR_NUM AS preCollerNum,
+			wcd.IS_SURE AS isSure,pu.`NAME` AS checker,puu.`NAME` AS customerSrep,wcd.CHECKER AS checkerId,
+			wcd.CUSTOMER_SERVICE_REP AS customerSrepId,wcd.TASK_ID AS taskId,wcd.MODEL_ID AS maModelId
+			FROM wf_collar_details wcd
+			LEFT JOIN mm_type mt ON wcd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN pm_user pu ON pu.ID = wcd.CHECKER 
+			LEFT JOIN pm_user puu ON puu.ID = wcd.CUSTOMER_SERVICE_REP
+			WHERE wcd.TASK_ID= #{taskId} and wcd.MODEL_ID = #{maModelId}
+			AND wcd.IS_ACTIVE = 1
+		GROUP BY mt.ID
+    </select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		insert into wf_collar_details
+		(TASK_ID,MODEL_ID,PRE_COLLAR_NUM,ALREADY_COLLAR_NUM,IS_SURE,CHECKER,CUSTOMER_SERVICE_REP,IS_EXAMINE,IS_APPROVAL,IS_ACTIVE) 
+		values 
+		(#{taskId},#{maModelId},#{machinesNum},'0','0',#{checker},#{customerSrep},'0','0','1')
+	</insert>
+	
+	<!-- <insert id="insertCheckTask" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_task_record
+		(SUP_ID,DEFINITION_ID,PROCESS_ID,ALREADY_COLLAR_NUM,IS_SURE,CHECKER,CUSTOMER_SERVICE_REP,IS_EXAMINE,IS_APPROVAL,IS_ACTIVE) 
+		values 
+		(#{taskId},'4',#{machinesNum},'0','0',#{checker},#{customerSrep},'0','0','1')
+	</insert> --> 
+	
+	<!-- <select id="findBean" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean"> 
+		select MODEL_ID as maModelId, IS_SURE as isSure
+		from wf_collar_details
+		where MODEL_ID=#{maModelId} and TASK_ID=#{taskId}
+	</select> -->
+	
+	<select id="findBean" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean"> 
+		SELECT wcd.IS_SURE AS isSure,wcd.MODEL_ID as maModelId,wcd.IS_EXAMINE as isExamine,wcd.IS_APPROVAL as isApproval,wcd.PRE_COLLAR_NUM as preMachineNum
+		FROM wf_collar_details wcd
+		WHERE wcd.TASK_ID = #{taskId} AND wcd.MODEL_ID = #{maModelId}
+	</select>
+	
+	<select id="getMachinesNum" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    SELECT
+		res.modelId,round(SUM(machinesNum),3) as machinesNum
+		FROM(			
+				SELECT t.id as modelId,if(t.NUM is null,0,t.NUM) as machinesNum 
+				FROM mm_type t
+				WHERE t.ID = #{maModelId} and t.IS_COUNT = 1
+			UNION
+				SELECT 
+					mt.id as maModelId, 
+					count(mt.id) as machinesNum 
+				FROM mm_type mt
+				LEFT JOIN mm_machines mm ON mm.TYPE = mt.ID
+				WHERE mt.ID = #{maModelId} AND mm.BATCH_STATUS = 5
+		) res
+		limit 1 
+	</select>
+	
+	<select id="getPreMachinesNum" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		SELECT SUM(wcd.PRE_COLLAR_NUM) -SUM(wcd.ALREADY_COLLAR_NUM) AS preCollerNum
+		FROM wf_collar_details wcd
+		WHERE wcd.MODEL_ID = #{maModelId} and  wcd.IS_SURE = 1
+	</select>
+	
+	<select id="findIsFinish" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		SELECT wcd.TASK_ID AS taskId,wcd.ID AS id
+			FROM wf_collar_details wcd
+			WHERE wcd.TASK_ID = #{taskId} AND wcd.IS_SURE = '0'
+	</select>
+	<select id="findTaskId" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		SELECT wtr.id as id 
+		FROM wf_task_record wtr
+		LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wtr.ID
+		WHERE wmo.MODEL_ID = #{maModelId} AND wtr.SUP_ID = #{taskId}
+	</select>
+	
+	<update id="updateBean" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		update wf_collar_details set PRE_COLLAR_NUM = PRE_COLLAR_NUM + #{machinesNum}
+		where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	<update id="isSure" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    update wf_collar_details set IS_SURE='1',IS_EXAMINE=1,IS_APPROVAL=0
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	<delete id="batchDeletion" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    DELETE FROM wf_collar_details WHERE TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</delete>
+	
+	<update id="allSure" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    update wf_collar_details set is_SURE='1',IS_EXAMINE=1,IS_APPROVAL=0
+	    where TASK_ID=#{taskId} 
+	</update>
+	
+	<select id="getAllReceiveTask" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" resultMap="receiveDetails">
+		SELECT distinct ttmt.TASK_ID as taskId,mtb.`NAME` as machinesName,mta.`ID` modelId,mta.`NAME` as machinesModel,
+		pua.`NAME` as keeper, mta.BUY_PRICE as buyPrice,mta.LEASE_PRICE as leasePrice,
+		ttmt.MACHINES_NUM as machinesNum,ttmt.ACTUAL_NUM as actualNum,mta.IS_COUNT as isCount,
+		but.`NAME` as leaseCompany,bpt.`NAME` as projectName,bmc.COLLAR_MAN as applyMan,bmc.APPLY_NUMBER as applyNumber,
+		bmc.CREATE_TIME as receiveTime,ttmt.IS_SURE AS isSure,IF (ttmt.MACHINES_NUM = ttmt.ACTUAL_NUM,0,1) AS isComplete
+		FROM  ba_ma_collar bmc
+		LEFT JOIN tm_task_ma_type ttmt ON ttmt.TASK_ID = bmc.ID
+		LEFT JOIN ma_type mta ON ttmt.MA_TYPE_ID = mta.ID
+		LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+		LEFT JOIN ma_keeper_type mkt ON mta.ID = mkt.TYPE_ID
+		LEFT JOIN pm_user pua ON mkt.USER_ID = pua.ID
+		LEFT JOIN ba_agreement_task bat ON bmc.ID = bat.TASK_ID
+		LEFT JOIN ba_ma_agreement bma ON bat.AGREEMENT_ID = bma.ID
+		LEFT JOIN bm_unit but ON bma.LEASE_COMPANY = but.ID
+		LEFT JOIN bm_project bpt ON bma.PROJECT = bpt.ID
+		WHERE mkt.USER_ID = #{userId} and ttmt.IS_SURE = 1
+		<if test='isCompleted == "0"'>
+		 	and ttmt.MACHINES_NUM > ttmt.ACTUAL_NUM
+		</if>
+		<if test='isCompleted == "1"'>
+		 	and ttmt.MACHINES_NUM = ttmt.ACTUAL_NUM
+		 	<if test="receiveTime != null and receiveTime != ''">
+			 	AND bmc.CREATE_TIME like concat(#{receiveTime},'%')
+			</if>
+		</if>
+		<if test="isCount != null and isCount != ''">
+		 	AND mta.IS_COUNT = #{isCount}
+		</if>
+		GROUP BY mta.ID,ttmt.TASK_ID
+		ORDER BY isComplete DESC,bmc.CREATE_TIME DESC
+	</select>
+	
+	<select id="findMaReceiveMsg" parameterType="com.bonus.lease.beans.ReceiveDetailsBean" resultMap="receiveDetails">
+		SELECT 	DISTINCT bamc.ID as taskId,bamc.COLLAR_MAN as leaseMan,bamc.COLLAR_PHONE as phone,
+				bamc.CREATE_TIME as createTime,pmu.`NAME` as applyMan,bamc.APPLY_NUMBER as 
+				applyNumber,bamc.REMARK as remark,bama.`CODE` as agreementCode,
+				CONCAT(bmc.`NAME`,'/',bmu.`NAME`) as leaseCompany,bmp.`NAME` as projectName,
+				mat2.`NAME` as machinesType,mat1.`NAME` as machinesModel,ttmt.MACHINES_NUM 
+				as machinesNum,ttmt.ACTUAL_NUM as actualNum,
+				if(ttmt.is_sure = 1,"已确认","未确认") as isSure 
+		FROM ba_ma_collar bamc
+		LEFT JOIN ba_agreement_task baat on baat.TASK_ID = bamc.ID
+		LEFT JOIN ba_ma_agreement bama on bama.ID = baat.AGREEMENT_ID
+		LEFT JOIN bm_unit bmu on bmu.ID = bama.LEASE_COMPANY
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_project bmp on bmp.ID = bama.PROJECT
+		LEFT JOIN pm_user pmu on pmu.ID = bamc.CREATOR
+		LEFT JOIN tm_task_ma_type ttmt on ttmt.TASK_ID = bamc.ID
+		LEFT JOIN ma_type mat1 on mat1.ID = ttmt.MA_TYPE_ID
+		LEFT JOIN ma_type mat2 on mat2.ID = mat1.PARENT_ID
+		WHERE bamc.CREATE_TIME >= CONCAT(#{startTime},' 00:00:00') 
+		and CONCAT(#{endTime},' 23:59:59') >= bamc.CREATE_TIME 
+		<if test="keyWord != null and keyWord != ''">
+			and (
+				bamc.COLLAR_MAN like concat('%',#{keyWord},'%') OR
+				bamc.APPLY_NUMBER like concat('%',#{keyWord},'%') OR
+				bamc.REMARK like concat('%',#{keyWord},'%') OR
+				bama.`CODE` like concat('%',#{keyWord},'%') OR
+				CONCAT(bmc.`NAME`,'/',bmu.`NAME`) like concat('%',#{keyWord},'%') OR
+				bmp.`NAME` like concat('%',#{keyWord},'%')
+			)
+		</if>
+ 	</select>
+	
+	<delete id="delete" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    delete from wf_collar_details 
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</delete>
+	
+	<delete id="delOutTask" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    delete from wf_ma_outstock 
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</delete>
+	
+	<delete id="delOutTaskRecord" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	    delete from wf_task_record
+	    where ID = #{taskId}
+	</delete>
+	
+	<update id="update" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+	   update wf_collar_details
+        <set>
+            <if test="maModelId != null and maModelId != ''">
+               MODEL_ID =#{maModelId},
+            </if>
+             <if test="machinesNum != null and machinesNum != ''">
+              PRE_COLLAR_NUM = #{machinesNum},
+            </if>
+            <if test="serviceId != null and serviceId != ''">
+              CUSTOMER_SERVICE_REP = #{serviceId},
+            </if>
+             <if test="alreadyCollerNum != null and alreadyCollerNum != ''">
+              ALREADY_COLLAR_NUM = #{alreadyCollerNum},
+            </if>
+             
+        </set>
+       where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	<select id="findMachineDetails" resultMap="receiveDetails" parameterType="com.bonus.lease.beans.ReceiveDetailsBean">
+		SELECT wir.MA_ID as maId 
+		FROM wf_task_record wtr
+		LEFT JOIN wf_info_record wir ON wir.SUP_ID = wtr.ID
+		WHERE wtr.SUP_ID = #{taskId} and wir.MA_ID 
+	</select>
+	
+</mapper>

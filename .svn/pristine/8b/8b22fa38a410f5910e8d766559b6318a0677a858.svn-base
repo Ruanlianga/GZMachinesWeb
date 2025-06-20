@@ -1,0 +1,500 @@
+package com.bonus.lease.controller;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.omg.CORBA.UserException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.bonus.core.DateTimeHelper;
+import com.bonus.core.StringHelper;
+import com.bonus.exp.POIOutputHelper;
+import com.bonus.lease.beans.AgreementBean;
+import com.bonus.lease.service.AgreementService;
+import com.bonus.ma.beans.MachineBean;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseController;
+import com.bonus.sys.GlobalConst;
+import com.bonus.sys.Page;
+import com.bonus.sys.UserShiroHelper;
+
+@Controller
+@RequestMapping("/backstage/agreement/")
+public class AgreementController extends BaseController<AgreementBean> {
+
+	@Autowired
+	private AgreementService service;
+
+	@RequestMapping("list")
+	public String index(Model model) {
+		return "/lease/agreement";
+	}
+
+	@RequestMapping("details")
+	public String lists(Model model) {
+		return "/lease/agreementDetailslist";
+	}
+
+	@RequestMapping("geiHisAgreement")
+	public String geiHisAgreement(Model model) {
+		return "/lease/agreementlist";
+	}
+
+	@RequestMapping("backToAgreen")
+	public String backToAgreen(Model model) {
+		return "/lease/agreement";
+	}
+
+	@RequestMapping("updAgreePic")
+	public String updAgreePic(Model model) {
+		return "/lease/updAgreePic";
+	}
+	
+	@RequestMapping("updAgreeListPic")
+	public String updAgreeListPic(Model model) {
+		return "/lease/updAgreeListPic";
+	}
+
+	@RequestMapping("readAgreePic")
+	public String readAcceptPic(Model model) {
+		return "/lease/readAgreePic";
+	}
+
+	@RequestMapping(value = "findByPage", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findByPage(Page<AgreementBean> page, AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			Page<AgreementBean> result = service.findByPage(o, page);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", result);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "getAgreementCode", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAgreementCode(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			AgreementBean bean = service.getAgreementCode(o);
+			ar.setSucceed(bean);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	
+	@RequestMapping(value = "find", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes find(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<AgreementBean> list = service.find(o);
+			AgreementBean station = list.get(0);
+			ar.setSucceed(station);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "update", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes update(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.update(o);
+			ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "updateBean", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes updateBean(AgreementBean o) {
+		String currentTime = DateTimeHelper.getNowTime();
+		AjaxRes ar = getAjaxRes();
+		try {
+			o.setSettlementDate(currentTime);
+			service.updateBean(o);
+			ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "findAgreement", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAgreement(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<AgreementBean> list = service.findAgreement(o);
+			service.updateBean(o);
+			AgreementBean station = list.get(0);
+			ar.setSucceed(station);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "add", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes add(AgreementBean o) {
+		String nowTime = DateTimeHelper.getNowTime();
+		o.setSignDate(nowTime);
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			int res = service.insertBean(o);
+			if (res == 1)
+				ar.setSucceedMsg(GlobalConst.SAVE_SUCCEED);
+			else
+				ar.setFailMsg("登录名已存在");
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.SAVE_FAIL);
+		}
+		ar.setSucceed(o);
+		return ar;
+	}
+
+	@RequestMapping(value = "del", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes del(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.delete(o);
+			ar.setSucceedMsg(GlobalConst.DEL_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DEL_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "delBatch", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes delBatch(String chks) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.deleteBatch(chks);
+			ar.setSucceedMsg(GlobalConst.DEL_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DEL_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "findCode", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findCode(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		String nowDay = DateTimeHelper.getNowDateFomart();
+		String nowMonth = DateTimeHelper.getNowMonth();
+		o.setCreateTime(nowMonth);
+		String count = service.findCode(o);
+		int counts = Integer.parseInt(count) + 1;
+		String code = "H" + nowDay + "-" + counts;
+		ar.setSucceedMsg(code);
+		return ar;
+	}
+
+	@RequestMapping(value = "checkAgreement", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes checkAgreement(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		List<AgreementBean> list = service.checkAgreement(o);
+		if (list.size() <= 0 || list == null) {
+			ar.setSucceedMsg("0");
+		} else {
+			ar.setSucceedMsg("1");
+		}
+		return ar;
+	}
+
+	/**
+	 * 协议信息表导出
+	 * 
+	 * @param request
+	 * @param response
+	 * @param page
+	 * @param o
+	 */
+	@RequestMapping("expExcel")
+	public void expExcel(HttpServletRequest request, HttpServletResponse response, AgreementBean o) {
+		try {
+			List<AgreementBean> list = service.expAgreement(o);
+			String startTime = o.getStartTime();
+			String endTime = o.getEndTime();
+			String name = "";
+			if (startTime != null && startTime.equals(endTime)) {
+				name = startTime;
+			} else {
+				name = startTime + "~" + endTime;
+			}
+			if (StringHelper.isNotEmpty(o.getKeyWord())) {
+				name += "包含" + o.getKeyWord();
+			}
+			expOutExcel(response, list, name + "协议信息详细表");
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+	}
+
+	private void expOutExcel(HttpServletResponse response, List<AgreementBean> list, String filename) throws Exception {
+		if (list != null) {
+			List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+			int size = list.size();
+			for (int i = 0; i < size; i++) {
+				AgreementBean bean = list.get(i);
+				Map<String, Object> maps = outAgreeBeanToMap(i, bean);
+				results.add(maps);
+			}
+
+			List<String> headers = machineTypeHeader();
+			HSSFWorkbook workbook = POIOutputHelper.excel(results, headers, filename);
+			OutputStream out = null;
+			response.setContentType("application/vnd.ms-excel;charset=UTF-8");
+			response.addHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filename, "UTF-8") + ".xls");
+			response.setHeader("Pragma", "No-cache");
+			out = response.getOutputStream();
+			workbook.write(out);
+			out.flush();
+			out.close();
+		}
+	}
+
+	private Map<String, Object> outAgreeBeanToMap(int i, AgreementBean bean) {
+		Map<String, Object> maps = new LinkedHashMap<String, Object>();
+		maps.put("id", i + 1);
+		maps.put("code", bean.getCode());
+		maps.put("contractNumber", bean.getContractNumber());
+		maps.put("signDate", bean.getSignDate());
+		maps.put("leaseCompany", bean.getLeaseCompany());
+		maps.put("projectName", bean.getProjectName());
+		maps.put("startTime", bean.getStartTime());
+		maps.put("leaseTerm", bean.getLeaseTerm());
+		maps.put("authorizingPerson", bean.getAuthorizingPerson());
+		maps.put("authorizingPhone", bean.getAuthorizingPhone());
+		if ("1".equals(bean.getIsBalance())) {
+			maps.put("isBalance", "未结算");
+		} else {
+			maps.put("isBalance", "已结算");
+		}
+		maps.put("remark", bean.getRemark());
+		return maps;
+	}
+
+	private List<String> machineTypeHeader() {
+		ArrayList<String> list = new ArrayList<String>();
+		list.add("序号");
+		list.add("协议编号");
+		list.add("合同编号");
+		list.add("签订时间");
+		list.add("租赁单位");//单位名称
+		list.add("工程名称");
+		list.add("开始时间");
+		list.add("租赁期限");
+		list.add("授权人");
+		list.add("授权人电话");
+		list.add("是否决算");
+		list.add("备注");
+		return list;
+	}
+
+	@RequestMapping(value = "findAgreeCodeId", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAgreeCodeId(AgreementBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<AgreementBean> result = service.findAgreeCodeId(o);
+			AgreementBean bean = result.get(0);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", bean);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	/**
+	 * 附件上传
+	 */
+	@ResponseBody
+	@RequestMapping(value = "uploadAgreePic", method = RequestMethod.POST)
+	public Map<String,Object> uploadAgreePic(@RequestParam("file")MultipartFile file,HttpServletRequest request, AgreementBean o) {
+		String prefix="";
+        String dateStr="";
+        //保存上传
+        OutputStream out = null;
+        InputStream fileInput=null;
+        try{
+            if(file!=null){
+                String fileName = file.getOriginalFilename();
+                Date date = new Date();
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                dateStr = simpleDateFormat.format(date);
+//                String filepath = request.getSession().getServletContext().getRealPath("/agreeImg");
+                String mkdirsName = "agreeImg"; // 机具管理-机具类型管理
+        		String filepath = "/data/gzimt/" + mkdirsName + "/"; // linux 系统路径
+                String os = System.getProperty("os.name");
+                if (os.toLowerCase().startsWith("win")) {
+                	filepath = "D://GZMachinesWeb/" + mkdirsName + "/";
+                }
+               // String filepath = "D:\\mycode\\machine\\images\\" + dateStr+"\\"+fileName;
+
+                File files=new File(filepath);
+                //打印查看上传路径
+                System.out.println(filepath);
+//                if(!files.getParentFile().exists()){
+//                    files.getParentFile().mkdirs();
+//                }
+                if(!files.exists()){
+                    files.mkdirs();
+                }
+                file.transferTo(files);
+                
+                //保存文件名文件路径
+                o.setAgreePicName(fileName);
+                o.setUrlPath(filepath);
+                
+                
+                Map<String,Object> map=new HashMap<>();
+                map.put("data",o);
+                return map;
+            }
+
+        }catch (Exception e){
+        	logger.error(e.toString(),e);
+        }finally{
+            try {
+                if(out!=null){
+                    out.close();
+                }
+                if(fileInput!=null){
+                    fileInput.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("code",1);
+        map.put("msg","");
+        return map;
+	}
+	
+	/**
+	 * 列表附件上传
+	 */
+	@ResponseBody
+	@RequestMapping(value = "updateAgreeListPic", method = RequestMethod.POST)
+	public Map<String,Object> updateAgreeListPic(@RequestParam("file")MultipartFile file,HttpServletRequest request, AgreementBean o) {
+		String prefix="";
+        String dateStr="";
+        //保存上传
+        OutputStream out = null;
+        InputStream fileInput=null;
+        try{
+            if(file!=null){
+                String fileName = file.getOriginalFilename();
+                Date date = new Date();
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                dateStr = simpleDateFormat.format(date);
+//                String filepath = request.getSession().getServletContext().getRealPath("/machinesImg");
+                String mkdirsName = "machinesImg"; // 机具管理-机具类型管理
+        		String filepath = "/data/gzimt/" + mkdirsName + "/"; // linux 系统路径
+                String os = System.getProperty("os.name");
+                if (os.toLowerCase().startsWith("win")) {
+                	filepath = "D://GZMachinesWeb/" + mkdirsName + "/";
+                }
+
+               // String filepath = "D:\\mycode\\machine\\images\\" + dateStr+"\\"+fileName;
+
+                File files=new File(filepath);
+                //打印查看上传路径
+                System.out.println(filepath);
+                if(!files.getParentFile().exists()){
+                    files.getParentFile().mkdirs();
+                }
+                file.transferTo(files);
+                
+                //保存文件名文件路径
+                o.setUrl(fileName);
+                o.setUrlPath(filepath);
+                
+                List<MachineBean> list = new ArrayList<MachineBean>();
+            	int res = service.updUrlAndUrlPath(o);
+                
+                Map<String,Object> map2=new HashMap<>();
+                Map<String,Object> map=new HashMap<>();
+                map.put("code",0);
+                map.put("msg","");
+                map.put("data",map2);
+                map2.put("src","/images/"+ dateStr+"/"+fileName);
+                return map;
+            }
+
+        }catch (Exception e){
+        	logger.error(e.toString(),e);
+        }finally{
+            try {
+                if(out!=null){
+                    out.close();
+                }
+                if(fileInput!=null){
+                    fileInput.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("code",1);
+        map.put("msg","");
+        return map;
+	}
+	
+	
+}

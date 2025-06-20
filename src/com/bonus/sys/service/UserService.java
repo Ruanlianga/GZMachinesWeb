@@ -1,0 +1,68 @@
+package com.bonus.sys.service;
+
+import java.util.List;
+
+import com.bonus.sys.BaseService;
+import com.bonus.sys.beans.UserBean;
+import com.bonus.sys.beans.ZNode;
+
+public interface UserService extends BaseService<UserBean> {
+
+	UserBean findUserBeanByLoginName(String username);
+
+	void setPerData(UserBean o);
+
+	void setSetting(String skin);
+
+	int preResetPwd(String opwd, String npwd, String qpwd);
+
+	int sysResetPwd(UserBean o);
+
+	List<ZNode> getOrgBeans(UserBean o);
+
+	int insertUser(UserBean o);
+
+	void deleteBatch(String chks);
+
+	List<UserBean> findAllByRole(UserBean o);
+
+	void updateUsers(int roleId, String chks);
+	
+	UserBean findAll(UserBean o);
+
+	List<UserBean> findAllUser();
+
+	UserBean findUserBeanByLoginNameOrPhone(String loginNameOrPhone);
+	
+	List<UserBean> findByRepair();
+
+	List<UserBean> findByOrg(UserBean o);
+	
+	String findCompanyName(UserBean o);
+	
+	List<UserBean> getUnit(UserBean o);
+
+	List<ZNode> findPerson(UserBean o);
+
+	UserBean findByUserId(String userId,int flag);
+
+	List<UserBean> findByPostId(String postId);
+
+	List<UserBean> findPersonByOrgId(String orgId);
+
+	List<UserBean> findCIdByOrgId(String orgId,String postId);
+
+	List<UserBean> findAllPerson();
+
+	void insertUserRole(UserBean o);
+
+	List<ZNode> findCheckPerson(UserBean o);
+
+	List<ZNode> findServicePerson(UserBean o);
+
+	List<UserBean> findAllUserInfo(UserBean o);
+
+	UserBean findCompanyInfo(UserBean o);
+	
+	int insertPic(UserBean o);
+}

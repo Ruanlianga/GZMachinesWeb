@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.plan.dao.PlanAuditDao" >
+
+
+
+
+	<!-- 查询审核列表 -->
+    <select id="findByPage" parameterType="com.bonus.plan.beans.PlanApplyAuditBean" resultType="com.bonus.plan.beans.PlanApplyAuditBean">
+   		SELECT
+			plan.id,
+			plan.CODE,pro.name proName ,
+			plan.project_id projectId,
+			plan.project_part projectPart,
+			plan.project_content projectContent,
+			plan.need_time needTime,
+			plan.creator,
+			plan.create_time createTime,
+			plan.remark,
+			plan.STATUS,
+			plan.updater,
+			plan.status_type statusType 
+		FROM
+			t_plan_apply plan
+			left join bm_project pro on plan.project_id=pro.ID
+		<where>
+			<if test="param.keyWord !=null and param.keyWord !=''">	
+					and (
+					   pro.name  like concat('%',#{param.keyWord},'%')  or 
+					   plan.creator  like concat('%',#{param.keyWord},'%')  or 
+					   plan.CODE  like concat('%',#{param.keyWord},'%')  or 
+					   plan.need_time  like concat('%',#{param.keyWord},'%')  or 
+					   plan.project_part  like concat('%',#{param.keyWord},'%') or
+					   plan.project_content  like concat('%',#{param.keyWord},'%') or
+					   plan.remark  like concat('%',#{param.keyWord},'%')
+					)
+					
+			</if>
+			<if test="param.auditStatus !=null and param.auditStatus !=''">	
+					and plan.STATUS=#{param.auditStatus}
+			</if>
+		</where>
+		order by  plan.update_time  DESC
+ 	</select>
+ 	<!--统计本次计划所需数量-->
+	<select id="getPlanNeedNum"  parameterType="java.lang.String" resultType="java.lang.Integer" >
+		select SUM(need_num)
+			from t_plan_details
+				where apply_id=#{applyId}
+	</select>
+ 	<!--查询工程 计划-出库 信息-->
+	<select id="getProPlanInfo"  parameterType="java.lang.String" resultType="com.bonus.plan.beans.ProPlanInfoBean" >
+		select pro_id proId,need_num needNum,plan_num planNum,record_num recordNum,out_num outNum,status
+			from t_pro_plan_info
+			where  pro_id=#{proId}
+	</select>
+
+   	<!-- 查询审核内容 -->
+   <select id="getPlanApplyDta" parameterType="java.lang.String" resultType="com.bonus.plan.beans.PlanApplyBean">
+   		select status,status_type statusType,project_id proId
+	   		from t_plan_apply
+				WHERE ID=#{applyId}
+   	</select>
+   	
+   	<!-- 修改审核信息 -->
+   	<update id="updatePlanAudit"  parameterType="com.bonus.plan.beans.AuditBean">
+		UPDATE   t_plan_apply
+		  		SET  status=#{auditStatus},status_type=#{auditType}
+		  			WHERE ID=#{applyId}
+   	</update>
+   	
+   	<!-- 插入审核记录 -->
+   	<insert id="insertAuditRecord" parameterType="com.bonus.plan.beans.AuditBean">
+   	  	insert  into t_plan_record
+   	  		(apply_id,auditor,audit_time,
+			audit_status,audit_remark,updater,
+			update_time,audit_type,audit_name)  
+			values
+				(#{applyId},#{auditor},now(),
+				#{auditStatus},#{auditRemarks},#{updater},
+				now(),#{auditType},#{auditUser})
+   	</insert>
+   	
+   	<!--查询计划工器具详情 -->
+   	<select id="getPlanDetails" resultType="com.bonus.plan.beans.PlanDataDetailBean" parameterType="java.lang.String">
+  		select id,model_id moduleId,type,`name` typeName,module,unit,need_num needNum
+			from t_plan_details
+				where apply_id=#{applyId}
+   	</select>
+   	
+   	<!-- 查询工程所需量 -->
+   	<select id="getProNeedInfo" resultType="com.bonus.plan.beans.ProNeedInfoBean" parameterType="java.lang.String">
+  		select id,need_num needNum,module_id moduleId ,pro_id  proId
+			from t_pro_need_info 
+		   where module_id=#{moduleId} and pro_id=#{proId}
+   	</select>
+   	
+   	<!-- 工程所需量 -->
+   	<insert id="insertProNeedInfo" parameterType="com.bonus.plan.beans.ProNeedInfoBean">
+   	 	insert  into t_pro_need_info
+   	  		(pro_id,type,name,module,module_id,need_type,unit,need_num,fh_num,	tz_num)  values
+			(#{proId},#{type},#{name},#{module},#{moduleId},#{needType},#{unit},#{needNum},#{fhNum},#{tzNum})
+   	</insert>
+   	
+   	<!-- 更新工程所需量 -->
+   	<update id="updateNeedNum"    parameterType="com.bonus.plan.beans.ProNeedInfoBean" >
+   			update  t_pro_need_info set  need_num=#{needNum}	where id=#{id}
+   	</update>
+   	
+   	
+   	 <!-- 更新工程数据库存量-->
+   	<insert id="insertProPlanInfo" parameterType="com.bonus.plan.beans.ProPlanInfoBean">
+   	 	insert  into t_pro_plan_info
+   	  		(pro_id,need_num,plan_num,record_num,out_num,status,last_day,tz_num) values
+				(#{proId},#{needNum},#{planNum},#{recordNum},#{outNum},#{status},#{lastDay},#{tzNum} ,out2_num=#{outNum2},record2_num=#{recordNum2}   )
+   	</insert>
+   	
+   	<!-- 更新工程所需量 -->
+   	<update id="updateProPlanInfo"    parameterType="com.bonus.plan.beans.ProPlanInfoBean" >
+   			update  t_pro_plan_info set  need_num=#{needNum},plan_num=#{planNum},status=#{status}	where pro_id=#{proId}
+   	</update>
+</mapper>

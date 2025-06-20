@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.DisassemblyManagementDao">
+ 	<resultMap id="disassem" type="com.bonus.ma.beans.DisassemblyManagementBean"></resultMap>
+   
+    
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.DisassemblyManagementBean" resultMap="disassem">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId 
+		from mm_machines mam 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where 1=1  and  mam.DEVICE_CODE is not null  
+		<if test='param.orgId !=null and param.orgId!="" and   param.orgId !="1" '>
+			and  rel.ORG_ID=#{param.orgId}
+		</if>
+		<if test="param.batchStatus != 0">
+			and mas.MA_STATUS = #{param.batchStatus}
+		</if>
+		<if test="param.type0 != null and param.type0 != ''">
+			and matt.`NAME` = #{param.type0}
+		</if>
+		<if test="param.type != null and param.type != ''">
+			and mat.`NAME` = #{param.type}
+		</if>
+		<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.BATCH_STATUS LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mav.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+		order by mam.ID desc
+ 	</select>
+
+	  <select id="getListDataById" parameterType="com.bonus.ma.beans.DisassemblyManagementBean" resultMap="disassem">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId 
+		from mm_machines mam 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where 1=1  and mam.ID=#{id}
+ 	</select>
+ 	  <select id="getListDataByDeviceCode" parameterType="com.bonus.ma.beans.DisassemblyManagementBean" resultMap="disassem">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as typeName,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,rel.ORG_ID orgId 
+		from mm_machines mam 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where 1=1  and  matt.`NAME`=#{typeName} and mam.DEVICE_CODE=#{deviceCode} and  mat.`NAME`=#{type}
+ 	</select>
+ 	<insert id="insertData"  parameterType="com.bonus.ma.beans.DisassemblyManagementBean"  useGeneratedKeys="true" keyProperty="id">
+ 		insert into mm_disassembly
+ 		 (
+ 		 org_id,opt_time,opter,type,code,url,remark
+ 		 )values(
+ 		 #{orgId},#{optTime},#{opter},#{type},#{code},#{url},#{remark}
+ 		 )
+ 	</insert>
+ 		<insert id="insertRecode"  parameterType="com.bonus.ma.beans.DisassemblyManagementBean"  useGeneratedKeys="true" keyProperty="id">
+ 		insert into mm_disold_record
+ 		 (
+ 		 TASK_ID,OPT_TIME,OPTER,TYPE_ID,MA_ID,DEVICE_CODE,NEW_DEVICE_CODE,URL,REMARK
+ 		 )values(
+ 		 #{taskId},#{optTime},#{opter},#{typeId},#{maId},#{originNum},#{deviceCode},#{url},#{remark}
+ 		 )
+ 	</insert>
+ 		<insert id="inserNewRecode"  parameterType="com.bonus.ma.beans.DisassemblyManagementBean"  useGeneratedKeys="true" keyProperty="id">
+ 		insert into mm_disnew_record
+ 		 (
+ 		 TASK_ID,OPT_TIME,OPTER,TYPE_ID,MA_ID,URL,REMARK,DEVICE_CODE,NEW_DEVICE_CODE
+ 		 )values(
+ 		 #{taskId},#{optTime},#{opter},#{typeId},#{maId},#{url},#{remark},#{originNum},#{deviceCode}
+ 		 )
+ 	</insert>
+ 	<!--  -->
+ 	<select id="getOrgRelationNum" parameterType="com.bonus.ma.beans.MachineBean"  resultType="com.bonus.ma.beans.MachineBean">
+ 	SELECT  NUM num ,TYPE_ID typeId,ORG_ID orgId
+ 		from   ma_org_relation
+ 		WHERE  TYPE_ID=#{typeId} and  ORG_ID=#{orgId}
+ 	</select>
+ 	<update id="updaDataeRelationNum" parameterType="com.bonus.ma.beans.MachineBean">
+ 	 update  ma_org_relation set  NUM=#{num} where  TYPE_ID=#{typeId} and  ORG_ID=#{orgId}
+ 	
+ 	</update>
+ 	<select id="getInitSelect" parameterType="com.bonus.ma.beans.DisassemblyManagementBean" resultType="com.bonus.ma.beans.DisassemblyManagementBean"> 
+		SELECT ID,`NAME` FROM
+				mm_type 
+ 			where 1=1
+ 			<if test="level!=null and  level!='' ">
+ 				 and LEVEL=#{level}
+ 			</if>
+ 			<if test="parentId !=null and  parentId !='' ">
+ 				 and PARENT_ID=#{parentId}
+ 			</if>
+ 	
+ 	</select>
+ 	 	<select id="findByPageTwo" parameterType="com.bonus.ma.beans.DisassemblyManagementBean" resultMap="disassem">
+		SELECT  b.ID,B.OPT_TIME optTime,b.OPTER,b.TYPE_ID,b.OLD_DEVICE_CODE oldCode,b.DEVICE_CODE deviceCode,b.NEW_DEVICE_CODE newCode,org.NAME  companyName,
+			mat.`NAME` typeName,matt.`NAME` name ,user.`NAME` userNAME ,b.TYPE,b.orgId as orgId
+			FROM (
+			SELECT DISTINCT
+				TASK.ID ID,task.TYPE,task.OPT_TIME,task.OPTER,oldRecode.TYPE_ID,'' AS OLD_DEVICE_CODE,
+				oldRecode.DEVICE_CODE,oldRecode.NEW_DEVICE_CODE,	MA_ID,'老设备' ,task.ORG_ID as orgId
+					FROM
+						mm_disassembly task
+						LEFT JOIN mm_disold_record oldRecode ON task.ID = oldRecode.TASK_ID 
+				UNION
+				SELECT DISTINCT
+					TASK.ID,task.TYPE,task.OPT_TIME,task.OPTER,newRecode.TYPE_ID,newRecode.DEVICE_CODE OLD_DEVICE_CODE,newRecode.NEW_DEVICE_CODE DEVICE_CODE,
+					'' AS NEW_DEVICE_CODE,	MA_ID,	'新设备' ,task.ORG_ID
+					FROM
+					mm_disassembly task
+					LEFT JOIN mm_disnew_record newRecode ON task.ID = newRecode.TASK_ID 
+			)b
+			 LEFT JOIN mm_type mat on b.TYPE_ID = mat.ID
+			LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+			LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID 
+			LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+			LEFT JOIN pm_user user on user.ID=b.OPTER
+			where 1=1 
+			<if test='param.orgId !=null and param.orgId!="" and   param.orgId !="1" and   param.orgId !=1'>
+				and  b.orgId=#{param.orgId}
+			</if>
+			<if test="param.type!='' and param.type!=null ">
+				and b.TYPE=#{param.type}
+			</if>
+			<if test="param.startTime != null and param.startTime != ''">
+				and	date_format(b.OPT_TIME, '%Y-%m-%d') &gt;=	date_format(#{param.startTime}, '%Y-%m-%d')
+			</if>
+			<if test="param.endTime != null and param.endTime!='' ">
+				and date_format(b.OPT_TIME, '%Y-%m-%d') &lt;= date_format(#{param.endTime}, '%Y-%m-%d')
+			</if>
+			<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.NAME LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    user.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    b.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    b.NEW_DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    b.`OLD_DEVICE_CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+			</if>
+			ORDER BY OPT_TIME desc 
+ 	</select>
+</mapper>

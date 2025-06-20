@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.NewInputCheckDao" >
+    <resultMap id="newCheck" type="com.bonus.newInput.beans.NewInputCheckBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.NewInputCheckBean" resultMap="newCheck">
+		SELECT wnd.ID AS id, wnd.CHECK_PLACE AS checkPlace,wnd.ARRIVAL_NUM AS arrivalNum,
+		wnd.CHECK_STATUS AS chackStatus,wnd.CHECK_TIME AS checkTime,wnd.MODEL_ID AS maModelId,
+		wnd.PHOTO_URL AS picUrl,mt.`NAME` AS machineModel,mtt.`NAME` AS machineType,
+		pu.`NAME` AS checker,pu1.`NAME` AS customerRep,ROUND(mt.BUY_PRICE) AS buyPrice,
+		mv.`NAME` AS venderName,wnd.ACTUAL_PRICE AS actualPrice,wnd.CHECKER AS checkerId
+		FROM wf_new_details wnd 
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER 
+		WHERE wnd.TASK_ID = #{param.taskId}
+		<if test="param.keyWord != null">
+			AND( mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR pu1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR wnd.MA_VENDER LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+
+ 	<insert id="insert" parameterType="com.bonus.newInput.beans.NewInputCheckBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_new_check
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maModelId != null">
+				MODEL_ID,
+			</if>
+			<if test="checkNum != null">
+				CHECK_NUM,
+			</if>
+			<if test="qualifiedNum != null">
+				QUALIFIED_NUM,
+			</if>
+			<if test="fileUrl != null">
+				FILE_URL,
+			</if>
+			<if test="checkTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="operator != null">
+				OPERATOR,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			IS_ACTIVE,
+			IS_SURE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maModelId != null">
+				#{maModelId},
+			</if>
+			<if test="checkNum != null">
+				#{checkNum},
+			</if>
+			<if test="qualifiedNum != null">
+				#{qualifiedNum},
+			</if>
+			<if test="fileUrl != null">
+				#{fileUrl},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="operator != null">
+				#{operator},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			1,
+			0,
+		</trim>
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.newInput.beans.NewInputCheckBean">
+		update wf_new_check
+        <set>
+            <if test="maModelId != null">
+               MODEL_ID = #{maModelId},
+            </if>
+             <if test="checkNum !=null">
+              CHECK_NUM = #{checkNum},
+            </if>
+             <if test="qualifiedNum !=null">
+              QUALIFIED_NUM = #{qualifiedNum},
+            </if>
+             <if test="fileUrl != null">
+              FILE_URL = #{fileUrl},
+            </if>
+             <if test="checkTime != null">
+               CHECK_TIME = #{checkTime},
+            </if>
+            <if test="operator != null">
+              OPERATOR = #{operator},
+            </if>
+            <if test="operatorTime != null">
+              OPERATION_TIME = #{operatorTime},
+            </if>
+        </set>
+       	where ID = #{id}
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.NewInputCheckBean">
+		delete from tm_task_ma_type
+		where TASK_ID = #{batchId}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM tm_task_ma_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findNewBindingList" parameterType="com.bonus.newInput.beans.NewInputCheckBean" resultMap="newCheck">
+ 	   	SELECT DISTINCT bc.TASK_ID as batchId,mta.ID as maTypeId,mtb.`NAME` as machineType,mta.`NAME` as model,
+		tmt.MACHINES_NUM as machineNums,bc.CHECK_NUM as checkNum,tmt.ACTUAL_NUM as actualNum,mta.IS_COUNT as isCount,
+		bc.CHECK_TIME as checkTime
+		FROM ba_check bc
+		LEFT JOIN tm_task_ma_type tmt ON bc.TASK_ID = tmt.TASK_ID AND bc.MA_TYPE_ID=tmt.MA_TYPE_ID
+		LEFT JOIN ma_type mta ON bc.MA_TYPE_ID = mta.ID
+		LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+		WHERE bc.TASK_ID = #{batchId} and mta.IS_COUNT = 0
+ 	</select>
+	
+	<select id="findActualNum" parameterType="com.bonus.newInput.beans.NewInputCheckBean" resultType="java.lang.String">
+ 	   	SELECT COUNT(DISTINCT mam.ID) as actualNum 
+		FROM ma_machines mam 
+		LEFT JOIN tm_task_ma ttm ON mam.ID = ttm.MA_ID
+		LEFT JOIN tm_task_ma_type ttmt ON ttm.TASK_ID = ttmt.TASK_ID
+		WHERE ttmt.TASK_ID = #{batchId}
+		AND mam.BATCH_STATUS = 5 AND mam.TYPE = #{machineType}
+ 	</select>
+ 	
+ 	<select id="findQrcodeByTaskId" parameterType="com.bonus.newInput.beans.NewInputCheckBean" resultType="com.bonus.newInput.beans.NewInputCheckBean">
+ 	   	SELECT 	DISTINCT ttmt.TASK_ID as id,mat2.name as machineType, mat1.name as model,mat1.id as maTypeId,
+ 	   			ttmt.machines_num as machineNums,ttmt.BATCH_STATUS as batchStatus
+		from tm_task_ma_type ttmt
+		left join ma_type mat1 on mat1.id = ttmt.MA_TYPE_ID
+		left join ma_type mat2 on mat2.id = mat1.parent_id
+		WHERE ttmt.TASK_ID = #{param.batchId} and mat1.IS_COUNT = 0
+ 	</select>
+	
+</mapper>

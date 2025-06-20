@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>项目结算计算</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="../../css/admin.css" media="all">
+    <link rel="stylesheet" href="../../css/common.css" media="all">
+    <style>
+        .layui-form-item .layui-input-inline {
+            width: 200px;
+        }
+        /* 主容器样式 */
+        #data-container {
+            padding: 20px 0;
+            clear: both;
+        }
+        /* 表格标题行样式 */
+        .layui-table th {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+        /* 表格容器样式 */
+        #resultTableContainer, #leaseTableContainer, #returnTableContainer {
+            margin-bottom: 30px;
+            background-color: #ffffff;
+            border: 1px solid #e6e6e6;
+            padding: 15px;
+            border-radius: 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            clear: both;
+        }
+        /* 表格标题样式 */
+        #resultTableContainer h3, #leaseTableContainer h3, #returnTableContainer h3 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        /* 加载状态样式 */
+        #data-loading {
+            text-align: center;
+            padding: 50px 0;
+        }
+        /* 确保表格不会溢出容器 */
+        .layui-table-view {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form" lay-filter="calculation-form" id="calculation-form" style="padding: 20px 30px 0 0;">
+        <div class="layui-form-item">
+            <label class="layui-form-label">工程名称</label>
+            <div class="layui-input-inline">
+                <select name="projectId" lay-verify="required" lay-filter="projectSelect">
+                    <option value="">请选择工程</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">统计时间</label>
+            <div class="layui-input-inline">
+                <input type="text" name="startTime" id="startTime" lay-verify="required" placeholder="开始日期" autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-form-mid">-</div>
+            <div class="layui-input-inline">
+                <input type="text" name="endTime" id="endTime" lay-verify="required" placeholder="结束日期" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item" id="data-loading" style="display:none;">
+            <i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="font-size: 30px;"></i>
+            <p>数据加载中，请稍候...</p>
+        </div>
+        <div class="layui-form-item" id="data-container" style="display:none;">
+            <!-- 表格将通过JS动态添加 -->
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="calculation-generate">生成</button>
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="calculation-save">保存</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </div>
+    <script src="../../layui/layui.js"></script>
+    <script>
+        layui.config({
+            base: '../../' //静态资源所在路径
+        }).extend({
+            index: 'js/index', //主入口模块
+            projectCost: 'js/projectCost/projectCost'
+        }).use(['index', 'form', 'table', 'laydate', 'projectCost'], function(){
+            var $ = layui.$,
+                form = layui.form,
+                table = layui.table,
+                laydate = layui.laydate,
+                projectCost = layui.projectCost;
+
+            // 初始化日期选择器
+            laydate.render({
+                elem: '#startTime'
+            });
+            
+            laydate.render({
+                elem: '#endTime'
+            });
+            
+            // 初始化项目下拉框数据
+            projectCost.loadProjects();
+            
+            // 生成结算数据
+            form.on('submit(calculation-generate)', function(data){
+                projectCost.generateSettlement(data.field);
+                return false;
+            });
+            
+            // 保存结算数据
+            form.on('submit(calculation-save)', function(data){
+                projectCost.saveSettlement(data.field);
+                return false;
+            });
+        });
+    </script>
+</body>
+</html> 

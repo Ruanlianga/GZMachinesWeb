@@ -1,0 +1,852 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.OutStorageDao" >
+    <resultMap id="out" type="com.bonus.lease.beans.OutStorageBean">
+    	<id column="id" property="id"/>
+    	<result column="taskId" property="taskId"/>
+    	<result column="collarId" property="collarId"/>
+    	<result column="supId" property="supId"/>
+    	<result column="isFinish" property="isFinish"/>
+    	
+    	<result column="parentTypeName" property="parentTypeName"/>
+    	<result column="typeName" property="typeName"/>
+    	<result column="unit" property="unit"/>
+    	<result column="projectName" property="projectName"/>
+    	<result column="companyName" property="companyName"/>
+    	<result column="leaseDate" property="leaseDate"/>
+    	<result column="leaseCpy" property="leaseCpy"/>
+    	<result column="dateNum" property="dateNum"/>
+    	<result column="alredyCollarNum" property="alredyCollarNum"/>
+    	<result column="phone" property="phone"/>
+    </resultMap>
+        
+    <delete id="cancelOutTask" parameterType="com.bonus.lease.beans.OutStorageBean">
+    	delete from 
+    		wf_task_record 
+    
+    	where
+    		id = #{taskId}
+    </delete>
+    
+    <delete id="updateCollarTask" parameterType="com.bonus.lease.beans.OutStorageBean">
+    	delete from 
+    		wf_collar_details 
+    	
+    	where
+    		id = #{collarId}
+    </delete>
+    
+    <delete id="updateOutTask" parameterType="com.bonus.lease.beans.OutStorageBean">
+    	delete from 
+    		wf_ma_outstock 
+    	
+    	where
+    		id = #{id}
+    </delete>
+    
+    <select id="findSomeId" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+    	SELECT
+			wmo.id,
+			wtr.id as taskId,
+			wcd.id as collarId,
+			wtr.SUP_ID as supId,
+			ifnull(wmo.PRE_COLLAR_NUM,0) as outNum,
+			wmo.MODEL_ID as maModelId
+		FROM
+		wf_ma_outstock wmo
+		LEFT JOIN wf_task_record wtr on wtr.id = wmo.TASK_ID
+		LEFT JOIN wf_collar_details wcd on wcd.TASK_ID = wtr.SUP_ID
+		where
+		 	wmo.id = #{id}
+		and
+			wmo.MODEL_ID = wcd.MODEL_ID
+    </select>
+    
+    <select id="findQueryContent" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+    	SELECT
+			wcd.id,
+			wtr.id AS taskId,
+			mtp.`NAME` AS parentTypeName,
+			mt.`NAME` AS typeName,
+			mt.unit AS unit,
+			bp.`NAME` AS projectName,
+			bc.`NAME` AS companyName,
+			bu.`NAME` AS leaseCpy,
+			date_format( wmo.OUT_TIME, '%Y-%m-%d' ) AS leaseDate 
+		FROM
+			wf_collar_details wcd
+			LEFT JOIN wf_ma_outstock wmo ON wmo.MODEL_ID = wcd.MODEL_ID
+			LEFT JOIN wf_task_record wtr ON wtr.id = wmo.TASK_ID
+			LEFT JOIN mm_type mt ON mt.id = wcd.MODEL_ID
+			LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wcd.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wla.id = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.id = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.id = wla.LEASE_COMPANY
+			LEFT JOIN bm_company bc ON bc.id = bu.COMPANY_ID 
+		WHERE
+			wcd.TASK_ID = wtr.SUP_ID
+		and
+			wcd.IS_ACTIVE = 1
+		<if test="param.keyWord !=null and param.keyWord != ''">
+		AND (
+			mtp.`NAME` like concat("%",#{param.keyWord},"%") or
+			mt.`NAME` like concat("%",#{param.keyWord},"%") or
+			bp.`NAME` like concat("%",#{param.keyWord},"%") or
+			bc.`NAME` like concat("%",#{param.keyWord},"%") 
+		)
+		</if> 
+		GROUP BY
+			wcd.id
+    </select>
+    
+	 <select id="findByPage" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT
+				res.taskId,
+				res.isApproval,
+				res.isExamine,
+				GROUP_CONCAT( DISTINCT res.customerSrep ) customerSrep,
+				res.phone,
+				res.maType,
+				res.maModel,
+				res.maModelId,
+				GROUP_CONCAT( DISTINCT res.outTaskId ) AS outTaskId,
+				res.outNum,
+				bp.`NAME` AS leaseProject,
+				bu.`NAME` AS leaseCompany,
+				res.applyNumber AS applyNumber,
+				res.operationTime AS operationTime,
+				res.orgId AS orgId 
+			FROM
+				(
+				SELECT
+					wfd.TASK_ID AS taskId,
+					wfd.IS_APPROVAL AS isApproval,
+					wfd.IS_EXAMINE AS isExamine,
+					pu.`NAME` AS customerSrep,
+					pu.TELPHONE as phone,
+					mt.`NAME` AS maModel,
+					mtt.`NAME` AS maType,
+					wfd.PRE_COLLAR_NUM AS outNum,
+					wfd.MODEL_ID AS maModelId,
+					NULL AS outTaskId,
+					wf.ORG_ID AS orgId ,
+				  wf.NUMBER AS applyNumber,
+					wf.OPERATION_TIME AS operationTime
+				FROM
+					wf_collar_details wfd
+					LEFT JOIN wf_task_record wf ON wf.ID = wfd.TASK_ID
+					LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+					LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+					LEFT JOIN pm_user pu ON pu.ID = wfd.CUSTOMER_SERVICE_REP 
+				WHERE
+					LEFT ( wf.OPERATION_TIME, 10 ) BETWEEN #{param.startTime}
+					AND #{param.endTime}
+					  <if test=" param.isExamine == '0' or param.isExamine == 0 ">
+						 AND wfd.IS_SURE = 1 
+			 		  </if>
+					  <if test=" param.isExamine == '1' or param.isExamine == 1 ">
+						 AND wfd.IS_SURE = 1 
+			 		  </if>
+					 <if test=" param.isExamine == '2' or param.isExamine == 2">
+						 AND wfd.IS_SURE = 0 
+			 		  </if>
+					
+				) res
+			
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = res.taskId
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+				where 1=1
+			 <if test="param.keyWord !=null and param.keyWord != ''">
+						AND (
+							res.applyNumber like concat("%",#{param.keyWord},"%") or
+							bp.`NAME` like concat("%",#{param.keyWord},"%") or
+							bu.`NAME` like concat("%",#{param.keyWord},"%") or
+							res.maType like concat("%",#{param.keyWord},"%") or
+							res.maModel like concat("%",#{param.keyWord},"%")
+						 )
+			 </if>
+			 
+			  <if test="param.isExamine !=null and param.isExamine != ''">
+				 AND res.isExamine = #{param.isExamine}
+	 		  </if>
+	 		  
+	 		  <if test="param.companyId !=null and param.companyId != '' and param.companyId != '1' and param.companyId != 1">
+				 AND res.orgId = #{param.companyId}
+	 		  </if>
+	
+			GROUP BY
+				res.taskId,
+				res.maModelId 
+			ORDER BY
+				res.taskId DESC
+	     
+	 
+ 	</select>
+ 	
+	 <select id="findApproval" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT
+				res.taskId,
+				res.isApproval,
+				res.isExamine,
+				GROUP_CONCAT( DISTINCT res.customerSrep ) customerSrep,
+				res.phone,
+				res.maType,
+				res.maModel,
+				res.maModelId,
+				GROUP_CONCAT( DISTINCT res.outTaskId ) AS outTaskId,
+				res.outNum,
+				bp.`NAME` AS leaseProject,
+				bu.`NAME` AS leaseCompany,
+				res.applyNumber AS applyNumber,
+				res.operationTime AS operationTime,
+				res.storageNum,
+				res.orgId AS orgId 
+			FROM
+				(
+				SELECT
+					wfd.TASK_ID AS taskId,
+					wfd.IS_APPROVAL AS isApproval,
+					wfd.IS_EXAMINE AS isExamine,
+					pu.`NAME` AS customerSrep,
+					pu.TELPHONE as phone,
+					mt.`NAME` AS maModel,
+					mtt.`NAME` AS maType,
+					wfd.PRE_COLLAR_NUM AS outNum,
+					wfd.MODEL_ID AS maModelId,
+					NULL AS outTaskId,
+					wf.ORG_ID AS orgId ,
+				  wf.NUMBER AS applyNumber,
+					wf.OPERATION_TIME AS operationTime,
+					mt.NUM AS storageNum
+				FROM
+					wf_collar_details wfd
+					LEFT JOIN wf_task_record wf ON wf.ID = wfd.TASK_ID
+					LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+					LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+					LEFT JOIN pm_user pu ON pu.ID = wfd.CUSTOMER_SERVICE_REP 
+				WHERE
+					LEFT ( wf.OPERATION_TIME, 10 ) BETWEEN #{param.startTime}
+					AND #{param.endTime}
+					 <if test=" param.isApproval == '0'">
+						 AND wfd.IS_SURE = 1 
+			 		  </if>
+					  <if test=" param.isApproval == '1'">
+						 AND wfd.IS_SURE = 1 
+			 		  </if>
+					 <if test=" param.isApproval == '2'">
+						 AND wfd.IS_SURE = 0 
+			 		  </if>
+					
+				) res
+			
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = res.taskId
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+				 WHERE res.isExamine = 1
+			 <if test="param.keyWord !=null and param.keyWord != ''">
+						AND (
+							res.applyNumber like concat("%",#{param.keyWord},"%") or
+							bp.`NAME` like concat("%",#{param.keyWord},"%") or
+							bu.`NAME` like concat("%",#{param.keyWord},"%") or
+							res.maType like concat("%",#{param.keyWord},"%") or
+							res.maModel like concat("%",#{param.keyWord},"%")
+						 )
+			 </if>
+			 
+			  <if test="param.isApproval !=null and param.isApproval != ''">
+			 AND res.isApproval = #{param.isApproval}
+ 		  </if>
+	 		  
+	 		  <if test="param.companyId !=null and param.companyId != '' and param.companyId != '1' and param.companyId != 1">
+				 AND res.orgId = #{param.companyId}
+	 		  </if>
+	
+			GROUP BY
+				res.taskId,
+				res.maModelId 
+			ORDER BY
+				res.taskId DESC
+	     
+	
+ 	</select>
+ 	
+	 
+	 <select id="findBackApproval" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT
+				res.taskId,
+				res.isApproval,
+				res.isExamine,
+				GROUP_CONCAT( DISTINCT res.customerSrep ) customerSrep,
+				res.maType,
+				res.maModel,
+				res.maModelId,
+				GROUP_CONCAT( DISTINCT res.outTaskId ) AS outTaskId,
+				res.outNum,
+				bp.`NAME` AS leaseProject,
+				bu.`NAME` AS leaseCompany,
+				res.applyNumber AS applyNumber,
+				res.operationTime AS operationTime,
+				if(DATEDIFF(CURDATE(),DATE_FORMAT(res.operationTime,'%Y-%m-%d'))>2,'1','0') as dateNum,
+				res.storageNum,
+				res.orgId AS orgId 
+			FROM
+				(
+				SELECT
+					wfd.TASK_ID AS taskId,
+					wfd.IS_APPROVAL AS isApproval,
+					wfd.IS_EXAMINE AS isExamine,
+					pu.`NAME` AS customerSrep,
+					mt.`NAME` AS maModel,
+					mtt.`NAME` AS maType,
+					wfd.PRE_COLLAR_NUM AS outNum,
+					wfd.MODEL_ID AS maModelId,
+					NULL AS outTaskId,
+					wf.ORG_ID AS orgId ,
+				  wf.NUMBER AS applyNumber,
+					wf.OPERATION_TIME AS operationTime,
+					mt.NUM AS storageNum
+				FROM
+					wf_collar_details wfd
+					LEFT JOIN wf_task_record wf ON wf.ID = wfd.TASK_ID
+					LEFT JOIN mm_type mt ON mt.ID = wfd.MODEL_ID
+					LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+					LEFT JOIN pm_user pu ON pu.ID = wfd.CUSTOMER_SERVICE_REP 
+				WHERE
+					LEFT ( wf.OPERATION_TIME, 10 ) BETWEEN #{param.startTime}
+					AND #{param.endTime} AND wfd.IS_SURE = 1 
+				) res
+			
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = res.taskId
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+				 WHERE res.isExamine = 1
+			 <if test="param.keyWord !=null and param.keyWord != ''">
+						AND (
+							res.applyNumber like concat("%",#{param.keyWord},"%") or
+							bp.`NAME` like concat("%",#{param.keyWord},"%") or
+							bu.`NAME` like concat("%",#{param.keyWord},"%") or
+							res.maType like concat("%",#{param.keyWord},"%") or
+							res.maModel like concat("%",#{param.keyWord},"%")
+						 )
+			 </if>
+			 AND res.isApproval = '1'
+	 		  <if test="param.companyId !=null and param.companyId != '' and param.companyId != '1' and param.companyId != 1">
+				 AND res.orgId = #{param.companyId}
+	 		  </if>
+			GROUP BY
+				res.taskId,
+				res.maModelId 
+			ORDER BY
+				res.taskId DESC
+ 	</select>
+ 	
+ 	<select id="outStorageQuery" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+	select DISTINCT wir.ID as id,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseCompany,bp.`NAME` AS leaseProject,mmt.`NAME` as maType,mt.`NAME` as maModel,
+		wir.`CODE` as deviceCode,wir.TIME as outTime,pu.`NAME` as outPerson,ROUND(wir.NUM) as thisOutNum,mt.IS_COUNT as isCount,wir.TYPE as type,
+		mm.REMARK AS remark
+		from wf_info_record wir
+		  LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		  LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		  LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+		  LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		  LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		  LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+		  LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		  LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		  LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		  LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+		  where left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime} and wir.TYPE = 2
+		  <if test="param.maType != null and param.maType != ''">
+				and mmt.`NAME` like concat('%',#{param.maType},'%')
+	      </if>
+	      <if test="param.companyId != 1">
+				and wtr.ORG_ID=#{param.companyId}
+	      </if>  
+		  <if test="param.maType != null and param.maType != ''">
+				and mmt.`NAME` like concat('%',#{param.maType},'%')
+	      </if>
+		  <if test="param.maModel != null and param.maModel != ''">
+				and mt.`NAME` like concat('%',#{param.maModel},'%')
+		  </if>
+		  <if test="param.keyWord != null and param.keyWord !='' ">
+				AND(
+					mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+					OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+					OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+					OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+					OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+					OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				)
+		  </if>
+     GROUP BY wir.ID 
+ 	</select>
+ 	
+ 	<insert id="insert" parameterType="com.bonus.lease.beans.OutStorageBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_ma_outstock
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maModelId != null">
+				MODEL_ID,
+			</if>
+			<if test="outTime != null">
+				OUT_TIME,
+			</if>
+			<if test="outPersonId != null">
+				OUT_PERSON,
+			</if>
+			<if test="preCollerNum != null">
+				PRE_COLLAR_NUM,
+			</if>
+			<if test="alreadyCollerNum != null">
+				ALREDY_COLLAR_NUM,
+			</if>
+			IS_ACTIVE,
+			IS_SURE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maModelId != null">
+				#{maModelId},
+			</if>
+			<if test="outTime != null">
+				#{outTime},
+			</if>
+			<if test="outPersonId != null">
+				#{outPersonId},
+			</if>
+			<if test="preCollerNum != null">
+				#{preCollerNum},
+			</if>
+			<if test="alreadyCollerNum != null">
+				#{alreadyCollerNum},
+			</if>
+			1,
+			0,
+		</trim>
+	</insert>
+	
+ 	<update id="isSure" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update wf_ma_outstock set IS_SURE = '1'
+       	where TASK_ID  = #{taskId} AND MODEL_ID = #{maModelId}
+	</update>
+	
+	<update id="isExamine" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update 
+			wf_collar_details 
+		set 
+			IS_EXAMINE = '1',EXAMINE_USER = #{examineUser}
+       	where 
+       		TASK_ID = #{taskId} 
+       	and 
+       		MODEL_ID = #{maModelId}
+	</update>
+	
+	<update id="isApproval" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update wf_collar_details set IS_APPROVAL = '1',APPROVAL_USER = #{approvalUser}
+       	where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	<update id="updateLeaseFinish" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update wf_collar_details set IS_APPROVAL = '1'
+       	where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+ 	<select id="findByTaskId" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT wmo.ALREDY_COLLAR_NUM AS alreadyCollerNum,wcd.CUSTOMER_SERVICE_REP AS outPersonId
+			FROM wf_ma_outstock wmo
+			LEFT JOIN wf_task_record wtr ON wtr.ID = wmo.TASK_ID 
+			LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID
+			WHERE wcd.MODEL_ID = #{maModelId} AND wmo.TASK_ID = #{taskId}
+ 	</select>
+ 	
+ 	<select id="findOutTask" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+			SELECT DISTINCT wtr.ID AS id
+			FROM wf_task_record wtr
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = '5'
+ 	</select>
+ 	
+ 	<select id="findOutSum" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+			SELECT DISTINCT wcd.TASK_ID as taskId,wcd.MODEL_ID as modelId
+			FROM wf_collar_details wcd
+			WHERE wcd.TASK_ID = #{taskId} AND wcd.IS_SURE = 0
+ 	</select>
+ 	
+ 	<select id="findCodeByModel" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+			SELECT wir.`CODE` AS maCode
+			FROM wf_info_record wir
+			LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+			WHERE wtr.SUP_ID = #{taskId} AND wir.MODEL_ID = #{maModelId}
+ 	</select>
+ 	
+ 		<select id="findIsSureInfo" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT wmo.TASK_ID AS taskId,wmo.IS_SURE AS isSure
+			FROM wf_ma_outstock wmo
+			WHERE wmo.TASK_ID = #{taskId} AND wmo.IS_SURE = '0'
+ 	</select>
+ 	
+ 	
+ 	<select id="findIsFinishById" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+ 		SELECT
+			wtr.id,
+			wtrr.id AS taskId,
+			wtrr.is_finish AS isFinish 
+		FROM
+			wf_task_record wtr
+			LEFT JOIN wf_task_record wtrr ON wtrr.SUP_ID = wtr.id 
+		WHERE
+			wtrr.sup_id = #{taskId}
+ 	</select>
+ 	
+ 	<select id="getOutStorageList" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+	      SELECT
+				bp.`NAME` AS leaseProject,
+				bu.`NAME` AS leaseCompany,
+				wtr.OPERATION_TIME AS applyTime,
+				wtr.LEASE_PERSON AS leasePerson,
+				wtr.PHONE AS phone,
+				wtr.ID AS taskId,
+				wla.CONTRACT_NUMBER AS contractNum,
+				wla.CODE AS agreementCode,
+				wtr.NUMBER AS applyNumber 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_task_record wtrr ON wtrr.SUP_ID = wtr.ID
+				LEFT JOIN wf_task_definition wtd ON wtd.ID = wtrr.DEFINITION_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+				LEFT JOIN wf_collar_details wcd ON wcd.task_id = wat.TASK_ID 
+			WHERE
+				wcd.CUSTOMER_SERVICE_REP = #{customerSrep} 
+				and wcd.IS_APPROVAL = 1
+	 	    	and wtd.ID = 5 
+	 	    	and wtrr.IS_FINISH = #{isFinish}
+				and wtr.IS_ACTIVE = 1
+
+ 			<if test="startTime != null and startTime != '' and endTime != null and endTime != '' ">
+				AND(
+					left(wtr.OPERATION_TIME,10)
+					BETWEEN #{startTime} AND #{endTime}
+				)
+			</if>
+		
+			GROUP BY wtr.ID
+			ORDER BY wtr.OPERATION_TIME DESC
+		
+ 	</select>
+ 	
+ 	<select id="getOutStorageDetailsList" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT DISTINCT
+				wmo.ID AS id,
+				wmo.TASK_ID AS taskId,
+				wtr.SUP_ID AS supId,
+				wmo.MODEL_ID AS typeId,
+				wmo.OUT_PERSON AS outPersonId,
+				pu.`NAME` AS outPerson,
+				mmt.`NAME` AS maType,
+				mt.`NAME` AS maModel,
+				wmo.PRE_COLLAR_NUM AS preOutNum,
+				wmo.ALREDY_COLLAR_NUM AS alOutNum,
+				mt.IS_COUNT AS isCount,
+				wmo.IS_SURE AS isSure ,
+				mt.RFID_POWER as rfidPower 
+			FROM wf_ma_outstock wmo
+      		LEFT JOIN wf_task_record wtr ON wmo.TASK_ID = wtr.ID
+			LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+			where wtr1.ID = #{taskId} and wmo.OUT_PERSON=#{outPersonId}
+			and wtr.IS_ACTIVE = 1 and wmo.IS_APPROVAL = 1
+			GROUP BY wmo.MODEL_ID 
+			ORDER BY isSure DESC
+ 	</select>
+	
+ 	<select id="getOutInfoByNum" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT DISTINCT wmo.ID as id,wmo.TASK_ID as taskId,wmo.MODEL_ID as typeId,wmo.OUT_PERSON AS outPersonId,pu.`NAME` as outPerson,
+			mmt.`NAME` AS maType,mt.`NAME` AS maModel,wmo.PRE_COLLAR_NUM as preOutNum,wmo.ALREDY_COLLAR_NUM as alOutNum,mt.IS_COUNT as isCount,wmo.IS_SURE as isSure
+			FROM wf_ma_outstock wmo
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		where wmo.ID =#{id}
+ 	</select> 
+ 	
+ 	<select id="confirmOutTask" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT DISTINCT wmo.ID as id,wmo.TASK_ID as taskId,wmo.MODEL_ID as typeId,wmo.OUT_PERSON AS outPersonId,pu.`NAME` as outPerson,
+			mmt.`NAME` AS maType,mt.`NAME` AS maModel,wmo.PRE_COLLAR_NUM as preOutNum,wmo.ALREDY_COLLAR_NUM as alOutNum,mt.IS_COUNT as isCount,wmo.IS_SURE as isSure
+			FROM wf_ma_outstock wmo
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		where wmo.ID =#{id}
+ 	</select> 
+ 	
+ 	<select id="getAlOutNum" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		SELECT DISTINCT wmo.ID as id,wmo.TASK_ID as taskId,wmo.MODEL_ID as typeId,wmo.OUT_PERSON AS outPersonId,pu.`NAME` as outPerson,
+			mmt.`NAME` AS maType,mt.`NAME` AS maModel,wmo.PRE_COLLAR_NUM as preOutNum,wmo.ALREDY_COLLAR_NUM as alOutNum,mt.IS_COUNT as isCount,wmo.IS_SURE as isSure
+			FROM wf_ma_outstock wmo
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		where wmo.ID =#{id}
+ 	</select>
+ 	
+ 	<update id="updateAlOutNum" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update wf_ma_outstock
+        <set>
+            <if test="alOutNum != null">
+				ALREDY_COLLAR_NUM = #{alOutNum}
+			</if>
+        </set>
+       	where ID =#{id}
+	</update>
+ 	<update id="updateOutNum" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update wf_ma_outstock
+        <set>
+            <if test="preOutNum != null">
+				PRE_COLLAR_NUM = #{preOutNum},
+			</if>
+            <if test="outPersonId != null">
+				OUT_PERSON = #{outPersonId}
+			</if>
+        </set>
+       	where TASK_ID =#{taskId}
+	</update>
+	
+	<insert id="addOutRecord" parameterType="com.bonus.lease.beans.OutStorageBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="outTime != null">
+				TIME,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="maId != null">
+				MA_ID,
+			</if>
+			<if test="thisOutNum != null">
+				NUM,
+			</if>
+			
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="outTime != null">
+				#{outTime},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="maId != null">
+				#{maId},
+			</if>
+			<if test="thisOutNum != null">
+				#{thisOutNum},
+			</if>
+			
+		</trim>
+	</insert>
+	
+	<select id="getOutRecordList" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		select DISTINCT wir.ID as id,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,mmt.`NAME` as maType,mt.`NAME` as maModel,
+		wir.`CODE` as deviceCode,wir.TIME as outTime,ROUND(wir.NUM) as thisOutNum,wir.TYPE as type
+		from wf_info_record wir
+		LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		where wir.SUP_ID  =#{taskId} and wir.MODEL_ID=#{typeId}
+ 	</select>
+ 	<select id="findCodeBySupIdAndModId" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 		SELECT wir.`CODE` as deviceCode
+		FROM wf_info_record wir
+		WHERE wir.SUP_ID = #{taskId} and wir.MODEL_ID = #{typeId}
+ 	</select>
+ 	
+ 	<select id="getRepeatInfo" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 		SELECT task as taskId
+		FROM bm_logs 
+       	where task = #{taskId} and type_id = #{maModelId}
+ 
+ 	</select>
+ 	
+ 	<update id="updateExaStatus" parameterType="com.bonus.lease.beans.OutStorageBean">
+		update 
+			wf_collar_details 
+		 <set>
+            <if test="isExamine != null">
+				IS_EXAMINE = #{isExamine},
+			</if>
+            <if test="isApproval != null">
+				IS_APPROVAL = #{isApproval},
+			</if>
+            <if test="examineUser != null">
+				EXAMINE_USER = #{examineUser},
+			</if>
+            <if test="approvalUser != null">
+				APPROVAL_USER = #{approvalUser},
+			</if>
+            <if test="auditRemark != null">
+				audit_remark = #{auditRemark},
+			</if>
+            <if test="approvalRemark != null">
+				APPROVAL_REMARK = #{approvalRemark},
+			</if>
+			IS_SURE = '0'
+        </set>
+
+       	where 
+       		TASK_ID = #{taskId} 
+       	and 
+       		MODEL_ID = #{maModelId}
+	</update>
+	
+ 	<select id="findOutTaskInfo" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+      SELECT
+		wtr.ID as taskId,
+		wtr2.ID as outTaskId,
+		wmo.MODEL_ID as maModelId
+		FROM
+		wf_task_record wtr
+		LEFT JOIN wf_task_record wtr2 on wtr.ID = wtr2.SUP_ID
+		LEFT JOIN wf_ma_outstock wmo on wtr2.ID = wmo.TASK_ID
+		WHERE wtr.ID = #{taskId} AND wmo.MODEL_ID = #{maModelId}
+ 	</select>
+ 	
+ 	<delete id="delOutTask" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	    delete from wf_task_record where ID = #{outTaskId}
+ 	</delete>
+ 	
+ 	<delete id="delOutDetail" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	    delete from wf_ma_outstock where TASK_ID = #{outTaskId} and MODEL_ID = #{maModelId}
+ 	</delete>
+ 	
+ 	<select  id="findAlredyCollarNumList" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 	    SELECT wmo.id,wmo.TASK_ID as taskId,if((wmo.ALREDY_COLLAR_NUM is null) or wmo.ALREDY_COLLAR_NUM = 0,"0","1") as alredyCollarNum 
+		FROM wf_ma_outstock wmo
+		LEFT JOIN wf_task_record wtr ON wmo.TASK_ID=wtr.ID
+		WHERE wtr.SUP_ID=#{taskId} AND wmo.MODEL_ID=#{maModelId}
+ 	</select>
+ 	
+ 	<delete id="delCollarDetaiils" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	     delete from wf_collar_details where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+ 	</delete>
+ 	
+ 	<select  id="findInfoRecord" parameterType="java.lang.String" resultType="com.bonus.lease.beans.OutStorageBean">
+ 	    SELECT MA_ID as maID 
+		FROM wf_info_record wir
+		WHERE wir.SUP_ID=#{id}
+ 	</select>
+ 	
+ 	<update id="updateMachinesBatchStats" parameterType="java.lang.String">
+ 	    update mm_machines  set BATCH_STATUS="5" where id=#{maId}
+ 	</update>
+ 	
+ 	<delete id="delInfoRecord" parameterType="java.lang.String">
+ 	    delete from wf_info_record where SUP_ID = #{id} and MODEL_ID=#{maModelId}
+ 	</delete>
+ 	
+ 	<delete id="delOutStockInfo" parameterType="java.lang.String">
+ 	    delete from wf_ma_outstock where ID = #{id}
+ 	</delete>
+ 	
+ 	<delete id="delCollarTask" parameterType="java.lang.String">
+ 	    delete from wf_task_record where ID = #{taskId}
+ 	</delete>
+ 	
+ 	<insert id="addBackRecord">
+ 	    insert into wf_out_back_record (task_id,model_id,ma_id,out_num,out_time,opter,opt_time) 
+ 	    values (#{taskId},#{maModelId},#{maId},#{outNum},#{operationTime},#{userId},now())
+ 	</insert>
+ 	
+ 	<select id="findTypeNum" parameterType="java.lang.String" resultType="java.lang.String">
+ 	    select num from mm_type where id=#{maModelId}
+ 	</select>
+ 
+ 	
+ 	<update id="updateTypeNum" parameterType="java.lang.String">
+ 	    update mm_type  set num=#{num} where id=#{maModelId}
+ 	</update>
+ 	
+ 	<select id="getPreOutInfo" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 	     SELECT
+			wcd.ID as id ,
+			wcd.PRE_COLLAR_NUM AS preOutNum
+			FROM
+			wf_collar_details wcd
+		
+			WHERE wcd.TASK_ID =#{taskId} and wcd.MODEL_ID =#{maModelId}
+			limit 1
+ 	</select>
+ 	
+ 	
+ 	<select id="getOutTask" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 	    SELECT
+			wmo.ID as id ,
+			wmo.TASK_ID as taskId ,
+			wmo.MODEL_ID as maModelId 
+			FROM
+			wf_ma_outstock wmo
+			LEFT JOIN wf_task_record wtr on wmo.TASK_ID = wtr.ID
+			WHERE wtr.SUP_ID =#{taskId} and wmo.MODEL_ID = #{maModelId}
+			limit 1
+ 	</select>
+ 	
+ 	
+ 	<select id="getSameInfo" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="com.bonus.lease.beans.OutStorageBean">
+ 	   SELECT
+			wcd.ID as id ,
+			wcd.PRE_COLLAR_NUM AS preOutNum
+			FROM
+			wf_collar_details wcd
+		
+			WHERE wcd.TASK_ID = #{taskId} and wcd.MODEL_ID = #{maModelId} and wcd.PRE_COLLAR_NUM= #{outNum}  
+			limit 1
+ 	</select>
+ 	
+ 	<update id="updateOutStatus" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	    update wf_ma_outstock  set is_approval = 1 where id = #{id}
+ 	</update>
+ 	
+ 	<update id="updateStorageNum" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	  update mm_type set num = (ifnull(num,0) + #{outNum} )    where id = #{maModelId}
+ 	</update>
+ 	
+ 	
+ 	<select id="getIsApprovalStatus" parameterType="com.bonus.lease.beans.OutStorageBean" resultType="java.lang.String" >
+ 		select IS_APPROVAL from wf_collar_details where TASK_ID = #{taskId} and MODEL_ID = #{maModelId} 
+ 	</select>
+ 	
+ 	<delete id="delBmLogs" parameterType="com.bonus.lease.beans.OutStorageBean">
+ 	    delete from bm_logs where task = #{taskId} and type_id = #{maModelId}
+ 	</delete>
+ 	
+</mapper>

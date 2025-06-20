@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.parts.dao.PartFactoryDao" >
+    <select id="findByPage" resultType="com.bonus.parts.beans.PartFactoryBean">
+									 SELECT  
+									pv.id as id,
+									pv.NAME  as factory,
+									pv.ADRESS  as address,
+									pv.COMPANY_MAN as companyMan,
+									pv.MAIN_PERSON as mainPerson,
+									pv.PHONE as phone,
+									pv.SCOPE_BUSINESS as scopeBusiness,
+									pv.NOTES as notes,
+									pv.PIC_URL as picurl
+									FROM  
+									pa_vender pv  
+									where  pv.IS_ACTIVE =1
+   <if test="param.factory!='' and param.factory!=null">
+      and    pv.NAME  like concat('%',#{param.factory},'%')
+   </if>
+    </select>
+    <insert id="insert" parameterType="com.bonus.parts.beans.PartFactoryBean"> 
+INSERT  into pa_vender(id,name,adress,company_man,main_person,phone,scope_business,notes,pic_url,is_active)
+VALUE(null,#{id},#{address},#{companyMan},#{mainPerson},#{phone},#{scopeBusiness},#{notes},#{picurl},1)
+    </insert>
+    <update id="update" parameterType="com.bonus.parts.beans.PartFactoryBean">
+UPDATE pa_vender  SET  NAME=#{factory},ADRESS=#{address} ,COMPANY_MAN =#{companyMan},
+MAIN_PERSON =#{mainPerson},PHONE=#{phone},SCOPE_BUSINESS =#{scopeBusiness},NOTES =#{notes},
+PIC_URL = #{picurl}
+where  id=#{id} 
+    </update>
+    
+    <delete id="delete" parameterType="com.bonus.parts.beans.PartFactoryBean">
+        DELETE from pa_vender where id=#{id}
+    </delete> 
+</mapper>
+

@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sys.dao.UserDao">
+	<resultMap id="BaseResultMap" type="com.bonus.sys.beans.UserBean">
+		<id column="ID" property="id" jdbcType="INTEGER" />
+		<result column="NAME" property="name" jdbcType="VARCHAR" />
+		<result column="ORG_ID" property="orgId" jdbcType="INTEGER" />
+		<result column="ORG_NAME" property="orgName" jdbcType="INTEGER" />
+		<result column="POST_NAME" property="postName" jdbcType="INTEGER" />
+		<result column="LOGIN_NAME" property="loginName" jdbcType="VARCHAR" />
+		<result column="PIC_URL" property="picUrl" jdbcType="VARCHAR" />
+		<result column="SKIN" property="skin" jdbcType="VARCHAR" />
+		<result column="SALT" property="salt" jdbcType="VARCHAR" />
+		<result column="PASSWD" property="passwd" jdbcType="VARCHAR" />
+		<result column="SEX" property="sex"  />
+		<result column="MAIL" property="mail" jdbcType="VARCHAR" />
+		<result column="QQ" property="qq" jdbcType="VARCHAR" />
+		<result column="C_ID" property="cId" jdbcType="VARCHAR" />
+		<result column="TELPHONE" property="telphone" jdbcType="VARCHAR" />
+		<result column="CREATE_TIME" property="createTime" jdbcType="DATE" />
+		<result column="UPDATE_TIME" property="updateTime" jdbcType="DATE" />
+		<result column="PROJECT_ID" property="projectId" jdbcType="DATE" />
+		<result column="IS_ACTIVE" property="isActive" jdbcType="CHAR" />
+		<result column="OFFICE_ADDRESS" property="officeAddress" jdbcType="VARCHAR" />
+		<result column="COMPANY_ID" property="companyId" jdbcType="VARCHAR" />
+		<result column="companyName" property="companyName" jdbcType="VARCHAR" />
+		<result column="DUTY" property="postDuty" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+
+	<select id="getOrgBeans" parameterType="com.bonus.sys.beans.UserBean" resultMap="ZNode">
+		SELECT ID,`NAME`,PARENT_ID as pId 
+		FROM pm_organization 
+		
+		WHERE IS_ACTIVE = '1'
+		
+	</select>
+	
+	<select id="findPerson" resultMap="ZNode" parameterType="com.bonus.sys.beans.UserBean">
+		SELECT ID,`NAME`,'0' as pId 
+		FROM pm_user 
+		WHERE IS_ACTIVE = '1' 
+		AND  LOCATE('检验',POST_NAME) &gt; 0
+		<if test="companyId != 1 and companyId != '1' and companyId != null and companyId != ''">
+			AND COMPANY_ID = #{companyId}
+		</if>
+		<if test="name != null and name != ''">
+			and `NAME` like concat('%',#{name},'%')
+		</if>
+	</select>
+	
+	<select id="findCheckPerson" resultMap="ZNode" parameterType="com.bonus.sys.beans.UserBean">
+		SELECT ID,`NAME`,'0' as pId 
+		FROM pm_user 
+		WHERE IS_ACTIVE = '1' AND  LOCATE('检验',POST_NAME) &gt; 0
+		<if test="name != null and name != ''">
+			and `NAME` like concat('%',#{name},'%')
+		</if>
+		<if test="companyId != 1 and companyId != '1'">
+			AND COMPANY_ID = #{companyId}
+		</if>
+	</select>
+	
+	<select id="findServicePerson" resultMap="ZNode" parameterType="com.bonus.sys.beans.UserBean">
+		SELECT ID,`NAME`,'0' as pId ,POST_NAME AS postName
+		FROM pm_user 
+		WHERE IS_ACTIVE = '1' AND  LOCATE('客服',POST_NAME) &gt; 0
+		<if test="companyId != 1 and companyId != '1' and companyId != null and companyId != ''">
+			AND COMPANY_ID = #{companyId}
+		</if>
+	</select>
+	
+	<select id="findAll" resultMap="BaseResultMap" parameterType="com.bonus.sys.beans.UserBean">
+      	SELECT 	u.ID,u.NAME,u.ORG_ID as orgId,o.NAME as orgName,
+				LOGIN_NAME,PIC_URL,SKIN,SALT,PASSWD,SEX,MAIL,QQ,TELPHONE,CREATE_TIME,
+				UPDATE_TIME,u.POST_NAME as postName,
+				u.OFFICE_ADDRESS as officeAddress,u.IS_ACTIVE,u.COMPANY_ID as companyId
+		FROM pm_user u 
+		left join pm_organization o on u.ORG_ID=o.ID
+		where u.IS_ACTIVE='1' AND LOGIN_NAME = #{telphone}
+     </select>
+
+	<select id="findAllByRole" resultMap="BaseResultMap"
+		parameterType="com.bonus.sys.beans.UserBean">
+		SELECT u.ID,u.NAME,u.ORG_ID,o.NAME as
+		ORG_NAME,POST_NAME,LOGIN_NAME,PIC_URL,SKIN,SALT,PASSWD,SEX,MAIL,QQ,TELPHONE,CREATE_TIME,UPDATE_TIME,
+		if(ur.role_id > 0,1,0) as IS_ACTIVE,u.POST_NAME as postName,u.OFFICE_ADDRESS as officeAddress
+		FROM pm_user u left join pm_user_role ur on u.id = ur.user_id and
+		ur.role_id=#{roleId}
+		left join pm_organization o on u.ORG_ID=o.ID
+		where u.IS_ACTIVE='1'
+		<if test="keyWord!= null">
+			AND (u.NAME LIKE CONCAT('%',#{keyWord},'%')
+			OR o.NAME LIKE CONCAT('%',#{keyWord},'%')
+			)
+		</if>
+		ORDER BY o.NAME desc
+	</select>
+
+	<select id="findByPage" resultMap="BaseResultMap" parameterType="com.bonus.sys.beans.UserBean">
+		SELECT 	distinct u.ID,u.NAME,u.ORG_ID,o.NAME as ORG_NAME,POST_NAME,LOGIN_NAME,SIGN_URL as picUrl,SKIN,SALT,
+				PASSWD,SEX,MAIL,u.POST_NAME as postName,QQ,TELPHONE,CREATE_TIME,UPDATE_TIME,
+				u.OFFICE_ADDRESS as officeAddress,u.IS_ACTIVE
+		FROM pm_user u
+		LEFT JOIN pm_organization o ON u.ORG_ID = o.ID
+		where u.ORG_ID=o.ID and u.IS_ACTIVE='1'
+		<if test="param.loginName != null and param.loginName!='' ">
+			AND LOGIN_NAME LIKE CONCAT('%',#{param.loginName},'%')
+		</if>
+		<if test="param.keyWord!= null">
+			AND (
+			LOGIN_NAME LIKE CONCAT('%',#{param.keyWord},'%')
+			OR u.NAME LIKE CONCAT('%',#{param.keyWord},'%')
+			OR MAIL LIKE CONCAT('%',#{param.keyWord},'%')
+			OR o.NAME LIKE CONCAT('%',#{param.keyWord},'%')
+			OR u.OFFICE_ADDRESS LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		<if test="param.sex != null">
+			AND SEX=#{param.sex}
+		</if>
+		ORDER BY CREATE_TIME desc
+	</select>
+
+	<!-- 这方法能获取密码和盐 -->
+	<select id="findUserBeanByLoginName" resultMap="BaseResultMap" parameterType="String">
+    <![CDATA[
+	SELECT a.*,pmo.`NAME` as orgName,pmo2.`NAME` as companyName
+		FROM pm_user a 
+		LEFT JOIN pm_organization pmo on pmo.ID = a.ORG_ID
+		LEFT JOIN pm_organization pmo2 on pmo2.ID = a.COMPANY_ID
+		WHERE a.IS_ACTIVE='1' 
+       	AND a.LOGIN_NAME=#{loginName}
+       ]]>
+	</select>
+
+	<!-- 这方法能获取密码和盐 -->
+	<select id="findUserBeanByLoginNameOrPhone" resultMap="BaseResultMap" parameterType="String">
+		<![CDATA[
+		SELECT a.*,pmo.`NAME` as orgName,pmo2.`NAME` as companyName
+		FROM pm_user a
+				 LEFT JOIN pm_organization pmo on pmo.ID = a.ORG_ID
+				 LEFT JOIN pm_organization pmo2 on pmo2.ID = a.COMPANY_ID
+		WHERE a.IS_ACTIVE='1'
+		  AND (a.LOGIN_NAME= #{loginName} OR a.TELPHONE= #{loginName})
+		limit 1
+		]]>
+	</select>
+
+	<select id="find" resultMap="BaseResultMap">
+		SELECT u.ID,u.NAME,u.ORG_ID,o.NAME as
+		ORG_NAME,POST_NAME,LOGIN_NAME,PIC_URL,SKIN,SALT,PASSWD,SEX,MAIL,u.POST_NAME
+		as postName,QQ,TELPHONE,CREATE_TIME,UPDATE_TIME,
+		u.OFFICE_ADDRESS as officeAddress,u.IS_ACTIVE
+		FROM pm_user u
+		LEFT JOIN pm_organization o ON u.ORG_ID = o.ID
+		where u.ORG_ID=o.ID and u.IS_ACTIVE='1'
+		<if test="loginName != null and loginName!='' ">
+			and LOGIN_NAME=#{loginName}
+		</if>
+		<if test="id != null ">
+			and u.ID=#{id}
+		</if>
+	</select>
+
+	<select id="selectByPrimaryKey" resultMap="BaseResultMap"
+		parameterType="java.lang.Integer">
+		select
+		ID,NAME,ORG_ID,POST_NAME,LOGIN_NAME,PIC_URL,SKIN,SALT,PASSWD,SEX,MAIL,QQ,TELPHONE,CREATE_TIME,UPDATE_TIME,IS_ACTIVE
+		from pm_user
+		where ID = #{id,jdbcType=INTEGER} and IS_ACTIVE = 1
+	</select>
+	
+	<delete id="deleteByPrimaryKey" parameterType="com.bonus.sys.beans.UserBean">
+		delete from pm_user 
+		where ID = #{id,jdbcType=INTEGER}
+	</delete>
+
+	<delete id="deleteUserRole" parameterType="com.bonus.sys.beans.UserBean">
+		delete from
+		pm_user_role
+		where role_id = #{roleId,jdbcType=INTEGER}
+	</delete>
+
+	<delete id="delete" parameterType="com.bonus.sys.beans.UserBean">
+		update pm_user set IS_ACTIVE = 0
+		where ID = #{id,jdbcType=INTEGER}
+	</delete>
+
+	<select id="findCountByLoginName" resultType="int">
+		SELECT COUNT(*)
+		FROM pm_user
+		WHERE LOGIN_NAME=#{loginName} and IS_ACTIVE='1'
+	</select>
+	<insert id="insertUserRole" parameterType="com.bonus.sys.beans.UserBean">
+		insert into pm_user_role (USER_ID,ROLE_ID) values
+		(#{id,jdbcType=INTEGER},#{roleId,jdbcType=INTEGER})
+	</insert>
+
+	<insert id="insertBean" parameterType="com.bonus.sys.beans.UserBean">
+		insert into pm_user (NAME, ORG_ID,
+		POST_NAME, LOGIN_NAME, PIC_URL,
+		SKIN,
+		SALT, PASSWD,
+		SEX, MAIL, QQ, TELPHONE,
+		CREATE_TIME, UPDATE_TIME,
+		OFFICE_ADDRESS,
+		IS_ACTIVE
+		)
+		values (#{name,jdbcType=VARCHAR},
+		#{orgId,jdbcType=INTEGER},
+		#{postName,jdbcType=VARCHAR},
+		#{loginName,jdbcType=VARCHAR},"/imw/static/css/sys/images/user/hpic0.jpg",
+		"skin-0", #{salt,jdbcType=VARCHAR},
+		#{passwd,jdbcType=VARCHAR},
+		#{sex,jdbcType=CHAR}, #{mail,jdbcType=VARCHAR},
+		#{qq,jdbcType=VARCHAR},
+		#{telphone,jdbcType=VARCHAR},
+		#{createTime,jdbcType=DATE}, #{updateTime,jdbcType=DATE},
+		#{officeAddress,jdbcType=VARCHAR}, "1"
+		)
+		<selectKey resultType="int" keyProperty="id">
+			SELECT
+			last_insert_id() as ID;  
+		</selectKey>
+	</insert>
+
+	<update id="deleteBatch" parameterType="java.util.List">
+		update pm_user set IS_ACTIVE = 0 WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</update>
+
+	<insert id="insertSelective" parameterType="com.bonus.sys.beans.UserBean"  useGeneratedKeys="true" keyProperty="id">
+		insert into pm_user
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				NAME,
+			</if>
+			<if test="orgId != null">
+				ORG_ID,
+			</if>
+			<if test="companyId != null">
+				COMPANY_ID,
+			</if>
+			<if test="postName != null">
+				POST_NAME,
+			</if>
+			<if test="loginName != null">
+				LOGIN_NAME,
+			</if>
+			<if test="picUrl != null">
+				PIC_URL,
+			</if>
+			<if test="skin != null">
+				SKIN,
+			</if>
+			<if test="salt != null">
+				SALT,
+			</if>
+			<if test="passwd != null">
+				PASSWD,
+			</if>
+			<if test="sex != null">
+				SEX,
+			</if>
+			<if test="mail != null">
+				MAIL,
+			</if>
+			<if test="qq != null">
+				QQ,
+			</if>
+			<if test="telphone != null">
+				TELPHONE,
+			</if>
+			<if test="createTime != null">
+				CREATE_TIME,
+			</if>
+			<if test="updateTime != null">
+				UPDATE_TIME,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name,jdbcType=VARCHAR},
+			</if>
+			<if test="orgId != null">
+				#{orgId,jdbcType=INTEGER},
+			</if>
+			<if test="companyId != null">
+				#{companyId,jdbcType=VARCHAR},
+			</if>
+			<if test="postName != null">
+				#{postName,jdbcType=VARCHAR},
+			</if>
+			<if test="loginName != null">
+				#{loginName,jdbcType=VARCHAR},
+			</if>
+			<if test="picUrl != null">
+				#{picUrl,jdbcType=VARCHAR},
+			</if>
+			<if test="skin != null">
+				#{skin,jdbcType=VARCHAR},
+			</if>
+			<if test="salt != null">
+				#{salt,jdbcType=VARCHAR},
+			</if>
+			<if test="passwd != null">
+				#{passwd,jdbcType=VARCHAR},
+			</if>
+			<if test="sex != null">
+				#{sex,jdbcType=CHAR},
+			</if>
+			<if test="mail != null">
+				#{mail,jdbcType=VARCHAR},
+			</if>
+			<if test="qq != null">
+				#{qq,jdbcType=VARCHAR},
+			</if>
+			<if test="telphone != null">
+				#{telphone,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				#{createTime,jdbcType=DATE},
+			</if>
+			<if test="updateTime != null">
+				#{updateTime,jdbcType=DATE},
+			</if>
+			1,
+		</trim>
+	</insert>
+
+	<update id="update" parameterType="com.bonus.sys.beans.UserBean">
+		update pm_user
+		<set>
+			<if test="name != null">
+				NAME = #{name,jdbcType=VARCHAR},
+			</if>
+			<if test="orgId != null">
+				ORG_ID = #{orgId,jdbcType=INTEGER},
+			</if>
+			<if test="companyId != null">
+				COMPANY_ID = #{companyId,jdbcType=VARCHAR},
+			</if>
+			<if test="postName != null">
+				POST_NAME = #{postName,jdbcType=VARCHAR},
+			</if>
+			<if test="loginName != null">
+				LOGIN_NAME = #{loginName,jdbcType=VARCHAR},
+			</if>
+			<if test="picUrl != null">
+				PIC_URL = #{picUrl,jdbcType=VARCHAR},
+			</if>
+			<if test="skin != null">
+				SKIN = #{skin,jdbcType=VARCHAR},
+			</if>
+			<if test="salt != null">
+				SALT = #{salt,jdbcType=VARCHAR},
+			</if>
+			<if test="passwd != null">
+				PASSWD = #{passwd,jdbcType=VARCHAR},
+			</if>
+			<if test="sex != null">
+				SEX = #{sex,jdbcType=CHAR},
+			</if>
+			<if test="mail != null">
+				MAIL = #{mail,jdbcType=VARCHAR},
+			</if>
+			<if test="qq != null">
+				QQ = #{qq,jdbcType=VARCHAR},
+			</if>
+			<if test="telphone != null">
+				TELPHONE = #{telphone,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				CREATE_TIME = #{createTime,jdbcType=DATE},
+			</if>
+			<if test="updateTime != null">
+				UPDATE_TIME = #{updateTime,jdbcType=DATE},
+			</if>
+			<if test="officeAddress != null">
+				OFFICE_ADDRESS = #{officeAddress,jdbcType=VARCHAR},
+			</if>
+			<if test="isActive != null">
+				IS_ACTIVE = #{isActive,jdbcType=CHAR},
+			</if>
+			<if test="cId != null">
+				C_ID = #{cId,jdbcType=CHAR},
+			</if>
+		</set>
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+
+	<update id="updateByPrimaryKeySelective" parameterType="com.bonus.sys.beans.UserBean">
+		update pm_user
+		<set>
+			<if test="name != null">
+				NAME = #{name,jdbcType=VARCHAR},
+			</if>
+			<if test="orgId != null">
+				ORG_ID = #{orgId,jdbcType=INTEGER},
+			</if>
+			<if test="postName != null">
+				POST_NAME = #{postName,jdbcType=INTEGER},
+			</if>
+			<if test="loginName != null">
+				LOGIN_NAME = #{loginName,jdbcType=VARCHAR},
+			</if>
+			<if test="picUrl != null">
+				PIC_URL = #{picUrl,jdbcType=VARCHAR},
+			</if>
+			<if test="skin != null">
+				SKIN = #{skin,jdbcType=VARCHAR},
+			</if>
+			<if test="salt != null">
+				SALT = #{salt,jdbcType=VARCHAR},
+			</if>
+			<if test="passwd != null">
+				PASSWD = #{passwd,jdbcType=VARCHAR},
+			</if>
+			<if test="sex != null">
+				SEX = #{sex,jdbcType=CHAR},
+			</if>
+			<if test="mail != null">
+				MAIL = #{mail,jdbcType=VARCHAR},
+			</if>
+			<if test="qq != null">
+				QQ = #{qq,jdbcType=VARCHAR},
+			</if>
+			<if test="telphone != null">
+				TELPHONE = #{telphone,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				CREATE_TIME = #{createTime,jdbcType=DATE},
+			</if>
+			<if test="updateTime != null">
+				UPDATE_TIME = #{updateTime,jdbcType=DATE},
+			</if>
+			<if test="isActive != null">
+				IS_ACTIVE = #{isActive,jdbcType=CHAR},
+			</if>
+		</set>
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+
+	<update id="setSetting" parameterType="com.bonus.sys.beans.UserBean">
+		UPDATE pm_user
+		SET skin =#{skin}
+		WHERE id=#{id}
+	</update>
+
+	<update id="resetPwd" parameterType="com.bonus.sys.beans.UserBean">
+		UPDATE pm_user
+		SET passwd =#{passwd},
+		salt =#{salt}
+		WHERE id=#{id}
+	</update>
+
+	<update id="updateByPrimaryKey" parameterType="com.bonus.sys.beans.UserBean">
+		update pm_user
+		set
+		NAME = #{name,jdbcType=VARCHAR},
+		ORG_ID = #{orgId,jdbcType=INTEGER},
+		POST_NAME = #{postName,jdbcType=VARCHAR},
+		LOGIN_NAME =
+		#{loginName,jdbcType=VARCHAR},
+		PIC_URL = #{picUrl,jdbcType=VARCHAR},
+		SKIN = #{skin,jdbcType=VARCHAR},
+		SALT = #{salt,jdbcType=VARCHAR},
+		PASSWD = #{passwd,jdbcType=VARCHAR},
+		SEX = #{sex,jdbcType=CHAR},
+		MAIL =
+		#{mail,jdbcType=VARCHAR},
+		QQ = #{qq,jdbcType=VARCHAR},
+		TELPHONE =
+		#{telphone,jdbcType=VARCHAR},
+		CREATE_TIME =
+		#{createTime,jdbcType=DATE},
+		UPDATE_TIME = #{updateTime,jdbcType=DATE},
+		OFFICE_ADDRESS = #{officeAddress,jdbcType=VARCHAR}
+		IS_ACTIVE = #{isActive,jdbcType=CHAR}
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+	
+	<select id="findAllUser" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`,pmu.TELPHONE as telphone,pmo.id as orgId,pmo.`NAME` as orgName,pmu.POST_NAME as postName
+		FROM pm_user pmu
+		LEFT JOIN pm_organization pmo on pmo.ID = pmu.ORG_ID
+		WHERE ORG_ID IN (4,7,8,14) and pmu.IS_ACTIVE = 1
+		ORDER BY pmo.`NAME`
+	</select>
+	
+	<select id="findAllPerson" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`,pmu.TELPHONE as telphone,pmo.id as orgId,
+		pmo.`NAME` as orgName,pmu.POST_NAME as postName,bsu.USER_ID
+		FROM pm_user pmu
+		LEFT JOIN pm_organization pmo on pmo.ID = pmu.ORG_ID
+		LEFT JOIN ba_shop_user bsu ON pmu.ID = bsu.USER_ID
+		WHERE ISNULL(bsu.USER_ID)
+		ORDER BY pmo.`NAME`
+	</select>
+	
+<!-- 	<select id="findByPostId" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`,pmu.TELPHONE as telphone,pmu.C_ID as cId
+		FROM pm_user pmu
+		WHERE pmu.POST_ID = #{postId}
+	</select> -->
+	
+	<select id="findPersonByOrgId" parameterType="java.lang.String" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`
+		FROM pm_user pmu
+		WHERE pmu.`NAME` not like '%组' and pmu.IS_ACTIVE = 1
+		<if test="orgId != 6 and orgId != 1 and orgId != 2">
+			and pmu.ORG_ID = #{orgId}
+		</if>
+	</select>
+	
+	<select id="findByUserId" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`,pmu.TELPHONE as telphone,pmo2.ID as orgId
+		FROM pm_user pmu
+		LEFT JOIN pm_organization pmo1 on pmo1.ID = pmu.ORG_ID
+		LEFT JOIN pm_organization pmo2 on pmo2.ID = pmo1.PARENT_ID  -->
+		WHERE pmu.id = #{userId} and pmu.IS_ACTIVE = 1
+		<if test="flag == 1">
+			and pmo1.id != 14
+		</if>
+		<if test="flag == 0">
+			and pmo1.id = 14
+		</if>
+	</select>
+	
+	<select id="findByOrg" resultType="com.bonus.sys.beans.UserBean" parameterType="com.bonus.sys.beans.UserBean" >
+		SELECT u.ID,u.`NAME` FROM pm_user u
+		WHERE u.ORG_ID = #{orgId} AND u.IS_ACTIVE = 1
+	</select>
+	
+	<select id="findCompanyInfo" resultType="com.bonus.sys.beans.UserBean" parameterType="com.bonus.sys.beans.UserBean" >
+		 SELECT po.ID as companyId,po.`NAME` as companyName,po.PARENT_ID as parentId
+		  FROM pm_organization po
+
+		WHERE po.ID = #{orgId} AND po.IS_ACTIVE = 1
+	</select>
+	
+	<select id="findCIdByUserId" resultType="com.bonus.sys.beans.UserBean" parameterType="com.bonus.sys.beans.UserBean" >
+		SELECT u.C_ID AS cId FROM pm_user u
+		WHERE u.Id = #{id} AND u.IS_ACTIVE = 1
+	</select>
+	
+	<select id="findByRepair" resultType="com.bonus.sys.beans.UserBean">
+		SELECT DISTINCT pmu.id,pmu.`NAME`,pmu.TELPHONE as telphone,pmo.`NAME` as orgName,pmu.POST_NAME as postName
+		FROM pm_user pmu
+		LEFT JOIN pm_organization pmo on pmo.ID = pmu.ORG_ID
+		LEFT JOIN pm_organization pmb ON pmo.PARENT_ID = pmb.ID
+		WHERE pmb.ID = 6 and pmu.IS_ACTIVE = 1
+		ORDER BY pmo.`NAME`
+	</select>
+	
+	<select id="getUnit" resultMap="BaseResultMap" parameterType="com.bonus.sys.beans.UserBean">
+		SELECT o.`NAME` as orgName,u.`NAME`
+		FROM pm_user u
+		LEFT JOIN pm_organization o ON u.ORG_ID = o.ID
+		WHERE u.ID = #{id} and u.IS_ACTIVE = 1
+	</select>
+	
+	<select id="findCIdByOrgId" resultMap="BaseResultMap">
+		SELECT *
+		FROM pm_user pmu
+		WHERE 1 = 1 and pmu.IS_ACTIVE = 1
+		<if test="orgId != null and orgId != ''">
+			and pmu.ORG_ID = #{orgId}
+		</if>
+	</select>
+	
+	<select id="findAllUserInfo" resultMap="BaseResultMap"  parameterType="com.bonus.sys.beans.UserBean">
+		SELECT distinct u.ID,u.NAME,u.ORG_ID,o.NAME as ORG_NAME,POST_NAME,LOGIN_NAME,PIC_URL,SKIN,SALT,
+				PASSWD,SEX,MAIL,u.POST_NAME as postName,QQ,TELPHONE,CREATE_TIME,UPDATE_TIME,
+				u.OFFICE_ADDRESS as officeAddress,u.IS_ACTIVE
+		FROM pm_user u
+		LEFT JOIN pm_organization o ON u.ORG_ID = o.ID
+		where u.ORG_ID=o.ID and u.IS_ACTIVE='1'
+	</select>
+	
+	<update id="insertPic" parameterType="com.bonus.sys.beans.UserBean">
+		update pm_user
+		set
+		SIGN_URL = #{picUrl}
+		where id = #{id}
+	</update>
+</mapper>

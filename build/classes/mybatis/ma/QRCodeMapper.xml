@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.QRCodeDao" >
+    <resultMap id="machine" type="com.bonus.ma.beans.QRCodeBean"></resultMap>
+    <resultMap id="machineNew" type="com.bonus.newInput.beans.NewInputQrcodeBean"></resultMap>
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+		SELECT 	distinct q.`CODE`,q.QR_URL as qrUrl,q.IS_BIND as isBind,tb.`NAME` as maType,
+				ta.`NAME` as maModel,mam.DEVICE_CODE as deviceCode,q.GEN_MONTH as genMonth,
+				mv.`NAME` as venderName,q.REMARK,q.BIND_TIME AS bindTime,pmo.NAME as companyName 
+		FROM bm_qrcode q
+		LEFT JOIN mm_type ta ON q.MA_MODEL = ta.ID
+		LEFT JOIN mm_type tb ON ta.PARENT_ID = tb.ID
+		LEFT JOIN ma_org_relation mor ON ta.ID = mor.TYPE_ID
+		LEFT JOIN mm_machines mam on mam.QRCODE = q.`CODE`
+		LEFT JOIN mm_vender mv on q.VENDER = mv.ID
+		
+		 LEFT JOIN pm_organization pmo ON pmo.id = q.ORG_ID 
+		where q.GEN_MONTH between #{param.startTime} and #{param.endTime}
+		<if test="param.orgId != 1 and param.orgId != '1'">
+			and q.org_id=#{param.orgId}
+		</if>
+		<if test="param.bindTime != null and param.bindTime != ''">
+			and q.BIND_TIME between #{param.startTime} and #{param.endTime}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				q.`CODE`  like concat('%',#{param.keyWord,jdbcType=VARCHAR},'%') OR
+				tb.`NAME` like concat('%',#{param.keyWord,jdbcType=VARCHAR},'%') OR
+				ta.`NAME` like concat('%',#{param.keyWord,jdbcType=VARCHAR},'%') OR
+				mv.`NAME` like concat('%',#{param.keyWord,jdbcType=VARCHAR},'%') OR
+				mam.DEVICE_CODE like concat('%',#{param.keyWord,jdbcType=VARCHAR},'%') 
+			)
+		</if>
+		<if test='param.isBind != -1 and param.isBind != "-1"'>
+			and q.IS_BIND = #{param.isBind}
+		</if>
+		
+ 	</select>
+ 	
+	<select id="findQrcodeByTaskId" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 	    SELECT `CODE` ,MA_MODEL FROM bm_qrcode WHERE TASK_ID = #{param.taskId} AND MA_TYPE_ID = #{param.maModel}
+ 	</select>
+ 	
+	<select id="findQrcodeByTaskIdApp" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" resultMap="machineNew">
+ 	    		SELECT wta.ID as id,pu.`NAME` AS launchName,pu1.`NAME` AS receiveName,
+				mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.QUALIFIED_NUM AS qrCodeNum,
+				wta.LAUNCH_TIME AS launchTime,wta.FINISH_TIME AS finishTime,
+				wnd.CHECK_STATUS AS checkStatus,wnd.CUSTOMER_SERVICE_REP AS customerRep,
+				wnd.MODEL_ID AS maModelId,wnd.MA_VENDER AS maVender,wta.TASK_ID as taskId
+				FROM wf_task_appoint wta
+				LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+				LEFT JOIN pm_user pu ON pu.ID = wta.LAUNCH_USER
+				LEFT JOIN pm_user pu1 ON pu1.ID = wta.RECEIVE 
+				LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				WHERE mt.IS_COUNT = '0' AND wnd.CHECK_STATUS BETWEEN 4 AND 30
+				and wta.TASK_ID = #{param.taskId} AND wta.IS_ACTIVE = 1 AND wnd.IS_ACTIVE = 1
+				GROUP BY wnd.MODEL_ID  
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		SELECT  DISTINCT bmq.`CODE`,bmq.QR_URL as qrUrl,bmq.IS_BIND as isBind,mat2.`NAME` as type0,
+ 				mat1.`NAME` as model,mam.DEVICE_CODE as deviceCode,bmq.GEN_MONTH as genMonth
+		FROM bm_qrcode bmq
+		LEFT JOIN mm_machines mam on mam.QRCODE = bmq.`CODE`
+		LEFT JOIN mm_type mat1 on mat1.ID = mam.TYPE
+		LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+		where bmq.GEN_MONTH like concat(#{genMonth},'%')
+		ORDER BY bmq.`CODE` DESC
+ 	</select>
+ 	
+ 	<select id="findQRCode" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		SELECT  DISTINCT bmq.`CODE`,bmq.QR_URL as qrUrl,bmq.IS_BIND as isBind,mat2.`NAME` as type0,
+ 				mat1.`NAME` as model,mam.DEVICE_CODE as deviceCode,bmq.GEN_MONTH as genMonth
+		FROM bm_qrcode bmq
+		LEFT JOIN mm_machines mam on mam.QRCODE = bmq.`CODE`
+		LEFT JOIN mm_type mat1 on mat1.ID = bmq.MA_MODEL
+		LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+		where bmq.GEN_MONTH between #{startTime} and #{endTime}
+		<if test="keyWord != null and keyWord != ''">
+			and (
+				bmq.`CODE` like concat('%',#{keyWord,jdbcType=VARCHAR},'%') OR
+				mat2.`NAME` like concat('%',#{keyWord,jdbcType=VARCHAR},'%') OR
+				mat1.`NAME` like concat('%',#{keyWord,jdbcType=VARCHAR},'%') OR
+				mam.DEVICE_CODE like concat('%',#{keyWord,jdbcType=VARCHAR},'%')
+			)
+		</if>
+		<if test="isBind != -1">
+			and bmq.IS_BIND = #{isBind}
+		</if>
+		<if test="taskId != null and taskId != ''">
+			and bmq.TASK_ID = #{taskId}
+		</if>
+		<if test="null != chks and chks.size() > 0">
+			and bmq.`CODE` in(
+				<foreach item="chk" collection="chks" open="" separator="," close="">
+					#{chk}
+				</foreach>
+			)
+		</if>
+		ORDER BY bmq.`CODE` DESC
+ 	</select>
+ 	
+ 	<insert id="insert" parameterType="com.bonus.ma.beans.QRCodeBean">
+ 		insert into bm_qrcode
+ 		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if> 
+			<if test="maModel != null">
+				MA_MODEL,
+			</if>
+			<if test="qrUrl != null">
+				QR_URL,
+			</if>
+			<if test="code != null">
+				CODE,
+			</if>
+			<if test="venderName != null">
+				VENDER,
+			</if>
+			<if test="genMonth != null">
+				GEN_MONTH,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			<if test="orgId != null">
+				org_id,
+			</if>
+			IS_BIND,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if> 
+			<if test="maModel != null">
+				#{maModel},
+			</if>
+			<if test="qrUrl != null">
+				#{qrUrl},
+			</if>
+			<if test="code != null">
+				#{code},
+			</if>
+			<if test="venderName != null">
+				#{venderName},
+			</if>
+			<if test="genMonth != null">
+				#{genMonth},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			<if test="orgId != null">
+				#{orgId},
+			</if>
+			0,
+		</trim>
+ 	</insert>
+ 	
+ 	<update id="update" parameterType="com.bonus.ma.beans.QRCodeBean">
+		update bm_qrcode
+		<set>
+			<if test="isBind != null">
+				IS_BIND = #{isBind},
+			</if>
+			<if test="bindTime != null">
+				BIND_TIME = #{bindTime},
+			</if>
+		</set>
+		where `CODE` = #{code,jdbcType=INTEGER}
+	</update>
+	
+	<select id="findQRCodeInfo" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		SELECT q.`CODE`,q.QR_URL as qrUrl,q.IS_BIND as isBind,tb.`NAME` as maType,
+		ta.ID as maModelId,ta.`NAME` as maModel,mam.DEVICE_CODE as deviceCode,q.GEN_MONTH as genMonth,
+		mv.ID as venderId,mv.`NAME` as venderName,q.REMARK
+		FROM bm_qrcode q
+		LEFT JOIN mm_type ta ON q.MA_MODEL = ta.ID
+		LEFT JOIN mm_type tb ON ta.PARENT_ID = tb.ID
+		LEFT JOIN mm_machines mam on mam.QRCODE = q.`CODE`
+		LEFT JOIN mm_vender mv on q.VENDER = mv.ID
+		where q.`CODE` = #{code} 
+ 	</select>
+ 	
+ 	<select id="findAll" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		select DISTINCT ma.TYPE as typeId,mat.`NAME` as deviceName,mt.`NAME` as deviceModel,ma.DEVICE_CODE AS deviceCode,bq.`CODE` as code,bq.BIND_TIME as bindTime,bq.IS_BIND as isBind,COUNT(DISTINCT ma.ID) as bindNum
+		from bm_qrcode bq
+		LEFT JOIN mm_machines ma ON ma.QRCODE = bq.`CODE`
+		LEFT JOIN mm_type mt ON mt.ID = ma.TYPE
+		LEFT JOIN mm_type mat on mat.ID = mt.PARENT_ID
+		WHERE left(bq.BIND_TIME,10) =#{bindTime} and bq.IS_BIND = 1 
+		group by ma.TYPE
+	</select>
+ 	
+ 	<select id="findAllDetails" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		select DISTINCT ma.TYPE as typeId,mat.`NAME` as deviceName,mt.`NAME` as deviceModel,ma.DEVICE_CODE AS deviceCode,bq.`CODE` as code,bq.BIND_TIME as bindTime,bq.IS_BIND as isBind
+		from bm_qrcode bq
+		LEFT JOIN mm_machines ma ON ma.QRCODE = bq.`CODE`
+		LEFT JOIN mm_type mt ON mt.ID = ma.TYPE
+		LEFT JOIN mm_type mat on mat.ID = mt.PARENT_ID
+		WHERE left(bq.BIND_TIME,10) =#{bindTime} and ma.TYPE = #{typeId}
+		
+	</select>
+	
+ 	<select id="findQRCodeByTaskType" parameterType="com.bonus.ma.beans.QRCodeBean" resultMap="machine">
+ 		SELECT  DISTINCT bmq.TASK_ID as taskId, bmq.MA_MODEL as maModelId,bmq.`CODE`,bmq.QR_URL as qrUrl,bmq.IS_BIND as isBind,mat2.`NAME` as type0,
+ 				mat1.`NAME` as model,mam.DEVICE_CODE as deviceCode,bmq.GEN_MONTH as genMonth
+		FROM bm_qrcode bmq
+		LEFT JOIN mm_machines mam on mam.QRCODE = bmq.`CODE`
+		LEFT JOIN mm_type mat1 on mat1.ID = bmq.MA_MODEL
+		LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+ 		where bmq.MA_MODEL = #{maModel} and bmq.TASK_ID = #{taskId}
+		ORDER BY bmq.`CODE` DESC
+ 	</select>
+ 	
+ 	<select id="findAllCode" resultMap="machine">
+ 		select code from bm_qrcode
+ 	</select>
+</mapper>

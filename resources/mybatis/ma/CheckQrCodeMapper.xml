@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.CheckQrCodeDao">
+
+	<resultMap id="CheckQrCode" type="com.bonus.ma.beans.CheckQrCodeBean"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultMap="CheckQrCode">
+		SELECT `id`, 
+		`report_code` as reportCode,
+		`unit_name` as unitName,
+		`ma_type` as maType,
+		`ma_model` as maModel,
+		`out_code` as outCode,
+		`vender`,
+		`check_time` as checkTime,
+		`check_unit` as checkUnit,
+		`creator`,
+		`create_time` AS createTime
+		FROM `gl_qrcode_check` gqc
+		WHERE 1=1 
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND (
+			`report_code` LIKE CONCAT('%',#{param.keyWord},'%') or
+			`unit_name`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`ma_type`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`ma_model`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`out_code`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`vender`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`check_time`  LIKE CONCAT('%',#{param.keyWord},'%') or
+			`check_unit`  LIKE CONCAT('%',#{param.keyWord},'%') 
+			)
+		</if>
+
+	</select>
+
+	<insert id="insertBean" parameterType="com.bonus.ma.beans.CheckQrCodeBean">
+		INSERT INTO `gl_qrcode_check`(`report_code`, `unit_name`, `ma_type`, `ma_model`, `out_code`, `vender`, `check_time`, `check_unit`, `creator`, `create_time`) 
+		VALUES 
+		(#{reportCode}, #{unitName}, #{maType}, #{maModel}, #{outCode}, #{vender}, #{checkTime}, #{checkUnit}, #{creator}, now());
+	</insert>
+	
+	
+	<select id="findCount" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultType="java.lang.Integer">
+		SELECT count(1) from gl_qrcode_check where report_code=#{reportCode}
+	</select>
+	
+	
+	
+	
+	
+	<select id="find" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultMap="CheckQrCode">
+		SELECT `id`, 
+		`report_code` as reportCode,
+		`unit_name` as unitName,
+		`ma_type` as maType,
+		`ma_model` as maModel,
+		`out_code` as outCode,
+		`vender`,
+		`check_time` as checkTime,
+		`check_unit` as checkUnit,
+		`creator`,
+		`create_time` AS createTime
+		FROM `gl_qrcode_check` gqc
+		WHERE ID = #{id} 
+	</select>
+
+	
+
+	<update id="update" parameterType="com.bonus.ma.beans.CheckQrCodeBean">
+		UPDATE `gl_qrcode_check` SET `report_code` = #{reportCode}, `unit_name` = #{unitName}, 
+		`ma_type` = #{maType}, `ma_model` = #{maModel}, `out_code` = #{outCode}, 
+		`vender` = #{vender}, `check_time` = #{checkTime}, `check_unit` = #{checkUnit}
+		 WHERE `id` = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.ma.beans.CheckQrCodeBean">
+		delete from gl_qrcode_check 
+		where ID = #{id}
+	</delete>
+	
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		delete from gl_qrcode_check  WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+<!-- 
+	<update id="updateVend" parameterType="com.bonus.ma.beans.CheckQrCodeBean">
+		update mm_CheckQrCode set
+		PIC_NAME = #{picName},
+		PIC_URL = #{picUrl}
+		where ID = #{id}
+	</update>
+
+	
+
+	
+
+	<select id="findCheckQrCode" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultMap="CheckQrCode">
+		SELECT ID,NAME FROM mm_CheckQrCode where IS_ACTIVE = 1
+	</select>
+
+	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+
+	<select id="maCheckQrCodeTree" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultMap="ZNode">
+		SELECT *
+		FROM (
+		SELECT ID,`NAME`,'0' as pId
+		FROM mm_CheckQrCode
+		WHERE IS_ACTIVE = 1
+		) res
+		WHERE res.`NAME` LIKE CONCAT('%',#{name},'%')
+	</select>
+
+	<select id="makeeper" parameterType="com.bonus.ma.beans.CheckQrCodeBean"
+		resultMap="ZNode">
+		SELECT *
+		from (SELECT ID,`NAME`,'0' as pId FROM pm_user
+		WHERE ORG_ID = 7 and POST_ID = 2
+		) pmu
+		WHERE pmu.`NAME` LIKE CONCAT('%',#{name},'%')
+	</select> -->
+</mapper>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.repair.dao.RepairTaskRecordDao" >
+    <resultMap id="repair" type="com.bonus.repair.beans.RepairTaskRecordBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.repair.beans.RepairTaskRecordBean" resultMap="repair">
+
+		SELECT
+			wir.ID,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as  modelName,
+			wir.`CODE` as deviceCode,
+			wir.TIME as operationTime,
+			mm.REMARK as codeRemark,
+			ROUND(wir.NUM) as alRepairNum,
+			wir.REPAIR_URL as repairUrl,
+			wir.REPAIR_PERSON_NAME as repairPerson,
+			wir.RM_STATUS as rmStatus,
+			rf.file_url as fileUrl,
+			wir.REMARK
+			FROM
+			wf_info_record wir
+			
+			LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_machines mm on mm.DEVICE_CODE = wir.`CODE`
+			LEFT JOIN repair_file rf on wir.id = rf.info_id
+			
+			WHERE wir.TYPE = 6
+            and left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+	
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+					mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+
+ 	</select>
+ 	
+	 <select id="getPrintDetails" parameterType="com.bonus.repair.beans.RepairTaskRecordBean" resultMap="repair">
+		SELECT
+			wir.ID,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as  modelName,
+			wir.`CODE` as deviceCode,
+			wir.TIME as operationTime,
+			ROUND(wir.NUM) as alRepairNum,
+			wir.RM_STATUS as rmStatus,
+			wir.REMARK
+			FROM
+			wf_info_record wir
+			
+			LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			WHERE wir.TYPE = 6
+            and left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+	
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+					mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+
+	 </select>
+	 
+	 <update id="saveRemark" parameterType="com.bonus.repair.beans.RepairTaskRecordBean">
+	 update wf_info_record set REMARK = #{remark}
+	 where ID = #{id}
+	 </update>
+	 
+	 <update id="updateUrl" parameterType="com.bonus.repair.beans.RepairTaskRecordBean">
+		 update wf_info_record set REPAIR_URL = #{repairUrl}
+		 where ID = #{id}
+	 </update>
+    
+</mapper>

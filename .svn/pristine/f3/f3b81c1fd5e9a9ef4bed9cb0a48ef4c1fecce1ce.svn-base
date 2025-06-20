@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.ProjectManageDao" >
+
+    <select id="findByPage" resultType="com.bonus.bm.beans.ProjectManageBean" parameterType="com.bonus.bm.beans.ProjectManageBean">
+        select bmp.ID as id,bmp.`NAME` as name,bmp.COMPANY_ID as companyId,
+		bmc.`NAME` as companyName,bmp.TYPE_ID as typeId,bpt.`NAME` as typeName,
+		bmp.VOL_ID as volId,bvl.`NAME` as volName,
+		bmp.NUM as num,bmp.MANAGER as manager,bmp.NATURE as nature,
+		bmp.TELPHONE as telphone,bmp.PHONE as phone,bmp.FAX as fax,
+		bmp.ADDRESS as address,bmp.REMARKS as remarks,
+		bmp.MATERIAL_CLERK as materialClerk,bmp.CLERK_PHONE as clerkPhone,
+		bmp.IS_BALANCE_END as isBalanceEnd
+		from bm_project bmp
+		LEFT JOIN bm_vol_level bvl on bvl.ID = bmp.VOL_ID
+		LEFT JOIN bm_project_type bpt on bmp.TYPE_ID = bpt.ID
+		LEFT JOIN	bm_company bmc on bmc.ID = bmp.COMPANY_ID
+		where 1=1 and bmp.IS_ACTIVE=1 and bmp.IS_BALANCE_END=#{param.isBal}
+		
+		<if test="param.companyId !=0 and param.companyId !='0'">
+		    and bmp.COMPANY_ID =#{param.companyId}
+		</if>
+		<if test="param.typeId !=0 and param.typeId !='0'">
+		    and bmp.TYPE_ID =#{param.typeId}
+		</if>
+		<if test="param.volId !=0 and param.volId !='0'">
+		   and bmp.VOL_ID =#{param.volId}
+		</if>
+        <if test="param.keyWord !=null and param.keyWord !=''">
+		 and ( 
+		   bmp.NAME LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmp.NUM LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmp.MANAGER LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmp.NATURE LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmp.TELPHONE LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmp.MATERIAL_CLERK LIKE CONCAT('%',#{param.keyWord},'%') 
+			)
+		</if>
+		ORDER BY bmp.TIME desc
+    </select>
+    <select id="getVolLever" resultType="com.bonus.bm.beans.ProjectManageBean" parameterType="com.bonus.bm.beans.ProjectManageBean">
+      SELECT bpt.ID,bpt.`NAME` from bm_vol_level bpt
+    </select>
+        
+    <select id="getProjectType" resultType="com.bonus.bm.beans.ProjectManageBean" parameterType="com.bonus.bm.beans.ProjectManageBean">
+       SELECT bpt.ID,bpt.`NAME` from bm_project_type bpt
+    </select>
+     
+    <insert id="insert" parameterType="com.bonus.bm.beans.ProjectManageBean"> 
+        INSERT into bm_project
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name !=null">
+                NAME,
+            </if>
+            <if test="num !=null">
+                NUM,
+            </if>
+            <if test="companyId1 !=null">
+                COMPANY_ID,
+            </if>
+            <if test="typeId1 !=null">
+                TYPE_ID,
+            </if>
+            <if test="manager !=null">
+                MANAGER,
+            </if>
+            <if test="nature !=null">
+                NATURE,
+            </if>
+            <if test="telphone !=null">
+                TELPHONE,
+            </if>
+            <if test="phone !=null">
+                PHONE,
+            </if>
+            <if test="fax !=null">
+                FAX,
+            </if>
+            <if test="address !=null">
+                ADDRESS,
+            </if>
+            <if test="volId1 !=null">
+                VOL_ID,
+            </if>
+            <if test="remarks !=null">
+                REMARKS,
+            </if>
+            <if test="materialClerk !=null">
+                MATERIAL_CLERK,
+            </if>
+            <if test="clerkPhone !=null">
+                CLERK_PHONE,
+            </if>
+            <if test="isBalanceEnd !=null">
+                IS_BALANCE_END,
+            </if>
+            TIME,
+        </trim>
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+            <if test="name !=null">
+                #{name},
+            </if>
+           <if test="num !=null">
+               #{num},
+           </if>
+            <if test="companyId1 !=null">
+                #{companyId1},
+            </if>
+            <if test="typeId1 !=null">
+                #{typeId1},
+            </if>
+            <if test="manager !=null">
+                #{manager},
+            </if>
+            <if test="nature !=null">
+                #{nature},
+            </if>
+            <if test="telphone !=null">
+                #{telphone},
+            </if>
+            <if test="phone !=null">
+                #{phone},
+            </if>
+            <if test="fax !=null">
+                #{fax},
+            </if>
+            <if test="address !=null">
+                #{address},
+            </if>
+            <if test="volId1 !=null">
+                #{volId1},
+            </if>
+            <if test="remarks !=null">
+                #{remarks},
+            </if>
+            <if test="materialClerk !=null">
+                #{materialClerk},
+            </if>
+            <if test="clerkPhone !=null">
+                #{clerkPhone},
+            </if>
+            <if test="isBalanceEnd !=null">
+                #{isBalanceEnd},
+            </if>
+            NOW(),
+        </trim>
+    </insert>
+    <select id="find" resultType="com.bonus.bm.beans.ProjectManageBean" parameterType="com.bonus.bm.beans.ProjectManageBean">
+   		select bmp.ID as id,bmp.`NAME` as name,bmp.COMPANY_ID as companyId,
+		bmc.`NAME` as companyName,bmp.TYPE_ID as typeId,bpt.`NAME` as typeName,
+		bmp.VOL_ID as volId,bvl.`NAME` as volName,
+		bmp.NUM as num,bmp.MANAGER as manager,bmp.NATURE as nature,
+		bmp.TELPHONE as telphone,bmp.PHONE as phone,bmp.FAX as fax,
+		bmp.ADDRESS as address,bmp.REMARKS as remarks,
+		bmp.MATERIAL_CLERK as materialClerk,bmp.CLERK_PHONE as clerkPhone,
+		bmp.IS_BALANCE_END as isBalanceEnd
+		from bm_project bmp
+		LEFT JOIN bm_vol_level bvl on bvl.ID = bmp.VOL_ID
+		LEFT JOIN bm_project_type bpt on bmp.TYPE_ID = bpt.ID
+		LEFT JOIN	bm_company bmc on bmc.ID = bmp.COMPANY_ID
+		where bmp.ID=#{id}
+    </select>
+    
+    <update id="update" parameterType="com.bonus.bm.beans.ProjectManageBean">
+        update bm_project
+        <set>
+            <if test="name !=null">
+                NAME=#{name},
+            </if>
+           <if test="num !=null">
+               NUM=#{num},
+           </if>
+           <if test="companyId1 !=null">
+                COMPANY_ID =#{companyId1},
+            </if>
+            <if test="typeId1 !=null">
+                TYPE_ID =#{typeId1},
+            </if>
+            <if test="manager !=null">
+                MANAGER=#{manager},
+            </if>
+            <if test="nature !=null">
+                NATURE=#{nature},
+            </if>
+            <if test="telphone !=null">
+                TELPHONE=#{telphone},
+            </if>
+            <if test="phone !=null">
+                PHONE=#{phone},
+            </if>
+            <if test="fax !=null">
+                FAX=#{fax},
+            </if>
+            <if test="address !=null">
+                ADDRESS=#{address},
+            </if>
+             <if test="volId1 !=null">
+                VOL_ID = #{volId1},
+            </if>
+            <if test="remarks !=null">
+                REMARKS=#{remarks},
+            </if>
+            <if test="materialClerk !=null">
+                MATERIAL_CLERK=#{materialClerk},
+            </if>
+            <if test="clerkPhone !=null">
+                CLERK_PHONE=#{clerkPhone},
+            </if>
+            <if test="isBalanceEnd !=null">
+                IS_BALANCE_END=#{isBalanceEnd},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+	
+    <update id="delete">
+         update bm_project set IS_ACTIVE =0 
+         where ID =#{id} 
+    </update>
+    
+</mapper>

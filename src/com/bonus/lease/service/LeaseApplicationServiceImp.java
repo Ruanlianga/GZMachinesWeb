@@ -1,0 +1,205 @@
+package com.bonus.lease.service;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+
+import com.bonus.plan.beans.ProOutInfoVo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.core.DateTimeHelper;
+import com.bonus.lease.beans.AgreementBean;
+import com.bonus.lease.beans.LeaseApplicationBean;
+import com.bonus.lease.dao.AgreementDao;
+import com.bonus.lease.dao.LeaseApplicationDao;
+import com.bonus.sys.BaseServiceImp;
+import com.bonus.sys.UserShiroHelper;
+import com.bonus.wf.beans.ProcessRecordBean;
+import com.bonus.wf.beans.TaskRecordBean;
+import com.bonus.wf.dao.ProcessRecordDao;
+import com.bonus.wf.dao.TaskRecordDao;
+
+@Service("leaseApplicationService")
+public class LeaseApplicationServiceImp extends BaseServiceImp<LeaseApplicationBean> implements LeaseApplicationService{
+
+	@Autowired LeaseApplicationDao dao;
+	
+	@Autowired ProcessRecordDao prdao;
+	
+	@Autowired TaskRecordDao trdao;
+	
+	@Autowired AgreementDao adao;
+
+	@Override
+	public void addLeaseApply(LeaseApplicationBean o) {
+		if (o == null) {
+			return;
+		}
+		String userId = UserShiroHelper.getRealCurrentUser().getId() + "";
+		String userName = UserShiroHelper.getRealCurrentUser().getName();
+        try {
+            if (o.getProjectType() != null && o.getProjectType() > 0) {
+                // 处理需求计划发货统计逻辑
+                // 首先查询该工程之前是否存在计划
+                if (dao.getPlanIsExistProject(o.getProjectType()) > 0) {
+                    // 存在
+                    dao.updateProjectOutOrderNum(o.getProjectType());
+                } else {
+                    // 不存在执行新增
+                    dao.insertProjectOutOrderNum(o.getProjectType());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage() + ",需求计划处理出错");
+        }
+        ProcessRecordBean process = new ProcessRecordBean();
+		//新增领料申请明细表单
+		o.setOperator(userName);
+		o.setOperationTime(DateTimeHelper.getNowTime());
+		o.setApplyTime(DateTimeHelper.getNowTime());
+		AgreementBean a = new AgreementBean();
+		a.setCode(o.getAgreementCode());
+		List<AgreementBean> list = adao.findAgreeCodeId(a);
+		String agreeId = "";
+		if(list.size() > 0){
+			agreeId = list.get(0).getId();
+		}
+		o.setAgreementId(agreeId);
+		o.setApplyNumber(findApplyNumber(o));
+		dao.insert(o);
+		//新增领料流程记录
+		process.setOperationTime(DateTimeHelper.getNowTime());
+		process.setOperationUserId(userId);
+		process.setProcessId("2");
+		prdao.insert(process);
+		//新增领料申请任务
+		TaskRecordBean task = new TaskRecordBean();
+		String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+		task.setCompanyId(companyId);
+		task.setDefinitionId("1");
+		task.setTaskId(o.getId());
+		task.setIsFinish("0");
+		task.setOperationTime(DateTimeHelper.getNowTime());
+		task.setOperationUserId(userId);
+		task.setProcessId("2");
+		task.setRemark(o.getRemark());
+		task.setNumber(o.getApplyNumber());
+		task.setLeasePerson(o.getProposer());
+		task.setPhone(o.getPhone());
+		trdao.insert(task);
+		
+	}
+
+	@Override
+	public List<AgreementBean> findAgreeCode(AgreementBean o) {
+		return adao.findAgreeCode(o);
+	}
+
+	@Override
+	public String findApplyNumber(LeaseApplicationBean o) {
+		String yearLast = new SimpleDateFormat("yy",Locale.CHINESE).format(Calendar.getInstance().getTime());
+		String nowDay = DateTimeHelper.getFormatNowMonthAndDay();
+		String operationTime = DateTimeHelper.getNowDate();
+		o.setApplyTime(operationTime);
+		String count = dao.findApplyNumber(o);
+		int str = Integer.parseInt(count) + 1;
+		String counts = String.format("%03d", str); 
+		String code = "SQ" + yearLast + nowDay + counts;
+		return code;
+	}
+
+	@Override
+	public void buildLeaseTask(LeaseApplicationBean o) {
+		String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+		String userId = UserShiroHelper.getRealCurrentUser().getId() + "";
+		String userName = UserShiroHelper.getRealCurrentUser().getName();
+		Integer leaseOrderProjectId = o.getProjectType();
+		if (leaseOrderProjectId == null || leaseOrderProjectId < 1) {
+			System.err.println("领料工程工程ID为空");
+		}
+
+		//查询领料申请信息
+		List<LeaseApplicationBean> list = dao.find(o);
+		String remark="";
+		String leasePerson="";
+		String phone="";
+		String agreementId="";
+		if(list.size() > 0){
+			remark = list.get(0).getRemark();
+			leasePerson = list.get(0).getProposer();
+			phone = list.get(0).getPhone();
+			agreementId = list.get(0).getAgreementId();
+		}
+
+		// 处理领料出库单逻辑
+		ProOutInfoVo leaseOrder = new ProOutInfoVo();
+		leaseOrder.setProId(String.valueOf(leaseOrderProjectId));
+		leaseOrder.setUserName(userName);
+		leaseOrder.setCreateUser(userId);
+		leaseOrder.setRemarks(o.getRemark());
+		int insertedLeaseOrderNum = dao.insertLeaseOrderByProject(leaseOrder);
+		if (insertedLeaseOrderNum > 0) {
+			System.out.println("新增领料出库单成功");
+		} else {
+			System.err.println("新增领料出库单失败:" + leaseOrder);
+		}
+
+
+		//生成领料单编号
+		String yearLast = new SimpleDateFormat("yy",Locale.CHINESE).format(Calendar.getInstance().getTime());
+		String nowDay = DateTimeHelper.getFormatNowMonthAndDay();
+		String operationTime = DateTimeHelper.getNowDate();
+		o.setApplyTime(operationTime);
+		String count = dao.findLeaseApplyNumber(o);
+		int str = Integer.parseInt(count);
+		String counts = String.format("%03d", str); 
+		String code = "ZL" + yearLast + nowDay + counts;
+		//创建领料任务
+		TaskRecordBean tr = new TaskRecordBean();
+		tr.setDefinitionId("2");
+		tr.setProcessId("2");
+		tr.setOperationTime(DateTimeHelper.getNowTime());
+		tr.setOperationUserId(userId);
+		tr.setLeasePerson(leasePerson);
+		tr.setPhone(phone);
+		tr.setRemark(remark);
+		tr.setNumber(code);
+		tr.setCompanyId(companyId);
+		tr.setIsFinish("0");
+		tr.setTaskId(o.getTaskId());
+		tr.setPlanOutId(leaseOrder.getId() != null ? Integer.parseInt(leaseOrder.getId()) : 0);
+		TaskRecordBean trApply = new TaskRecordBean();
+		trApply.setId(o.getTaskId());
+	 
+		trApply.setCompanyId(companyId);
+		trApply.setIsFinish("1");
+		trdao.update(trApply);
+		trdao.insert(tr);
+		tr.setAgreementId(agreementId);
+		tr.setTaskId(tr.getId());
+		trdao.addTaskAgreement(tr);		
+	}
+
+	@Override
+	public Integer deleteApply(LeaseApplicationBean o) {
+		Integer res = dao.deleteApply(o);
+		List<LeaseApplicationBean> list = dao.getApplyNumberById(o);
+		if(list.size() > 0){
+			dao.delByNumber(list.get(0));
+		}
+		return res;
+	}
+	
+	@Override
+	public List<LeaseApplicationBean> getTaskDetails(LeaseApplicationBean o) {
+		return dao.getTaskDetails(o);
+	}
+
+	@Override
+	public List<LeaseApplicationBean> getSubInfo(LeaseApplicationBean o) {
+		return dao.getSubInfo(o);
+	}
+	
+}

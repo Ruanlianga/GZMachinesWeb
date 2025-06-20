@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newSettlement.dao.ProjectSettlementInfoDao">
+	<resultMap id="baseMap" type="com.bonus.newSettlement.beans.ProjectSettlementInfoBean">
+		<id column="ID" property="id" />
+		<result column="cpyName" property="cpyName" />
+		<result column="cpyUnitName" property="cpyUnitName" />
+		<result column="isActive" property="isActive" />
+	
+		<result column="code" property="code" />
+		<result column="orgId" property="orgId" />
+		<result column="companyName" property="company.name" />
+		<result column="companyId" property="company.id" />
+		<result column="projectId" property="project.id" />
+		<result column="projectName" property="project.name" />
+		<result column="machineMoney" property="machineMoney" />
+		<result column="typeMoney" property="typeMoney" />
+		<result column="baseMoney" property="baseMoney" />
+		<result column="lastMoney" property="lastMoney" />
+		<result column="addMoney" property="addMoney" />
+		<result column="subMoney" property="subMoney" />
+		<result column="createTime" property="createTime" />
+		<result column="creatorName" property="creator.name" />
+		<result column="creatorId" property="creator.id" />
+		<result column="updaterName" property="updater.name" />
+		<result column="updaterId" property="updater.id" />
+		<result column="status" property="status" />
+		<result column="sltMan" property="sltMan" />
+		<result column="sltDate" property="sltDate" />
+		<result column="sltManPhone" property="sltManPhone" />
+		<result column="remarks" property="remarks" />
+		<result column="fileUrl" property="fileUrl" />
+		<result column="oldFileUrl" property="oldFileUrl" />
+	    <collection property="mas" ofType="com.bonus.newSettlement.beans.ProjectSettlementDetailsBean">
+	    	<id column="dId" property="id" />
+			<result column="parentName" property="type.parentName" />
+			<result column="typeName" property="type.name" />
+			<result column="isFixedAssets" property="type.isFixedAssets"/>
+			<result column="unitName" property="type.unit" />
+			<result column="num" property="num" />
+			<result column="price" property="price" />
+			<result column="startDate" property="startDate" />
+			<result column="endDate" property="endDate" />
+			<result column="dayLen" property="dayLen" />
+			<result column="subtotal" property="subtotal" />
+			<result column="backDate" property="backDate" />
+	    </collection>
+	</resultMap>
+	
+	<update id="updateSettleSta" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean">
+		update 
+			wf_lease_agreement
+		set 
+			is_active = 0
+		where 
+			id = #{id}
+	</update>
+	
+	<select id="findSettleContent" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+		SELECT
+			wla.id,
+			bc.`NAME` AS cpyName,
+			bu.NAME AS cpyUnitName,
+			wla.`CODE` as code,
+			bp.NAME AS projectName,
+			wla.IS_ACTIVE as isActive
+		FROM
+			wf_lease_agreement wla
+			LEFT JOIN bm_unit bu ON bu.id = wla.LEASE_COMPANY
+			LEFT JOIN bm_company bc ON bc.id = bu.COMPANY_ID
+			LEFT JOIN bm_project bp ON bp.id = wla.PROJECT 
+		WHERE 
+			1=1 
+		<if test="param.keyWord !=null and param.keyWord != ''">
+		AND (
+			bc.`NAME` like concat ("%",#{param.keyWord},"%") or
+			bu.NAME like concat ("%",#{param.keyWord},"%") or
+			wla.`CODE` like concat ("%",#{param.keyWord},"%") or
+			bp.NAME like concat ("%",#{param.keyWord},"%")
+		)
+		</if>
+		
+	</select>
+
+	<select id="findByPage" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+	SELECT 
+			psi.id,
+			psi.`code`,
+			pmo.name as companyName,
+			project.`NAME` as projectName,
+		    psi.create_time AS createTime,
+			psi.base_money AS baseMoney,
+			psi.add_money AS addMoney,
+			psi.sub_money AS subMoney,
+			psi.last_money AS lastMoney,
+			psi.slt_man AS sltMan,
+			psi.slt_date AS sltDate,
+			psi.slt_man_phone AS sltManPhone
+		FROM
+			project_settlement_info psi
+		LEFT JOIN wf_lease_agreement agreement on psi.agreement = agreement.id 
+		LEFT JOIN bm_unit company on agreement.LEASE_COMPANY = company.id 
+		LEFT JOIN bm_project project on agreement.PROJECT = project.id 
+		LEFT JOIN pm_organization pmo ON pmo.id = psi.ORG_ID
+		WHERE
+			1 = 1
+		<if test="param.orgId != 1 and param.orgId != '1'">
+			and psi.org_id=#{param.orgId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND (
+			   psi.`code` LIKE CONCAT('%',#{param.keyWord},'%')
+				or company.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				or project.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				or psi.slt_man LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+	</select>
+	
+	<insert id="insertBean" keyProperty="id" useGeneratedKeys="true" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" >
+		INSERT INTO project_settlement_info
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+		
+		    <if test="orgId != null">
+				org_id,
+			</if>
+			<if test="code != null">
+				code,
+			</if>
+			<if test="agreement != null">
+				agreement,
+			</if>
+			<if test="machineMoney != null">
+				machine_money,
+			</if>
+			<if test="typeMoney != null">
+				type_money,
+			</if>
+			<if test="cpsMoney != null">
+				cps_money,
+			</if>
+			<if test="baseMoney != null">
+				base_money,
+			</if>
+			<if test="lastMoney != null">
+				last_money,
+			</if>
+			<if test="addMoney != null">
+				add_money,
+			</if>
+			<if test="subMoney != null">
+				sub_money,
+			</if>
+			<if test="creator != null">
+				creator,
+			</if>
+			<if test="createTime != null and createTime != '' ">
+				create_time,
+			</if>
+			<if test="updater != null">
+				updater,
+			</if>
+			<if test="updateTime != null and updateTime != '' ">
+				update_time,
+			</if>
+			<if test="status != null">
+				status,
+			</if>
+			<if test="sltMan != null and sltMan != ''">
+				slt_man,
+			</if>
+			<if test="sltDate != null and sltDate != '' ">
+				slt_date,
+			</if>
+			<if test="sltManPhone != null and sltManPhone != ''">
+				slt_man_phone,
+			</if>
+			<if test="remarks != null and remarks != ''">
+				remarks,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+		    <if test="orgId != null">
+				#{orgId},
+			</if>
+			<if test="code != null">
+				#{code},
+			</if>
+			<if test="agreement != null">
+				#{agreement.id},
+			</if>
+			<if test="machineMoney != null">
+				#{machineMoney},
+			</if>
+			<if test="typeMoney != null">
+				#{typeMoney},
+			</if>
+			<if test="cpsMoney != null">
+				#{cpsMoney},
+			</if>
+			<if test="baseMoney != null">
+				#{baseMoney},
+			</if>
+			<if test="lastMoney != null">
+				#{lastMoney},
+			</if>
+			<if test="addMoney != null">
+				#{addMoney},
+			</if>
+			<if test="subMoney != null">
+				#{subMoney},
+			</if>
+			<if test="creator != null">
+				#{creator.id},
+			</if>
+			<if test="createTime != null and createTime != '' ">
+				#{createTime},
+			</if>
+			<if test="updater != null">
+				#{updater.id},
+			</if>
+			<if test="updateTime != null and updateTime != '' ">
+				#{updateTime},
+			</if>
+			<if test="status != null">
+				#{status},
+			</if>
+			<if test="sltMan != null and sltMan != ''">
+				#{sltMan},
+			</if>
+			<if test="sltDate != null and sltDate != '' ">
+				#{sltDate},
+			</if>
+			<if test="sltManPhone != null and sltManPhone != ''">
+				#{sltManPhone},
+			</if>
+			<if test="remarks != null and remarks != ''">
+				#{remarks},
+			</if>
+		</trim>
+	</insert>
+	
+	
+		<select id="findSettlementInfoById" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+		SELECT 
+			SUM(psi.base_money) AS baseMoney,
+			SUM(psi.add_money) AS addMoney,
+			SUM(psi.sub_money) AS subMoney,
+			SUM(psi.machine_money) AS machineMoney,
+			SUM(psi.type_money) AS typeMoney,
+			SUM(psi.last_money) AS lastMoney,
+			max(psi.slt_date) AS sltDate
+		FROM
+			project_settlement_info psi
+		WHERE psi.id in
+		<foreach collection="chks" item="chks" index="index" open="(" close=")" separator=",">
+         #{chks}
+       </foreach>
+	</select> 
+	
+		<select id="findBaseInfoById" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+	SELECT 
+			bu.`NAME` AS companyName,
+			bp.`name` projectName,
+			psi.id,
+			psi.`code`,
+			psi.base_money AS baseMoney,
+			psi.add_money AS addMoney,
+			psi.sub_money AS subMoney,
+			psi.machine_money AS machineMoney,
+			psi.type_money AS typeMoney,
+			psi.last_money AS lastMoney
+		FROM
+			project_settlement_info psi
+		LEFT JOIN wf_lease_agreement agreement on psi.agreement = agreement.id 
+		LEFT JOIN bm_project bp ON bp.id = agreement.project
+		LEFT JOIN bm_unit bu ON bu.ID = agreement.LEASE_COMPANY
+		WHERE psi.id in
+		<foreach collection="chks" item="chks" index="index" open="(" close=")" separator=",">
+         #{chks}
+       </foreach>
+	</select> 
+	
+	<select id="findMaInfoById" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+	SELECT 
+	        bu.`NAME` AS companyName,
+			bp.`name` projectName,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			case when(mam.IS_FIXED_ASSETS='1') then '固定'  else '非固定' end as isFixedAssets,
+			mt.unit AS unitName,
+			psd.num AS num,
+			psd.price,
+			psd.start_date AS startDate,
+			psd.end_date AS endDate,
+			psd.day_len AS dayLen,
+			psd.subtotal,
+			psd.back_date AS backDate,
+			psi.id,
+			psd.id AS dId,
+			psi.`code`,
+			psi.base_money AS baseMoney,
+			psi.add_money AS addMoney,
+			psi.sub_money AS subMoney,
+			psi.machine_money AS machineMoney,
+			psi.type_money AS typeMoney,
+			psi.last_money AS lastMoney
+		FROM
+			project_settlement_info psi
+		LEFT JOIN wf_lease_agreement agreement on psi.agreement = agreement.id 
+		LEFT JOIN bm_project bp ON bp.id = agreement.project
+		LEFT JOIN bm_unit bu ON bu.ID = agreement.LEASE_COMPANY
+		LEFT JOIN project_settlement_details psd ON psd.slt_info = psi.id
+		LEFT JOIN mm_type mt ON mt.id = psd.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mam ON mam.type = mt.id
+		WHERE psi.id in
+		<foreach collection="chks" item="chks" index="index" open="(" close=")" separator=",">
+         #{chks}
+       	</foreach>
+	</select> 
+	
+	<update id="update" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean">
+        update project_settlement_info
+        <set>
+            <if test="fileUrl !=null">
+                fileUrl=#{fileUrl},
+            </if>
+            <if test="oldFileUrl !=null">
+                oldFileUrl=#{oldFileUrl},
+            </if>
+        </set>
+        where ID =#{id}
+	</update>
+	<select id="findSettlementFileUrlById" parameterType="com.bonus.newSettlement.beans.ProjectSettlementInfoBean" resultMap="baseMap">
+		SELECT 
+			psi.fileUrl as fileUrl,
+			psi.oldFileUrl as oldFileUrl
+		FROM 
+			project_settlement_info psi
+		WHERE 
+			psi.id = #{id}
+	</select> 
+	
+	
+</mapper>

@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.LogDao" >
+    
+    <select id="findInNum" resultType="com.bonus.bm.beans.LogBean" parameterType="com.bonus.bm.beans.LogBean">
+		SELECT if(mt.NUM='' OR mt.num is null,0,ROUND(mt.num)) as inNum FROM mm_type mt
+		WHERE mt.ID=#{typeId}
+    </select>
+    
+    <insert id="insertLog" parameterType="com.bonus.bm.beans.LogBean"> 
+       	INSERT INTO `bm_logs`(`model`, `fun`, `task`, `type_id`, `description`, `time`, `creator`) 
+       	VALUES 
+       	(#{model}, #{fun}, #{task}, #{typeId}, #{description}, #{time}, #{creator})
+    </insert>
+    
+    
+     <insert id="insertTotalLog" parameterType="com.bonus.bm.beans.LogBean"> 
+       	INSERT INTO `ma_total_change`(`task_id`, `task_code`,  `type_id`, `user_id`, `content`, `time`) 
+       	VALUES 
+       	(#{task}, #{taskCode}, #{typeId},#{creator},#{description}, #{time})
+    </insert>
+    
+    
+    
+       <select id="findTotalNum" resultType="com.bonus.bm.beans.LogBean" parameterType="com.bonus.bm.beans.LogBean">
+		
+	
+SELECT
+typeId,
+SUM(rs.storageNum) + SUM(rs.repairNum) + SUM(rs.inuseNum) as total 
+FROM
+(
+
+	SELECT
+					mat1.ID AS typeId,
+					mat1.NUM storageNum,
+					0 inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+					0 backCount,
+		      0 as pyNum,
+					0 as pkNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					mm_type mat1
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					mat1.`LEVEL` = 4 and mat1.ID= #{typeId}
+					AND mat1.IS_ACTIVE = '1' 
+				GROUP BY
+					mat1.ID
+					UNION
+					
+						SELECT
+					typeId,
+					0 storageNum,
+					sum( leaseNum ) - SUM( backNum ) inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					sum( leaseNum ) inuseCount,
+					SUM( backNum ) backCount,
+					0 as pyNum,
+					0 as pkNum,
+					isCount AS isCount 
+				FROM
+					(
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						SUM( wir.NUM ) AS leaseNum,
+						0 AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+						LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+						LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+						AND wcd.MODEL_ID = wir.MODEL_ID 
+					WHERE
+						wir.TYPE = 2 
+						AND wtr2.IS_ACTIVE = 1 
+						AND wcd.IS_APPROVAL = 1 
+						and mt.ID= #{typeId}
+					GROUP BY
+						mt.ID UNION
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						0 AS leaseNum,
+						SUM( wir.NUM ) AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+						LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+					WHERE
+						wir.TYPE = 4 and mt.ID= #{typeId}
+						AND wtr.IS_ACTIVE = 1 
+					GROUP BY
+						mt.ID 
+					) a 
+				GROUP BY
+					typeId
+					UNION
+					
+				SELECT
+				  typeId,
+					0 storageNum,
+					0 inuseNum,
+					SUM(repairNum) + SUM(checkNum) + SUM(waitInputNum) as repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+			   	0 backCount,
+					0 as pyNum,
+					0 as pkNum,
+				  isCount
+				FROM
+				(
+		
+					SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					SUM( wrd.REPAIR_NUM ) - SUM( wrd.ALREPAIR_NUM ) - SUM( SCRAP_NUM ) AS repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+				mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_details wrd
+					LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+					where  mat1.ID= #{typeId}
+				GROUP BY
+					wrd.MODEL_ID 
+					UNION
+							SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					SUM( wrc.CHECK_NUM ) - SUM( wrc.ALCHECK_NUM ) AS checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_check wrc
+					LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+						where  mat1.ID= #{typeId}
+				GROUP BY
+					wrc.MODEL_ID
+						UNION
+					SELECT DISTINCT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 AS scrapNum,
+					0 loseNum,
+					SUM(
+						IFNULL( PRE_PUT_NUM, 0 )) - sum(
+					IFNULL( AL_PUT_NUM, 0 )) AS waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_put_storage_details wpd
+					LEFT JOIN mm_type mat1 ON wpd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					wpd.IS_SURE = 0 and  mat1.ID= #{typeId}
+				GROUP BY
+					wpd.MODEL_ID 
+					
+					) res 
+					GROUP BY typeId 
+			) rs 
+					GROUP BY typeId 
+    </select>
+    
+</mapper>

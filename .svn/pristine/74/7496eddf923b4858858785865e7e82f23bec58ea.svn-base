@@ -1,0 +1,675 @@
+$(function() {
+	layui.use('laydate', function(){
+		var laydate = layui.laydate;
+		  //日期时间选择器
+		laydate.render({
+			elem: '#startTime',
+			done:function (data) {
+	            var endTime=$("#endTime").val();
+	            if(data>endTime && endTime!=''){
+	                layer.msg("开始时间不能大于结束时间");
+	                $("#startTime").val('');
+	            }
+	        }
+		});
+		laydate.render({
+			elem: '#endTime',
+			done:function (data) {
+	            var startTime=$("#startTime").val();
+	            if(data<startTime && startTime!=''){
+	                layer.msg("开始时间不能大于结束时间");
+	                $("#endTime").val('');
+	            }
+	        }
+		});
+	});
+	getbaseList(1);
+});
+
+$('#resetBtn').on('click', function(e) {
+	   $("#keyWord").val("");
+	   $("#maType").val("");
+	   $("#maModel").val("");
+	   init = 1;
+	   getbaseList(1);
+	  });
+
+/*function exportData(){
+	$("#baseForm").attr("onsubmit","return true;");
+	$("#baseForm").attr("action",bonuspath +'/backstage/rm/taskRecord/export');
+	$("#baseForm").attr("target","downloadFrame");//iframe的名字
+	$("#baseForm").submit();
+}*/
+
+$('#export').on('click',function(e) {
+	e.preventDefault();
+	var startTime = $("#startTime").val();
+	var endTime = $("#endTime").val();
+  
+//	alert(deviceName);
+ 
+	var keyWord = $("#keyWord").val();
+//	alert(deviceModel);
+	//window.location.href=bonuspath+"/backstage/rm/taskRecord/export?startTime="+startTime+"&endTime="+endTime+"&keyWord="+keyWord;
+	var url = bonuspath + '/backstage/rm/taskRecord/export';
+	var params = {
+		keyWord,
+		startTime,
+		endTime,
+		maType: $("#maType").val(),
+		maModel: $("#maModel").val()
+	};
+	exportCommon(url, 'GET', params, '退料记录报表')
+});
+
+function checkTree(){
+	localStorage.setItem("checkId","");
+	localStorage.setItem("checkName","");
+	localStorage.setItem("checkTreeName",$("#checkName").val());
+	layer.open({
+		type: 2,
+		title:['检验人员','background-color: #438EB9;color:#fff'],
+		shadeClose:true,
+		shade:false,
+		maxmin: true,
+		area: ['400px', '400px'],
+		content: bonuspath+'/backstage/user/checkTree'
+	});
+}
+function setCheckForm(){
+	var checkId = localStorage.getItem("checkId");
+	var checkName = localStorage.getItem("checkName");
+	$("#checkId").val(checkId);
+	$("#checkName").val(checkName);
+}
+
+function getbaseList(init) {
+	if (init == 1)$(".pageNum").val(1);
+	JY.Model.loading();
+	JY.Ajax.doRequest("baseForm",bonuspath + '/backstage/rm/taskRecord/findByPage',null,function(data) {
+		$("#baseTable tbody").empty();
+		var obj = data.obj;
+		var list = obj.list;
+		var results = list.results;
+		var permitBtn = obj.permitBtn;
+		var pageNum = list.pageNum, 
+			pageSize = list.pageSize, 
+			totalRecord = list.totalRecord;
+		var html = "";
+		if (results != null && results.length > 0) {
+			var leng = (pageNum - 1) * pageSize;
+			for (var i = 0; i < results.length; i++) {
+				var l = results[i];
+				html += "<tr>";
+				html += "<td style='vertical-align:middle;' class='center hidden-480'>"+ (i + leng + 1) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.leaseName) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.projectName) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.companyName) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.bsName) + "</td>";
+//				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.agreementCode) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.number) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.checker) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.maType) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.maModel) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.deviceCode) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.remark) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.thisBackNum) + "</td>";
+				html += "<td style='vertical-align:middle;' class='center'>"+ JY.Object.notEmpty(l.returnMaterialTime) + "</td>";
+				var rmStatus = l.rmStatus;
+				if(l.rmStatus == 1 ){
+					rmStatus = "合格入库";
+				}else if(l.rmStatus == 4 ||l.rmStatus == 3){
+					rmStatus = "待报废 ";
+				}else if(l.rmStatus == 7 || l.rmStatus == 2 || l.rmStatus == 5){
+					rmStatus = "待修 ";
+				}
+				
+				html += "<td style='vertical-align:middle;' class='center'>"+ rmStatus + "</td>";
+				//html += rowFunction(l.id);
+				html += "</tr>";
+			}
+			$("#baseTable tbody").append(html);
+			JY.Page.setPage("baseForm", "pageing", pageSize,pageNum, totalRecord, "getbaseList");
+		} else {
+			html += "<tr><td colspan='12' class='center'>没有相关数据</td></tr>";
+			$("#baseTable tbody").append(html);
+			$("#pageing ul").empty();// 清空分页
+		}
+		JY.Model.loadingClose();
+	});
+}
+function chooseChecker(id) {
+	cleanForm();
+	JY.Model.edit("auDiv", "指派客服代表", function() {
+		var that = $(this);
+		if (JY.Validate.form("auForm")) {
+			var checkId = $("#checkId").val();
+			JY.Ajax.doRequest(null, bonuspath+'/backstage/rm/task/updateChecker', 
+				{
+				id:id,
+				checkerId:checkId,
+				}, 
+				function(data) {
+			JY.Model.info(data.resMsg, function() {
+				that.dialog("close");
+				$("#serviceId").val('');
+				getbaseList(1);
+			});
+			});
+		}
+	});
+}
+
+function cleanForm() {
+	JY.Tags.isValid("auForm", "1");
+	JY.Tags.cleanForm("auForm");
+//	hideRole();
+}
+
+function rowFunction(id) {
+	var h="";
+	h+="<td style='vertical-align:middle;' class='center'>";
+	h+="<div class='visible-md visible-lg hidden-sm hidden-xs btn-group'>";
+	h+="<a href='#' title='查看' onclick='checkGroup(&apos;"+id+"&apos;)' class='aBtnNoTD' ><i class='icon-zoom-in color-p bigger-140'></i></a>";
+	h+="</div>";
+	h+="<div class='visible-xs visible-sm hidden-md hidden-lg'><div class='inline position-relative'>";
+	h+="<button class='btn btn-minier btn-primary dropdown-toggle' data-toggle='dropdown'><i class='icon-cog icon-only bigger-110'></i></button>";
+	h+="<ul class='dropdown-menu dropdown-only-icon dropdown-yellow pull-right dropdown-caret dropdown-close'>";
+	h+="<li><a href='#' title='查看' onclick='checkGroup(&apos;"+id+"&apos;)' class='aBtnNoTD' ><i class='icon-zoom-in color-p bigger-140'></i></a></li>";
+	h+="</ul></div></div>";		
+	h+="</td>";
+	return h;
+}
+
+function details(taskId){
+	var unitId = localStorage.setItem("TaskId",taskId);
+	layer.open({
+		type: 2,
+		title:['退料详情','background-color: #438EB9;color:#fff'],
+		shadeClose:true,
+		shade:false,
+		maxmin: true,
+		area: ['1000px', '550px'],
+		content: bonuspath+'/backstage/lease/back/returnDetails'
+	});
+}
+
+function del(id){
+	JY.Model.confirm("确认删除吗？",function(){	
+		JY.Ajax.doRequest(null,bonuspath +'/backstage/lease/back/del',{taskId:id},function(data){
+			JY.Model.info(data.resMsg,function(){getbaseList(1);});
+		});
+	});
+}
+
+function add(){
+	$.ajax({
+		type: "post",
+		url: bonuspath + '/backstage/rm/task/findNumber',
+		data: {},
+		dataType: "json",
+		success: function(data) {
+			var number = data.resMsg;
+			if(number != null && number != ''){
+				cleanAddForm();	
+				$("#number").val(number);
+				var number = $("#number").val();
+				JY.Model.edit("auAddDiv","新增",function(){
+					 if(JY.Validate.form("auAddForm")){
+						 var that =$(this);
+						 JY.Ajax.doRequest("auAddForm",bonuspath +'/backstage/rm/task/add',null,function(data){
+						     that.dialog("close");      
+						     JY.Model.info(data.resMsg,function(){getbaseList(1);});
+						 });
+					 }	 
+				});
+			}else{
+				alert("请联系相关人员！");
+			}
+		},
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			alert("未连接到服务器，请检查网络！");
+		}
+	});
+}
+
+//function add(){
+//	cleanAddForm();	
+//	findRepairGroup();
+//	JY.Model.edit("auAddDiv","新增",function(){
+//		 if(JY.Validate.form("auAddForm")){
+//			 var that =$(this);
+//			 JY.Ajax.doRequest("auAddForm",bonuspath +'/backstage/rm/task/add',null,function(data){
+//			     that.dialog("close");      
+//			     JY.Model.info(data.resMsg,function(){getbaseList(1);});
+//			 });
+//		 }	 
+//	});
+//}
+
+function getChildrenId(array,type){
+	var ids = '';
+	if(type==0){
+		for(var i=0;i<array.length;i++){
+			if (!array[i].isParent){
+				ids+=array[i].id+',';
+		    }
+		}
+	}else{
+		for(var i=0;i<array.length;i++){
+			if (!array[i].isParent){
+				ids+=array[i].name+'/';
+		    }
+		}
+	}
+     return ids;
+}
+
+function cleanAddForm(){
+	JY.Tags.cleanForm("auAddForm");
+	$("#backCompanyId").html("");
+	$("#backProjectId").html("");
+	$("#auAddForm input[name$='userName']").val("");//上级资源
+	$("#auAddForm input[name$='phone']").val("");
+	$("#auAddForm input[name$='number']").val("");
+	$("#auAddForm input[name$='remark']").val("");
+}
+
+//获取当前时间，格式YYYY-MM-DD
+function getNowFormatDate() {
+    var date = new Date();
+    var seperator1 = "-";
+    var year = date.getFullYear();
+    var month = date.getMonth() + 1;
+    var strDate = date.getDate();
+    if (month >= 1 && month <= 9) {
+        month = "0" + month;
+    }
+    if (strDate >= 0 && strDate <= 9) {
+        strDate = "0" + strDate;
+    }
+    var currentdate = year + seperator1 + month + seperator1 + strDate;
+    return currentdate;
+}
+
+function setRepairTaskForm(datas,PartsData,data) {
+	var results = datas.obj.list;
+	var partRes = PartsData.obj;
+	var manRes = data.obj;
+	var html = "";
+	$(".basic").html("");
+	$(".add").remove();
+	if(results.length > 0){
+		var date = getNowFormatDate();
+		var d = new Array();
+		d = date.split("-");
+		$(".year").html(d[0]);
+		$(".month").html(d[1]);
+		$(".day").html(d[2]);
+		$(".date").html(results[0].submitTime);
+		$(".code").html(results[0].applyNumber);
+		$(".projectName").html(results[0].backProjectName);
+		$(".entrustUnit").html(results[0].backCompanyName);
+	}
+	if(manRes.length > 0){
+		$(".creator").html(manRes[0].leader);
+		$(".repairMan").html(manRes[0].repairMan);
+	}
+	var reportNum = 0;
+	var actualNum = 0;
+	var scrapNum = 0;
+	var repairMoney = 0;
+	if(results[0].backNum != 0){
+		for(var i = 0;i < results.length;i++){
+			if(i < 4){
+				$(".machinesName"+i).html(results[i].typeName);
+				$(".machinesModel"+i).html(results[i].modelName);
+				$(".machinesUnit"+i).html(results[i].unit);
+				if(results[i].checkNums != null && results[i].checkNums == results[i].checkNum){
+					$(".checks"+i).html("合格");
+				}else{
+					$(".checks"+i).html("");
+				}
+				var isCount = results[i].isCount;
+				var backId = results[i].id;
+				var modelId = results[i].modelId;
+				if(isCount == 0 || isCount == "0"){
+					$(".deviceNum"+i).html("<a href='#' onclick='findDetails(&apos;" + backId + "&apos;,&apos;" + modelId + "&apos;)'>详见附件</a>");
+				}else{
+					$(".deviceNum"+i).html("只计数");
+				}
+				$(".reportNum"+i).html(results[i].backNum);
+				$(".actualNum"+i).html(results[i].repairNum);
+				$(".scrapNum"+i).html(results[i].scrapNum);
+				if(results[i].repairMoney == null || results[i].repairMoney == ''){
+					$(".repairMoney"+i).html("￥" + 0);
+				}else{
+					$(".repairMoney"+i).html("￥" + results[i].repairMoney);
+				}
+				repairMoney += parseFloat(results[i].repairMoney);
+				reportNum += parseFloat(results[i].backNum);
+				actualNum += parseFloat(results[i].repairNum);
+				scrapNum += parseFloat(results[i].scrapNum);
+				$(".testCode"+i).html(results[i].testCode);
+			}else{
+				html += '<tr class="add">';
+				html += '<td colspan="2" style="font-family:SimSun;height:30px;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].typeName+'</span></td>';
+				html += '<td colspan="2" style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].modelName+'</span></td>';
+				var isCount = results[i].isCount;
+				var backId = results[i].id;
+				var modelId = results[i].modelId;
+				if(isCount == 0 || isCount == "0"){
+					html += '<td colspan="2" style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic"><a href="#" onclick="findDetails(&apos;' + backId + '&apos;,&apos;' + modelId + '&apos;)">查看明细</a></span></td>';
+				}else{
+					html += '<td colspan="2" style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">只计数</span></td>';
+				}
+				html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].unit+'</span></td>';
+				html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].backNum+'</span></td>';
+				html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].repairNum+'</span></td>';
+				html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].scrapNum+'</span></td>';
+				if(results[i].repairMoney == null || results[i].repairMoney == ''){
+					html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">￥' + 0 +'</span></td>';
+				}else{
+					html += '<td style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">￥'+ results[i].repairMoney+'</span></td>';
+				}
+				html += '<td style="font-family:SimSun;width:13%;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;"><span class="basic">'+results[i].testCode+'</span></td>';
+				if(results[i].checkNums != null && results[i].checkNums == results[i].checkNum){
+					$(".checks"+i).html("合格");
+					html += '<td colspan="3" style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;border-right: 1px solid #000000;"><span class="basic checks">合格</span></td>';
+				}else{
+					html += '<td colspan="3" style="font-family:SimSun;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;border-right: 1px solid #000000;"><span class="basic checks"></span></td>';
+				}
+				html += '</tr>';
+				repairMoney = floatAdd(repairMoney,parseFloat(results[i].repairMoney));
+				reportNum = floatAdd(reportNum,parseFloat(results[i].backNum));
+				actualNum = floatAdd(actualNum,parseFloat(results[i].repairNum));
+				scrapNum = floatAdd(scrapNum,parseFloat(results[i].scrapNum));
+			}
+		}
+		var partsMoneys = 0;
+		for(var i = 0;i < partRes.length;i++){
+			$(".repairProject" + i).html(partRes[i].machinesName + "(" + partRes[i].machinesModel + ")");
+			$(".parts" + i).html(partRes[i].partsName + "*" + partRes[i].partsNum + "/￥" + partRes[i].partsMoney);
+			partsMoneys = floatAdd(partsMoneys,parseFloat(results[i].partsMoney));
+			if(i == partRes.length - 1){
+				$(".partsMoneys").html("￥" + partsMoneys);
+			}
+		}
+	}
+	$("#four").after(html);
+	$(".repairMoney").html("￥" + repairMoney);
+	$(".reportNum").html(reportNum);
+	$(".actualNum").html(actualNum);
+	$(".scrapNum").html(scrapNum);
+}
+
+//浮点数加法运算
+function floatAdd(arg1,arg2){
+    var r1,r2,m;
+    try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0}
+    try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0}
+    m=Math.pow(10,Math.max(r1,r2));
+    return (arg1*m+arg2*m)/m;
+}
+
+function setDetailsForm(data){
+	var list = data.obj.list;
+	var html="";
+	$(".addDetails").remove();
+	for(var i = 0;i < list.length;i++){
+		html+='<tr class="addDetails">';
+		html+='<td style="height:30px;text-align:center;width: 10%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+(i+1)+'</td>';
+		html+='<td style="text-align:center;width: 30%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+list[i].typeName+'</td>';
+		html+='<td style="text-align:center;width: 30%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+list[i].modelName
+		html+='<td style="text-align:center;width: 15%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;border-right: 1px solid #000000;font-family:SimSun">'+list[i].deviceNum+'</td>';
+		var status = list[i].batchStatus;
+		switch (status) {
+		case "5":
+			status = "在库";
+			break;
+		case "6":
+			status = "在用";
+			break;
+		case "7":
+			status = "在修";
+			break;
+		case "8":
+			status = "在试";
+			break;
+		case "10":
+			status = "待报废";
+			break;
+		case "11":
+			status = "已报废";
+			break;
+		case "12":
+			status = "报废封存";
+			break;
+		case "9":
+			status = "修试后待入库";
+			break;
+		case "15":
+			status = "已报废移交";
+			break;
+		default:
+			break;
+		}
+		html+='<td style="text-align:center;width: 15%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;border-right: 1px solid #000000;font-family:SimSun">'+status+'</td>';
+		html+='</tr>';
+	}
+	$("#headerRepair").after(html);
+}
+
+function check(id,backOddNumbers){
+	backId = id;
+	JY.Ajax.doRequest(null, bonuspath + '/backstage/lease/back/findSheet', {
+		taskId : id
+	}, function(data) {
+		setForm(data,"","","","",backOddNumbers);
+		JY.Model.check("auDiv");
+	});
+}
+
+function setForm(data,backer,backDay,agreementId,backStatus,backOddNumbers) {
+	var results = data.obj.list;
+	var html = "";
+	if(results.length > 0){
+		var date = results[0].createTime;
+		var d = new Array();
+		d = date.split("-");
+		$(".year").html(d[0]);
+		$(".month").html(d[1]);
+		$(".day").html(d[2]);
+		$("#backProjectName").html(results[0].backProjectName);
+		$("#backCompanyName").html(results[0].backCompanyName);
+		$("#backOddNumbers").html(backOddNumbers);
+	}
+	$(".basic").html("");
+	$(".add").remove();
+	if(results[0].backNum != 0){
+		for(var i = 0;i < results.length;i++){
+			if(i < 5){
+				$("#id"+i).html(i+1);
+				$("#typeName"+i).html(results[i].typeName);
+				$("#modelName"+i).html(results[i].modelName);
+				$("#unit"+i).html(results[i].unit);
+				$("#backNum"+i).html(results[i].backNum);
+				$("#weight"+i).html(results[i].weight);
+				var taskId = results[i].taskId;
+				var modelId = results[i].modelId;
+				if(groupType == 1){
+					$("#remark"+i).html("<a href='#' onclick='findDeviceCodeDetils(&apos;"+taskId+"&apos;,&apos;"+modelId+"&apos;);'>编号详见明细</a>");
+				}else{
+					$("#remark"+i).html("<a href='#' onclick='findDeviceCodeDetilsGroup(&apos;"+backer+"&apos;,&apos;"+backDay+"&apos;,&apos;"+agreementId+"&apos;,&apos;"+backStatus+"&apos;,&apos;"+modelId+"&apos;);'>编号详见明细</a>");
+				}
+			}else{
+				html += '<tr class="add">';
+				html += '<td style="height:30px;text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+(i+1)+'</td>';
+				html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+results[i].typeName+'</td>';
+				html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+results[i].modelName+'</td>';
+				html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+results[i].unit+'</td>';
+				html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+results[i].backNum+'</td>';
+				html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;">'+results[i].weight+'</td>';
+				if(groupType == 1){
+					html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;border-right:1px solid #000000;"><a href="#" onclick="findDeviceCodeDetils('+taskId + ','+ modelId+');">编号详见明细</a></td>';
+				}else{
+					html += '<td style="text-align:center;border-top: 1px solid #000000;border-left: 1px solid #000000;border-right:1px solid #000000;"><a href="#" onclick="findDeviceCodeDetilsGroup(&apos;'+backer+'&apos;,&apos;'+backDay+'&apos;,&apos;'+agreementId+'&apos;,&apos;'+backStatus+'&apos;,&apos;'+modelId+'&apos;);">编号详见明细</a></td>';
+				}
+				html += '</tr>';
+			}
+		}
+	}
+	$("#five").after(html);
+}
+
+function findDeviceCodeDetils(id,modelId){
+	JY.Ajax.doRequest(null, bonuspath + '/backstage/lease/back/findDeviceCodeDetils', {
+		taskId : id,
+		modelId:modelId
+	}, function(data) {
+		setDetilsForm(data);
+		JY.Model.check("auDetailDiv");
+	});
+}
+
+function findDeviceCodeDetilsGroup(backer,backDay,agreementId,backStatus,modelId){
+	JY.Ajax.doRequest(null, bonuspath + '/backstage/lease/back/findDeviceCodeDetilsGroup', {
+		backer : backer,
+		backDay:backDay,
+		agreementId:agreementId,
+		backStatus:backStatus,
+		modelId:modelId
+	}, function(data) {
+		setDetilsForm(data);
+		JY.Model.check("auDetailDiv");
+	});
+}
+
+function setDetilsForm(data) {
+	var list = data.obj.list;
+	var html="";
+	$(".addDetails").remove();
+	for(var i = 0;i < list.length;i++){
+		html+='<tr class="addDetails">';
+		html+='<td style="height:30px;text-align:center;width: 10%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+(i+1)+'</td>';
+		html+='<td style="text-align:center;width: 30%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+list[i].type+'</td>';
+		html+='<td style="text-align:center;width: 30%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;font-family:SimSun">'+list[i].model+'</td>';
+		html+='<td style="text-align:center;width: 30%;border-top: 1px solid #000000;border-left: 1px solid #000000;border-bottom: 1px solid #000000;border-right: 1px solid #000000;font-family:SimSun">'+list[i].deviceCode+'</td>';
+		html+='</tr>';
+	}
+	$("#header").after(html);
+}
+
+function edit(id,batchStatus) {
+	cleanAddForm();	
+	$('.selectpicker').selectpicker();  
+	JY.Ajax.doRequest(null, bonuspath + '/backstage/lease/back/find', {id:id}, function(data) {
+		setAddForm(data);
+		JY.Model.edit("auAddDiv", "修改", function() {
+			if (JY.Validate.form("auAddForm")) {
+				var that = $(this);
+				JY.Ajax.doRequest("auAddForm", bonuspath + '/backstage/lease/back/update', null, function(data) {
+					that.dialog("close");
+					JY.Model.info(data.resMsg, function() {
+						getbaseList(1);
+					});
+				});
+			}
+		});
+	});
+}
+
+function setAddForm(data){
+	var l = data.obj.list;
+	$("#auAddForm input[name$='id']").val(l.id);//上级资源
+	$("#backProjectId option[value='"+backProjectId+"']").attr("selected","selected");
+	$("#auAddForm input[name$='userName']").val(l.userName);//上级资源
+	$("#auAddForm input[name$='phone']").val(l.phone);
+	$("#auAddForm input[name$='backTime']").val(l.backTime);
+	$("#auAddForm input[name$='remark']").val(l.remark);
+}
+
+function setUnitForm(){
+	var unitId = localStorage.getItem("unitId");
+	var unitName = localStorage.getItem("unitName");
+	$("#unitId").val(unitId);
+	$("#unitName").val(unitName);
+}
+
+function setProjectForm(){
+	var projectId = localStorage.getItem("projectId");
+	var projectName = localStorage.getItem("projectName");
+	$("#projectId").val(projectId);
+	$("#projectName").val(projectName);
+	getAgreementNum();
+}
+
+function unitTree(){
+	localStorage.setItem("unitId","");
+	localStorage.setItem("unitName","");
+	localStorage.setItem("unitTreeName",$("#unitName").val());
+	layer.open({
+		type: 2,
+		title:['租赁单位','background-color: #438EB9;color:#fff'],
+		shadeClose:true,
+		shade:false,
+		maxmin: true,
+		area: ['400px', '400px'],
+		content: bonuspath+'/backstage/company/unitTree'
+	});
+}
+
+function projectTree(){
+	var unitId = $("#unitId").val();
+	if(unitId == 0){
+		JY.Model.info("请选择租赁单位");
+	}else{
+		localStorage.setItem("unitId",unitId);
+		localStorage.setItem("projectId","");
+		localStorage.setItem("projectName","");
+		localStorage.setItem("projectTreeName",$("#projectName").val());
+		layer.open({
+			type: 2,
+			title:['工程名称','background-color: #438EB9;color:#fff'],
+			shadeClose:true,
+			shade:false,
+			maxmin: true,
+			area: ['400px', '400px'],
+			content: bonuspath+'/backstage/project/projectTree'
+		});
+	}
+}
+
+function getAgreementNum(){
+	$(".backer").val("");
+	var unitId = $("#unitId").val();
+	var projectId = $("#projectId").val();
+	JY.Ajax.doRequest(null, bonuspath + '/backstage/rm/task/findAgreeCode',
+			{leaseCompany:unitId,projectName:projectId}, function(data) {
+				var l = data.obj.code;
+				if(l == null){
+					$("#agreementCode").val("尚未签订协议，无法退料");
+				}else{
+					$("#agreementCode").val(l);
+				}
+			}
+	);
+}
+
+var personId='';
+var persinName='';
+function hideOrgTree() {
+	personId='';
+	persinName='';
+	$("#receivePerson").val();
+	$("#receivePerId").val();
+	$("#personContent").fadeOut("fast");
+	var zTree = $.fn.zTree.getZTreeObj("personTree");
+	personId = getChildrenId(zTree.getCheckedNodes(),0);
+	persinName =getChildrenId(zTree.getCheckedNodes(),1);
+	$("#receivePerson").val(persinName);
+	$("#receivePerId").val(personId);
+	orgShow = false;
+}
+
+

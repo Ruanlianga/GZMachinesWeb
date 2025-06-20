@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.scrap.dao.ScrapTaskRecordDao" >
+    <resultMap id="scrap" type="com.bonus.scrap.beans.ScrapTaskRecordBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.scrap.beans.ScrapTaskRecordBean" resultMap="scrap">
+		SELECT
+			wir.TIME AS scrapTime,
+			wir.ID,
+			ROUND(wir.NUM) as alScrapNum,
+			mtt.`NAME` AS typeName,
+			mt.`NAME` AS modelName,
+			wir.SCRAP_URL as picUrl,
+			wir.MODEL_ID as modelId,
+			wir.SUP_ID as taskId,
+			wir.SCRAP_REASON AS scrapReson,
+			mam.ASSETS_NUM AS assetsNum,
+			mam.DEVICE_CODE AS deviceCode,
+			sup2.NUMBER as number,
+			mam.REMARK AS remark
+		FROM wf_info_record wir
+			LEFT JOIN wf_task_record sup1 ON sup1.ID = wir.SUP_ID
+			LEFT JOIN wf_task_record sup2 ON sup2.ID = sup1.SUP_ID
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN mm_machines mam ON  wir.`CODE` = mam.DEVICE_CODE and  wir.MODEL_ID = mam.TYPE
+			WHERE left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime} and wir.RM_STATUS = 14
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR mam.ASSETS_NUM LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR mam.REMARK LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+  	<!-- union
+		SELECT
+		   wtr.ID AS taskId,bp.`NAME` AS projectName,bu.`NAME` AS companyName,pu.`NAME` AS scrapChecker,wtr.OPERATION_TIME AS scrapTime,
+	       mtt.`NAME` AS typeName,mt.`NAME` as modelName,wir.NUM AS alScrapNum,wir.SCRAP_REASON AS scrapReson,wtr.NUMBER AS scrapNumber, 
+	       wrd.MODEL_ID as modelId, '无' as picUrl,wtr1.ID,wtr1.ORG_ID as orgId
+		FROM
+		wf_task_record wtr
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID 
+		LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wtr1.ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+		LEFT JOIN wf_info_record wir ON wir.SUP_ID = wtr.ID
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		LEFT JOIN pm_user pu ON pu.ID = wtr.OPERATION_USER
+		LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE (wir.TYPE = 7 or wir.TYPE = 6)
+		and left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+		<if test='param.companyId !=null and param.companyId != "" and  param.companyId != "1" and  param.companyId != 1'>
+			and wtr1.ORG_ID = #{param.companyId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR wtr.NUMBER LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if> -->
+ 	</select>
+ 	
+ 	<update id="updatePhotoUrl" parameterType="com.bonus.scrap.beans.ScrapTaskRecordBean">
+	    update wf_info_record set SCRAP_URL = #{picUrl}
+	    where TASK_ID=#{taskId} and MODEL_ID = #{modelId}
+	</update>
+	
+	
+	<select id="findMaPhotoUrl" parameterType="com.bonus.scrap.beans.ScrapTaskRecordBean" resultType="com.bonus.scrap.beans.ScrapTaskRecordBean">
+		select SCRAP_URL as picUrl
+		from wf_info_record 
+		where SUP_ID = #{taskId} and MODEL_ID = #{modelId} and RM_STATUS = 14
+	</select>
+    
+</mapper>

@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newSettlement.dao.MaTypeProjectStorageDao">
+	<resultMap id="baseMap" type="com.bonus.newSettlement.beans.MaTypeProjectStorageBean">
+		<id column="ID" property="id" />
+		<result column="agreementId" property="agreement.id" />
+		<result column="agreementCode" property="agreement.code" />
+		<result column="typeId" property="type.id" />
+		<result column="typeName" property="type.name" />
+		<result column="maId" property="machine.id" />
+		<result column="deviceCode" property="machine.deviceCode" />
+		<result column="unitName" property="type.unit" />
+		<result column="parentName" property="type.parentName" />
+		<result column="isCount" property="type.isCount" />
+		<result column="num" property="num" />
+		<result column="price" property="price" />
+		<result column="startDate" property="startDate" />
+		<result column="endDate" property="endDate" />
+		<result column="backDate" property="backDate" />
+		<result column="lastSltDate" property="lastSltDate" />
+		<result column="status" property="status" />
+		<result column="isActive" property="isActive" />
+		<result column="batchFlag" property="batchFlag" />
+		<result column="settlementTimes" property="settlementTimes" />
+		<result column="remarks" property="remarks" />
+		<result column="isSlt" property="isSlt" />
+	</resultMap>
+	
+	<select id="findUnSltMaTypeList" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" resultMap="baseMap">
+				SELECT
+			mtps.id,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			mt.`id` AS typeId,
+			mm.id AS maId,
+			mm.device_code AS deviceCode,
+			mtps.num,
+			IFNULL(mtps.price,0) AS price,
+			mtps.start_date AS startDate,
+			mtps.end_date AS endDate,
+			mtps.back_date AS backDate,
+			mtps.last_slt_date AS lastSltDate,
+			mtps.remarks,
+			mtps.settlement_times AS settlementTimes,
+			mtps.`status`,
+			mtps.is_slt AS isSlt,
+			mt.unit AS unitName,
+			mtps.is_count as isCount
+		FROM
+			ma_type_project_storage mtps
+		LEFT JOIN mm_type mt ON mt.id = mtps.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.id = mtps.machine
+		WHERE
+			mtps.AGREEMENT_ID = #{agreement.id}
+		AND
+			mtps.is_slt = 0
+	</select>
+	
+	<select id="findUnFinishMaTypeList" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" resultMap="baseMap">
+		SELECT
+			mtps.id,
+			mtps.AGREEMENT_ID AS agreementId,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			mt.`id` AS typeId,
+			mm.id AS maId,
+			mm.device_code AS deviceCode,
+			mtps.num,
+			IFNULL(mtps.price,0) AS price,
+			mtps.start_date AS startDate,
+			mtps.end_date AS endDate,
+			mtps.back_date AS backDate,
+			mtps.last_slt_date AS lastSltDate,
+			mtps.remarks,
+			mtps.settlement_times AS settlementTimes,
+			mtps.`status`,
+			mtps.is_slt AS isSlt,
+			mt.unit AS unitName,
+			mtps.is_count as isCount
+		FROM
+			ma_type_project_storage mtps
+		LEFT JOIN mm_type mt ON mt.id = mtps.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.id = mtps.machine
+		WHERE
+			mtps.AGREEMENT_ID = #{agreement.id}
+		AND
+			mtps.is_finish = 0
+	</select>
+	
+	<select id="findUnSltMaTypeLists" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" resultMap="baseMap">
+				SELECT
+			mtps.id,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			mt.`id` AS typeId,
+			mm.id AS maId,
+			mm.device_code AS deviceCode,
+			mtps.num,
+			IFNULL(mtps.price,0) AS price,
+			mtps.start_date AS startDate,
+			mtps.end_date AS endDate,
+			mtps.back_date AS backDate,
+			mtps.last_slt_date AS lastSltDate,
+			mtps.remarks,
+			mtps.settlement_times AS settlementTimes,
+			mtps.`status`,
+			mtps.is_slt AS isSlt,
+			mt.unit AS unitName,
+			mtps.is_count as isCount
+		FROM
+			ma_type_project_storage mtps
+		LEFT JOIN mm_type mt ON mt.id = mtps.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.id = mtps.machine
+		WHERE
+			mtps.AGREEMENT_ID = #{id}
+		AND
+			mtps.is_slt = 0
+	</select>
+	
+	<update id="updateBean" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean">
+	   UPDATE ma_type_project_storage
+		<set>
+			<if test="agreement != null">
+				agreement_id = #{agreement.id},
+			</if>
+			<if test="type != null">
+				type = #{type.id},
+			</if>
+			<if test="machine != null">
+				machine = #{machine.id},
+			</if>
+			<if test="num != null">
+				num = #{num},
+			</if>
+			<if test="price != null">
+				price = #{price},
+			</if>
+			<if test="startDate != null and startDate != '' ">
+				start_date = #{startDate},
+			</if>
+			<if test="endDate != null and endDate != '' ">
+				end_date = #{endDate},
+			</if>
+			<if test="lastSltDate != null and lastSltDate != '' ">
+				last_slt_date = #{lastSltDate},
+			</if>
+			<if test="backDate != null and backDate != '' ">
+				back_date = #{backDate},
+			</if>
+			<if test="status != null">
+				status = #{status},
+			</if>
+			<if test="isSlt != null">
+				is_slt = #{isSlt},
+			</if>
+			<if test="isActive != null">
+				is_active = #{isActive},
+			</if>
+			<if test="batchFlag != null">
+				batch_flag = #{batchFlag},
+			</if>
+			<if test="settlementTimes != null">
+				settlement_times = #{settlementTimes},
+			</if>
+			<if test="remarks != null and remarks != ''">
+				remarks = #{remarks},
+			</if>
+		</set>
+		where ID = #{id}
+	</update>
+	
+	
+	
+	<update id="updateIsFinish" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean">
+	   UPDATE ma_type_project_storage set is_finish = 1 where agreement_id = #{agreementId}
+	
+	</update>
+	
+	
+	<insert id="insertBean" keyProperty="id" useGeneratedKeys="true" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" >
+		INSERT INTO ma_type_project_storage
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="agreement != null">
+				agreement_id,
+			</if>
+			<if test="type != null">
+				type,
+			</if>
+			<if test="num != null">
+				num,
+			</if>
+			<if test="price != null">
+				price,
+			</if>
+			<if test="startDate != null and startDate != '' ">
+				start_date,
+			</if>
+			<if test="endDate != null and endDate != '' ">
+				end_date,
+			</if>
+			<if test="backDate != null and backDate != '' ">
+				back_date,
+			</if>
+			<if test="status != null">
+				status,
+			</if>
+			<if test="isSlt != null">
+				is_slt,
+			</if>
+			<if test="isActive != null">
+				is_active,
+			</if>
+			<if test="batchFlag != null">
+				batch_flag,
+			</if>
+			<if test="settlementTimes != null">
+				settlement_times,
+			</if>
+			<if test="remarks != null and remarks != '' ">
+				remarks,
+			</if>
+			<if test="lastSltDate != null and lastSltDate != '' ">
+				last_slt_date,
+			</if>
+			<if test="machine != null">
+				machine,
+			</if>
+			<if test="isCount != null">
+				is_count,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="agreement != null">
+				#{agreement.id},
+			</if>
+			<if test="type != null">
+				#{type.id},
+			</if>
+			<if test="num != null">
+				#{num},
+			</if>
+			<if test="price != null">
+				#{price},
+			</if>
+			<if test="startDate != null and startDate != '' ">
+				#{startDate},
+			</if>
+			<if test="endDate != null and endDate != '' ">
+				#{endDate},
+			</if>
+			<if test="backDate != null and backDate != '' ">
+				#{backDate},
+			</if>
+			<if test="status != null">
+				#{status},
+			</if>
+			<if test="isSlt != null">
+				#{isSlt},
+			</if>
+			<if test="isActive != null">
+				#{isActive},
+			</if>
+			<if test="batchFlag != null">
+				#{batchFlag},
+			</if>
+			<if test="settlementTimes != null">
+				#{settlementTimes},
+			</if>
+			<if test="remarks != null and remarks != '' ">
+				#{remarks},
+			</if>
+			<if test="lastSltDate != null and lastSltDate != '' ">
+				#{lastSltDate},
+			</if>
+			<if test="machine != null">
+				#{machine.id},
+			</if>
+			<if test="isCount != null">
+				#{isCount},
+			</if>
+		</trim>
+	</insert>
+	
+	<select id="findCanBackListById" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" resultMap="baseMap">
+		SELECT
+			mtps.agreement_id AS agreementId,
+			mtps.id,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			mt.`id` AS typeId,
+			mm.id AS maId,
+			mm.device_code AS deviceCode,
+			mtps.num,
+			mtps.price,
+			mtps.start_date AS startDate,
+			mtps.end_date AS endDate,
+			mtps.back_date AS backDate,
+			mtps.last_slt_date AS lastSltDate,
+			mtps.remarks,
+			mtps.settlement_times AS settlementTimes,
+			mtps.`status`,
+			mtps.is_slt AS isSlt,
+			mt.UNIT AS unitName,
+			mt.is_count AS isCount
+		FROM
+			ma_type_project_storage mtps
+		LEFT JOIN mm_type mt ON mt.id = mtps.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.id = mtps.machine
+		WHERE
+			mtps.agreement_id = #{agreement.id}
+		AND
+			mtps.`status` = 1
+		AND
+			mtps.type = #{type.id}
+		<if test="machine != null">
+			AND
+			mtps.machine = #{machine.id}
+		</if>
+	</select>
+	
+
+	
+	<select id="findCancelBackListById" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean" resultMap="baseMap">
+		SELECT
+			mtps.agreement_id AS agreementId,
+			mtps.id,
+			mtp.`NAME` AS parentName,
+			mt.`NAME` AS typeName,
+			mt.`id` AS typeId,
+			mm.id AS maId,
+			mm.device_code AS deviceCode,
+			mtps.num,
+			mtps.price,
+			mtps.start_date AS startDate,
+			mtps.end_date AS endDate,
+			mtps.back_date AS backDate,
+			mtps.last_slt_date AS lastSltDate,
+			mtps.remarks,
+			mtps.settlement_times AS settlementTimes,
+			mtps.`status`,
+			mtps.is_slt AS isSlt,
+			mt.UNIT AS unitName,
+			mt.is_count AS isCount
+		FROM
+			ma_type_project_storage mtps
+		LEFT JOIN mm_type mt ON mt.id = mtps.type
+		LEFT JOIN mm_type mtp ON mtp.id = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.id = mtps.machine
+		WHERE
+			mtps.agreement_id = #{agreement.id}
+		AND
+			mtps.`status` = 0
+		AND
+			mtps.type = #{type.id}
+		AND
+			mtps.back_date = #{backDate}
+		<if test="machine != null">
+			AND
+			mtps.machine = #{machine.id}
+		</if>
+	</select>
+
+
+<update id="updateCancelBean" parameterType="com.bonus.newSettlement.beans.MaTypeProjectStorageBean">
+	   UPDATE ma_type_project_storage
+		<set>
+		
+			<if test="num != null">
+				num = #{num},
+			</if>
+		    <if test="status != null">
+				status = #{status},
+			</if>
+		
+			end_date = #{endDate}
+			
+		
+		</set>
+		where ID = #{id}
+	</update>
+</mapper>

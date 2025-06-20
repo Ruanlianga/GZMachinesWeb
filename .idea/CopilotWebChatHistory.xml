@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotWebChatHistory">
+    <option name="currentConversation">
+      <WebConversation>
+        <option name="session">
+          <ChatSession>
+            <option name="messages">
+              <list>
+                <UIChatMessage>
+                  <option name="command" value="" />
+                  <option name="content" value="@workspace /fix" />
+                  <option name="cost" value="0" />
+                  <option name="createdAt" value="1747357604545" />
+                  <option name="localReferences">
+                    <list>
+                      <LocalReferences>
+                        <option name="isRequestStage" value="true" />
+                        <option name="range">
+                          <RefRange />
+                        </option>
+                        <option name="uri" value="{&quot;path&quot;:&quot;file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java&quot;}" />
+                      </LocalReferences>
+                      <LocalReferences>
+                        <option name="isRequestStage" value="true" />
+                        <option name="range">
+                          <RefRange />
+                        </option>
+                        <option name="uri" value="{&quot;path&quot;:&quot;file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java&quot;}" />
+                      </LocalReferences>
+                    </list>
+                  </option>
+                  <option name="parser">
+                    <SimpleMarkdownStreamParser>
+                      <option name="content" value="@workspace /fix" />
+                      <option name="nodes">
+                        <list>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="@workspace /fix" />
+                            <option name="contentId" value="-1561193871" />
+                            <option name="settled" value="false" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                        </list>
+                      </option>
+                      <option name="parserState">
+                        <ParserState>
+                          <option name="column" value="14" />
+                          <option name="offset" value="15" />
+                          <option name="moveCursor" value="true" />
+                        </ParserState>
+                      </option>
+                    </SimpleMarkdownStreamParser>
+                  </option>
+                  <option name="range">
+                    <CodeActionChatRequestRange>
+                      <option name="start">
+                        <CodeActionChatRequestRangePosition>
+                          <option name="line" value="10" />
+                        </CodeActionChatRequestRangePosition>
+                      </option>
+                      <option name="end">
+                        <CodeActionChatRequestRangePosition>
+                          <option name="line" value="101" />
+                          <option name="character" value="10000" />
+                        </CodeActionChatRequestRangePosition>
+                      </option>
+                    </CodeActionChatRequestRange>
+                  </option>
+                  <option name="role" value="user" />
+                  <option name="selectedRanges">
+                    <list>
+                      <ChatSelectionInfo>
+                        <option name="type" value="start-conversation-add" />
+                        <option name="uri" value="file://$PROJECT_DIR$/src/com/bonus/cost/service/ProjectCostServiceImpl.java" />
+                        <option name="basename" value="ProjectCostServiceImpl.java" />
+                        <option name="ext" value=".java" />
+                        <option name="languageId" value="" />
+                        <option name="selectText" value="import org.springframework.beans.factory.annotation.Autowired;&#10;import org.springframework.stereotype.Service;&#10;import org.springframework.transaction.annotation.Transactional;&#10;&#10;import java.time.LocalDateTime;&#10;import java.time.format.DateTimeFormatter;&#10;import java.util.*;&#10;import java.util.stream.Collectors;&#10;&#10;/**&#10; * @author : 阮世耀&#10; * @version : 1.0&#10; * @PackagePath: com.bonus.cost.service&#10; * @CreateTime: 2025-05-14  15:08&#10; */&#10;@Service(&quot;projectCost&quot;)&#10;public class ProjectCostServiceImpl implements ProjectCostService{&#10;&#10;    @Autowired&#10;    private ProjectCostDao projectCostDao;&#10;&#10;    @Autowired&#10;    private PlanApplicationDao planApplicationDao;&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; queryProjectLeaseDetails(ProjectLeaseCostDetail o) {&#10;        return projectCostDao.queryProjectLeaseDetails(o);&#10;    }&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; queryProjectReturnDetails(ProjectLeaseCostDetail o) {&#10;        return projectCostDao.queryProjectReturnDetails(o);&#10;    }&#10;&#10;    @Override&#10;    public Map&lt;String, Object&gt; queryProjectLeaseAndReturnDetails(ProjectLeaseCostDetail o) {&#10;        // 获取领料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; leaseDetails = queryProjectLeaseDetails(o);&#10;        // 获取退料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; returnDetails = queryProjectReturnDetails(o);&#10;&#10;        // 创建一个新的列表来存储合并后的结果&#10;        List&lt;ProjectLeaseCostDetail&gt; mergedList = new ArrayList&lt;&gt;();&#10;        if (leaseDetails != null) {&#10;            mergedList.addAll(leaseDetails);&#10;        }&#10;        if (returnDetails != null) {&#10;            mergedList.addAll(returnDetails);&#10;        }&#10;&#10;        // 按操作时间排序，并添加空值检查&#10;        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();&#10;        result.put(&quot;details&quot;, mergedList.stream()&#10;                // 过滤掉 null 元素&#10;                .filter(Objects::nonNull)&#10;                .sorted(Comparator.comparing(&#10;                        ProjectLeaseCostDetail::getOperateTime,&#10;                        // 处理 getOperateTime() 为 null 的情况&#10;                        Comparator.nullsFirst(Comparator.naturalOrder())&#10;                ))&#10;                .collect(Collectors.toList()));&#10;        return result;&#10;    }&#10;    &#10;    @Override&#10;    @Transactional(rollbackFor = Exception.class)&#10;    public Integer saveSettlement(Map&lt;String, Object&gt; settlementData, String userId) {&#10;        // 获取当前用户信息&#10;        UserBean user = UserShiroHelper.getRealCurrentUser();&#10;        String currentUser = user != null ? user.getLoginName() : userId;&#10;        &#10;        // 处理结算数据&#10;        String projectId = (String) settlementData.get(&quot;projectId&quot;);&#10;        String projectName = (String) settlementData.get(&quot;projectName&quot;);&#10;        String startTime = (String) settlementData.get(&quot;startTime&quot;);&#10;        String endTime = (String) settlementData.get(&quot;endTime&quot;);&#10;        &#10;        @SuppressWarnings(&quot;unchecked&quot;)&#10;        List&lt;ProjectLeaseCostDetail&gt; leaseData = (List&lt;ProjectLeaseCostDetail&gt;) settlementData.get(&quot;leaseData&quot;);&#10;        &#10;        @SuppressWarnings(&quot;unchecked&quot;)&#10;        List&lt;ProjectLeaseCostDetail&gt; returnData = (List&lt;ProjectLeaseCostDetail&gt;) settlementData.get(&quot;returnData&quot;);&#10;        &#10;        // 创建结算记录&#10;        ProjectSettlement settlement = new ProjectSettlement();&#10;        settlement.setProjectId(projectId);&#10;        settlement.setProjectName(projectName);&#10;        settlement.setStartTime(startTime);&#10;        settlement.setEndTime(endTime);&#10;        settlement.setLeaseCount(leaseData != null ? leaseData.size() : 0);&#10;        settlement.setReturnCount(returnData != null ? returnData.size() : 0);&#10;        settlement.setCreateTime(LocalDateTime.now());" />
+                      </ChatSelectionInfo>
+                    </list>
+                  </option>
+                  <option name="uri" value="file://$PROJECT_DIR$/src/com/bonus/cost/service/ProjectCostServiceImpl.java" />
+                  <option name="variables">
+                    <list />
+                  </option>
+                </UIChatMessage>
+                <UIChatMessage>
+                  <option name="actions">
+                    <list />
+                  </option>
+                  <option name="codebaseReferences">
+                    <list />
+                  </option>
+                  <option name="codebaseStatus" value="init" />
+                  <option name="command" value="" />
+                  <option name="content" value="从提供的代码片段看，仅包含包声明、导入和类注解，没有具体实现代码，无法直接确定报错原因。  &#10;&#10;**可能的报错原因及建议检查项：**  &#10;1. **依赖缺失**  &#10;   - 确保 `com.bonus.cost.beans`、`com.bonus.cost.dao` 等包下的类（如 `ProjectCostDao`）已正确实现且路径无误。  &#10;   - 检查 `spring-context` 和 `spring-tx` 依赖是否在项目中（Maven/Gradle）。  &#10;&#10;2. **注解冲突或缺失**  &#10;   - `@Service(&quot;projectCost&quot;)` 需要与 Spring 配置（如 XML 或 `@ComponentScan`）匹配，确认扫描路径包含 `com.bonus.cost.service`。  &#10;&#10;3. **数据库相关问题**  &#10;   - 如果 `ProjectCostDao` 是接口，需确认其实现类或 JPA/Hibernate 配置正确。  &#10;&#10;4. **其他错误**  &#10;   - 检查 IDE 的完整报错日志（通常提示更具体的行号或类名）。  &#10;&#10;**下一步建议：**  &#10;- 提供完整的错误日志或报错行号。  &#10;- 如果是编译错误，检查依赖和类路径；如果是运行时错误，需检查日志中的堆栈跟踪。  &#10;&#10;（示例修复：若缺少 `@Autowired` 的 `ProjectCostDao` 字段，需添加）  &#10;```java&#10;@Autowired&#10;private ProjectCostDao projectCostDao; // 示例字段，需根据实际需求补充&#10;```" />
+                  <option name="cost" value="10093" />
+                  <option name="createdAt" value="1747357614671" />
+                  <option name="followup">
+                    <list />
+                  </option>
+                  <option name="id" value="0196d6a11ac17004be30177266349a01" />
+                  <option name="knowledgeReferences">
+                    <list />
+                  </option>
+                  <option name="localReferences">
+                    <list>
+                      <LocalReferences>
+                        <option name="isRequestStage" value="true" />
+                        <option name="range">
+                          <RefRange />
+                        </option>
+                        <option name="uri" value="{&quot;path&quot;:&quot;file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java&quot;}" />
+                      </LocalReferences>
+                      <LocalReferences>
+                        <option name="isRequestStage" value="true" />
+                        <option name="range">
+                          <RefRange />
+                        </option>
+                        <option name="uri" value="{&quot;path&quot;:&quot;file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java&quot;}" />
+                      </LocalReferences>
+                    </list>
+                  </option>
+                  <option name="parser">
+                    <SimpleMarkdownStreamParser>
+                      <option name="columns">
+                        <list>
+                          <option value="45" />
+                          <option value="-1" />
+                          <option value="19" />
+                          <option value="12" />
+                          <option value="89" />
+                          <option value="63" />
+                          <option value="-1" />
+                          <option value="15" />
+                          <option value="108" />
+                          <option value="-1" />
+                          <option value="15" />
+                          <option value="58" />
+                          <option value="-1" />
+                          <option value="12" />
+                          <option value="36" />
+                          <option value="-1" />
+                          <option value="11" />
+                          <option value="18" />
+                          <option value="41" />
+                          <option value="-1" />
+                          <option value="50" />
+                          <option value="6" />
+                          <option value="9" />
+                          <option value="55" />
+                          <option value="2" />
+                        </list>
+                      </option>
+                      <option name="content" value="从提供的代码片段看，仅包含包声明、导入和类注解，没有具体实现代码，无法直接确定报错原因。  &#10;&#10;**可能的报错原因及建议检查项：**  &#10;1. **依赖缺失**  &#10;   - 确保 `com.bonus.cost.beans`、`com.bonus.cost.dao` 等包下的类（如 `ProjectCostDao`）已正确实现且路径无误。  &#10;   - 检查 `spring-context` 和 `spring-tx` 依赖是否在项目中（Maven/Gradle）。  &#10;&#10;2. **注解冲突或缺失**  &#10;   - `@Service(&quot;projectCost&quot;)` 需要与 Spring 配置（如 XML 或 `@ComponentScan`）匹配，确认扫描路径包含 `com.bonus.cost.service`。  &#10;&#10;3. **数据库相关问题**  &#10;   - 如果 `ProjectCostDao` 是接口，需确认其实现类或 JPA/Hibernate 配置正确。  &#10;&#10;4. **其他错误**  &#10;   - 检查 IDE 的完整报错日志（通常提示更具体的行号或类名）。  &#10;&#10;**下一步建议：**  &#10;- 提供完整的错误日志或报错行号。  &#10;- 如果是编译错误，检查依赖和类路径；如果是运行时错误，需检查日志中的堆栈跟踪。  &#10;&#10;（示例修复：若缺少 `@Autowired` 的 `ProjectCostDao` 字段，需添加）  &#10;```java&#10;@Autowired&#10;private ProjectCostDao projectCostDao; // 示例字段，需根据实际需求补充&#10;```&#10;" />
+                      <option name="nodes">
+                        <list>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="从提供的代码片段看，仅包含包声明、导入和类注解，没有具体实现代码，无法直接确定报错原因。  " />
+                            <option name="contentId" value="-1167137269" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="*可能的报错原因及建议检查项：**  " />
+                            <option name="contentId" value="2143789667" />
+                            <option name="indentSize" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="*" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="1. **依赖缺失**  " />
+                            <option name="contentId" value="-701815629" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="确保 `com.bonus.cost.beans`、`com.bonus.cost.dao` 等包下的类（如 `ProjectCostDao`）已正确实现且路径无误。  " />
+                            <option name="contentId" value="353880963" />
+                            <option name="indentSize" value="3" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="检查 `spring-context` 和 `spring-tx` 依赖是否在项目中（Maven/Gradle）。  " />
+                            <option name="contentId" value="-426567776" />
+                            <option name="indentSize" value="3" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="2. **注解冲突或缺失**  " />
+                            <option name="contentId" value="1107592927" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="`@Service(&quot;projectCost&quot;)` 需要与 Spring 配置（如 XML 或 `@ComponentScan`）匹配，确认扫描路径包含 `com.bonus.cost.service`。  " />
+                            <option name="contentId" value="1414120594" />
+                            <option name="indentSize" value="3" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="3. **数据库相关问题**  " />
+                            <option name="contentId" value="-26974987" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="如果 `ProjectCostDao` 是接口，需确认其实现类或 JPA/Hibernate 配置正确。  " />
+                            <option name="contentId" value="-1919764410" />
+                            <option name="indentSize" value="3" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="4. **其他错误**  " />
+                            <option name="contentId" value="2023957244" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="检查 IDE 的完整报错日志（通常提示更具体的行号或类名）。  " />
+                            <option name="contentId" value="2119770995" />
+                            <option name="indentSize" value="3" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="*下一步建议：**  " />
+                            <option name="contentId" value="-660881184" />
+                            <option name="indentSize" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="*" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value=" 提供完整的错误日志或报错行号。  " />
+                            <option name="contentId" value="-296927002" />
+                            <option name="indentSize" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value=" 如果是编译错误，检查依赖和类路径；如果是运行时错误，需检查日志中的堆栈跟踪。  " />
+                            <option name="contentId" value="112564037" />
+                            <option name="indentSize" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="startSymbol" value="-" />
+                            <option name="type" value="list-item" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="（示例修复：若缺少 `@Autowired` 的 `ProjectCostDao` 字段，需添加）  " />
+                            <option name="contentId" value="508480460" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="line" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="@Autowired&#10;private ProjectCostDao projectCostDao; // 示例字段，需根据实际需求补充&#10;" />
+                            <option name="contentId" value="1648441111" />
+                            <option name="expectEnding" value="```" />
+                            <option name="indentSize" value="0" />
+                            <option name="language" value="java" />
+                            <option name="settled" value="true" />
+                            <option name="type" value="code-block" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                          <MarkdownNode>
+                            <option name="children">
+                              <list />
+                            </option>
+                            <option name="content" value="" />
+                            <option name="contentId" value="0" />
+                            <option name="settled" value="false" />
+                            <option name="type" value="undetermined" />
+                            <option name="xmlData">
+                              <XmlNode />
+                            </option>
+                          </MarkdownNode>
+                        </list>
+                      </option>
+                      <option name="parserState">
+                        <ParserState>
+                          <option name="line" value="25" />
+                          <option name="column" value="-1" />
+                          <option name="offset" value="708" />
+                          <option name="moveCursor" value="true" />
+                        </ParserState>
+                      </option>
+                    </SimpleMarkdownStreamParser>
+                  </option>
+                  <option name="references">
+                    <list />
+                  </option>
+                  <option name="role" value="assistant" />
+                  <option name="topic" value="" />
+                </UIChatMessage>
+              </list>
+            </option>
+            <option name="messagesV3">
+              <list>
+                <ChatMessageV3>
+                  <option name="role" value="user" />
+                  <option name="content" value="" />
+                  <option name="extra">
+                    <ChatMessageExtra>
+                      <option name="agent" value="workspace" />
+                      <option name="cmd" value="fix" />
+                      <option name="code" value="kzxpztv xln.ylmfh.xlhg.hvierxv;&#10;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgOvzhvXlhgWvgzro;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgHvggovnvmg;&#10;rnklig xln.ylmfh.xlhg.wzl.KilqvxgXlhgWzl;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmWveYvzm;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmKilYvzm;&#10;rnklig xln.ylmfh.kozm.wzl.KozmZkkorxzgrlmWzl;&#10;rnklig xln.ylmfh.hbh.FhviHsrilSvokvi;&#10;rnklig xln.ylmfh.hbh.yvzmh.FhviYvzm;&#10;rnklig lit.hkirmtuiznvdlip.yvzmh.uzxglib.zmmlgzgrlm.Zfgldrivw;&#10;rnklig lit.hkirmtuiznvdlip.hgvivlgbkv.Hvierxv;&#10;rnklig lit.hkirmtuiznvdlip.gizmhzxgrlm.zmmlgzgrlm.Gizmhzxgrlmzo;&#10;&#10;rnklig qzez.grnv.OlxzoWzgvGrnv;&#10;rnklig qzez.grnv.ulinzg.WzgvGrnvUlinzggvi;&#10;rnklig qzez.fgro.*;&#10;rnklig qzez.fgro.hgivzn.Xloovxglih;&#10;&#10;/**&#10; * @zfgsli : 阮世耀&#10; * @evihrlm : 8.9&#10; * @KzxpztvKzgs: xln.ylmfh.xlhg.hvierxv&#10; * @XivzgvGrnv: 7974-94-85  84:91&#10; */&#10;@Hvierxv(&quot;kilqvxgXlhg&quot;)&#10;" />
+                      <option name="path" value="D:\WorkSpace\2024\EclipseToIdea\GZMachinesWeb\src\com\bonus\cost\service\ProjectCostServiceImpl.java" />
+                    </ChatMessageExtra>
+                  </option>
+                </ChatMessageV3>
+                <ChatMessageV3>
+                  <option name="role" value="assistant" />
+                  <option name="content" value="从提供的代码片段看，仅包含包声明、导入和类注解，没有具体实现代码，无法直接确定报错原因。  &#10;&#10;**可能的报错原因及建议检查项：**  &#10;1. **依赖缺失**  &#10;   - 确保 `com.bonus.cost.beans`、`com.bonus.cost.dao` 等包下的类（如 `ProjectCostDao`）已正确实现且路径无误。  &#10;   - 检查 `spring-context` 和 `spring-tx` 依赖是否在项目中（Maven/Gradle）。  &#10;&#10;2. **注解冲突或缺失**  &#10;   - `@Service(&quot;projectCost&quot;)` 需要与 Spring 配置（如 XML 或 `@ComponentScan`）匹配，确认扫描路径包含 `com.bonus.cost.service`。  &#10;&#10;3. **数据库相关问题**  &#10;   - 如果 `ProjectCostDao` 是接口，需确认其实现类或 JPA/Hibernate 配置正确。  &#10;&#10;4. **其他错误**  &#10;   - 检查 IDE 的完整报错日志（通常提示更具体的行号或类名）。  &#10;&#10;**下一步建议：**  &#10;- 提供完整的错误日志或报错行号。  &#10;- 如果是编译错误，检查依赖和类路径；如果是运行时错误，需检查日志中的堆栈跟踪。  &#10;&#10;（示例修复：若缺少 `@Autowired` 的 `ProjectCostDao` 字段，需添加）  &#10;```java&#10;@Autowired&#10;private ProjectCostDao projectCostDao; // 示例字段，需根据实际需求补充&#10;```" />
+                  <option name="extra">
+                    <ChatMessageExtra />
+                  </option>
+                </ChatMessageV3>
+              </list>
+            </option>
+            <option name="sessionId" value="0196d69ff1b67004be3003600c5f1d96" />
+            <option name="source" value="codeAction" />
+          </ChatSession>
+        </option>
+        <option name="conversationId" value="0196d69ff1b67004be3003600c5f1d96" />
+        <option name="conversation">
+          <Conversation>
+            <option name="createTime" value="1747357525788" />
+            <option name="id" value="0196d69ff1b67004be3003600c5f1d96" />
+            <option name="title" value="@workspace /fix" />
+            <option name="turns">
+              <list>
+                <Turn>
+                  <option name="agent" value="" />
+                  <option name="answer" value="从提供的代码片段看，仅包含包声明、导入和类注解，没有具体实现代码，无法直接确定报错原因。  &#10;&#10;**可能的报错原因及建议检查项：**  &#10;8. **依赖缺失**  &#10;   - 确保 `xln.ylmfh.xlhg.yvzmh`、`xln.ylmfh.xlhg.wzl` 等包下的类（如 `KilqvxgXlhgWzl`）已正确实现且路径无误。  &#10;   - 检查 `hkirmt-xlmgvcg` 和 `hkirmt-gc` 依赖是否在项目中（Nzevm/Tizwov）。  &#10;&#10;7. **注解冲突或缺失**  &#10;   - `@Hvierxv(&quot;kilqvxgXlhg&quot;)` 需要与 Hkirmt 配置（如 CNO 或 `@XlnklmvmgHxzm`）匹配，确认扫描路径包含 `xln.ylmfh.xlhg.hvierxv`。  &#10;&#10;6. **数据库相关问题**  &#10;   - 如果 `KilqvxgXlhgWzl` 是接口，需确认其实现类或 QKZ/Sryvimzgv 配置正确。  &#10;&#10;5. **其他错误**  &#10;   - 检查 RWV 的完整报错日志（通常提示更具体的行号或类名）。  &#10;&#10;**下一步建议：**  &#10;- 提供完整的错误日志或报错行号。  &#10;- 如果是编译错误，检查依赖和类路径；如果是运行时错误，需检查日志中的堆栈跟踪。  &#10;&#10;（示例修复：若缺少 `@Zfgldrivw` 的 `KilqvxgXlhgWzl` 字段，需添加）  &#10;```qzez&#10;@Zfgldrivw&#10;kirezgv KilqvxgXlhgWzl kilqvxgXlhgWzl; // 示例字段，需根据实际需求补充&#10;```" />
+                  <option name="chatResource" value="user" />
+                  <option name="codeReferences">
+                    <list>
+                      <CodeReferencesBean>
+                        <option name="content" value="kzxpztv xln.ylmfh.xlhg.hvierxv;&#10;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgOvzhvXlhgWvgzro;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgHvggovnvmg;&#10;rnklig xln.ylmfh.xlhg.wzl.KilqvxgXlhgWzl;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmWveYvzm;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmKilYvzm;&#10;rnklig xln.ylmfh.kozm.wzl.KozmZkkorxzgrlmWzl;&#10;rnklig xln.ylmfh.hbh.FhviHsrilSvokvi;&#10;rnklig xln.ylmfh.hbh.yvzmh.FhviYvzm;&#10;rnklig lit.hkirmtuiznvdlip.yvzmh.uzxglib.zmmlgzgrlm.Zfgldrivw;&#10;rnklig lit.hkirmtuiznvdlip.hgvivlgbkv.Hvierxv;&#10;rnklig lit.hkirmtuiznvdlip.gizmhzxgrlm.zmmlgzgrlm.Gizmhzxgrlmzo;&#10;&#10;rnklig qzez.grnv.OlxzoWzgvGrnv;&#10;rnklig qzez.grnv.ulinzg.WzgvGrnvUlinzggvi;&#10;rnklig qzez.fgro.*;&#10;rnklig qzez.fgro.hgivzn.Xloovxglih;&#10;&#10;/**&#10; * @zfgsli : 阮世耀&#10; * @evihrlm : 8.9&#10; * @KzxpztvKzgs: xln.ylmfh.xlhg.hvierxv&#10; * @XivzgvGrnv: 7974-94-85  84:91&#10; */&#10;@Hvierxv(&quot;kilqvxgXlhg&quot;)&#10;" />
+                        <option name="end_line" value="26" />
+                        <option name="filename" value="ProjectCostServiceImpl.java" />
+                        <option name="language" value="JAVA" />
+                        <option name="range">
+                          <Range>
+                            <option name="end">
+                              <Position>
+                                <option name="line" value="26" />
+                              </Position>
+                            </option>
+                            <option name="start">
+                              <Position />
+                            </option>
+                          </Range>
+                        </option>
+                        <option name="type" value="editor" />
+                        <option name="url" value="file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java" />
+                      </CodeReferencesBean>
+                      <CodeReferencesBean>
+                        <option name="content" value="kzxpztv xln.ylmfh.xlhg.hvierxv;&#10;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgOvzhvXlhgWvgzro;&#10;rnklig xln.ylmfh.xlhg.yvzmh.KilqvxgHvggovnvmg;&#10;rnklig xln.ylmfh.xlhg.wzl.KilqvxgXlhgWzl;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmWveYvzm;&#10;rnklig xln.ylmfh.kozm.yvzmh.KozmKilYvzm;&#10;rnklig xln.ylmfh.kozm.wzl.KozmZkkorxzgrlmWzl;&#10;rnklig xln.ylmfh.hbh.FhviHsrilSvokvi;&#10;rnklig xln.ylmfh.hbh.yvzmh.FhviYvzm;&#10;rnklig lit.hkirmtuiznvdlip.yvzmh.uzxglib.zmmlgzgrlm.Zfgldrivw;&#10;rnklig lit.hkirmtuiznvdlip.hgvivlgbkv.Hvierxv;&#10;rnklig lit.hkirmtuiznvdlip.gizmhzxgrlm.zmmlgzgrlm.Gizmhzxgrlmzo;&#10;&#10;rnklig qzez.grnv.OlxzoWzgvGrnv;&#10;rnklig qzez.grnv.ulinzg.WzgvGrnvUlinzggvi;&#10;rnklig qzez.fgro.*;&#10;rnklig qzez.fgro.hgivzn.Xloovxglih;&#10;&#10;/**&#10; * @zfgsli : 阮世耀&#10; * @evihrlm : 8.9&#10; * @KzxpztvKzgs: xln.ylmfh.xlhg.hvierxv&#10; * @XivzgvGrnv: 7974-94-85  84:91&#10; */&#10;@Hvierxv(&quot;kilqvxgXlhg&quot;)&#10;" />
+                        <option name="end_line" value="26" />
+                        <option name="filename" value="ProjectCostServiceImpl.java" />
+                        <option name="language" value="JAVA" />
+                        <option name="range">
+                          <Range>
+                            <option name="end">
+                              <Position>
+                                <option name="line" value="26" />
+                              </Position>
+                            </option>
+                            <option name="start">
+                              <Position />
+                            </option>
+                          </Range>
+                        </option>
+                        <option name="type" value="editor" />
+                        <option name="url" value="file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java" />
+                      </CodeReferencesBean>
+                    </list>
+                  </option>
+                  <option name="command" value="fix" />
+                  <option name="conversationId" value="0196d69ff1b67004be3003600c5f1d96" />
+                  <option name="historyDocumentMap">
+                    <map>
+                      <entry key="file:///D:/WorkSpace/2024/EclipseToIdea/GZMachinesWeb/src/com/bonus/cost/service/ProjectCostServiceImpl.java" value="package com.bonus.cost.service;&#10;&#10;import com.bonus.cost.beans.ProjectLeaseCostDetail;&#10;import com.bonus.cost.beans.ProjectSettlement;&#10;import com.bonus.cost.dao.ProjectCostDao;&#10;import com.bonus.plan.beans.PlanDevBean;&#10;import com.bonus.plan.beans.PlanProBean;&#10;import com.bonus.plan.dao.PlanApplicationDao;&#10;import com.bonus.sys.UserShiroHelper;&#10;import com.bonus.sys.beans.UserBean;&#10;import org.springframework.beans.factory.annotation.Autowired;&#10;import org.springframework.stereotype.Service;&#10;import org.springframework.transaction.annotation.Transactional;&#10;&#10;import java.time.LocalDateTime;&#10;import java.time.format.DateTimeFormatter;&#10;import java.util.*;&#10;import java.util.stream.Collectors;&#10;&#10;/**&#10; * @author : 阮世耀&#10; * @version : 1.0&#10; * @PackagePath: com.bonus.cost.service&#10; * @CreateTime: 2025-05-14  15:08&#10; */&#10;@Service(&quot;projectCost&quot;)&#10;public class ProjectCostServiceImpl implements ProjectCostService{&#10;&#10;    @Autowired&#10;    private ProjectCostDao projectCostDao;&#10;&#10;    @Autowired&#10;    private PlanApplicationDao planApplicationDao;&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; queryProjectLeaseDetails(ProjectLeaseCostDetail o) {&#10;        return projectCostDao.queryProjectLeaseDetails(o);&#10;    }&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; queryProjectReturnDetails(ProjectLeaseCostDetail o) {&#10;        return projectCostDao.queryProjectReturnDetails(o);&#10;    }&#10;&#10;    @Override&#10;    public Map&lt;String, Object&gt; queryProjectLeaseAndReturnDetails(ProjectLeaseCostDetail o) {&#10;        // 获取领料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; leaseDetails = queryProjectLeaseDetails(o);&#10;        // 获取退料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; returnDetails = queryProjectReturnDetails(o);&#10;&#10;        // 创建一个新的列表来存储合并后的结果&#10;        List&lt;ProjectLeaseCostDetail&gt; mergedList = new ArrayList&lt;&gt;();&#10;        if (leaseDetails != null) {&#10;            mergedList.addAll(leaseDetails);&#10;        }&#10;        if (returnDetails != null) {&#10;            mergedList.addAll(returnDetails);&#10;        }&#10;&#10;        // 按操作时间排序，并添加空值检查&#10;        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();&#10;        result.put(&quot;details&quot;, mergedList.stream()&#10;                // 过滤掉 null 元素&#10;                .filter(Objects::nonNull)&#10;                .sorted(Comparator.comparing(&#10;                        ProjectLeaseCostDetail::getOperateTime,&#10;                        // 处理 getOperateTime() 为 null 的情况&#10;                        Comparator.nullsFirst(Comparator.naturalOrder())&#10;                ))&#10;                .collect(Collectors.toList()));&#10;        return result;&#10;    }&#10;    &#10;    @Override&#10;    @Transactional(rollbackFor = Exception.class)&#10;    public Integer saveSettlement(Map&lt;String, Object&gt; settlementData, String userId) {&#10;        // 获取当前用户信息&#10;        UserBean user = UserShiroHelper.getRealCurrentUser();&#10;        String currentUser = user != null ? user.getLoginName() : userId;&#10;        &#10;        // 处理结算数据&#10;        String projectId = (String) settlementData.get(&quot;projectId&quot;);&#10;        String projectName = (String) settlementData.get(&quot;projectName&quot;);&#10;        String startTime = (String) settlementData.get(&quot;startTime&quot;);&#10;        String endTime = (String) settlementData.get(&quot;endTime&quot;);&#10;        &#10;        @SuppressWarnings(&quot;unchecked&quot;)&#10;        List&lt;ProjectLeaseCostDetail&gt; leaseData = (List&lt;ProjectLeaseCostDetail&gt;) settlementData.get(&quot;leaseData&quot;);&#10;        &#10;        @SuppressWarnings(&quot;unchecked&quot;)&#10;        List&lt;ProjectLeaseCostDetail&gt; returnData = (List&lt;ProjectLeaseCostDetail&gt;) settlementData.get(&quot;returnData&quot;);&#10;        &#10;        // 创建结算记录&#10;        ProjectSettlement settlement = new ProjectSettlement();&#10;        settlement.setProjectId(projectId);&#10;        settlement.setProjectName(projectName);&#10;        settlement.setStartTime(startTime);&#10;        settlement.setEndTime(endTime);&#10;        settlement.setLeaseCount(leaseData != null ? leaseData.size() : 0);&#10;        settlement.setReturnCount(returnData != null ? returnData.size() : 0);&#10;        settlement.setCreateTime(LocalDateTime.now());&#10;        settlement.setCreateUser(currentUser);&#10;        // 0-正常&#10;        settlement.setDelFlag((byte) 0);&#10;        &#10;        // 保存结算记录&#10;        projectCostDao.saveSettlement(settlement);&#10;        Integer settlementId = settlement.getId();&#10;        &#10;        // 保存领料明细&#10;        if (leaseData != null &amp;&amp; !leaseData.isEmpty()) {&#10;            projectCostDao.saveSettlementDetails(settlementId, leaseData, (byte) 1);&#10;        }&#10;        &#10;        // 保存退料明细&#10;        if (returnData != null &amp;&amp; !returnData.isEmpty()) {&#10;            projectCostDao.saveSettlementDetails(settlementId, returnData, (byte) 2);&#10;        }&#10;        &#10;        return settlementId;&#10;    }&#10;    &#10;    @Override&#10;    public List&lt;ProjectSettlement&gt; querySettlementList(ProjectSettlement settlement) {&#10;        return projectCostDao.querySettlementList(settlement);&#10;    }&#10;    &#10;    @Override&#10;    public ProjectSettlement getSettlementDetail(Integer id) {&#10;        // 获取结算基本信息&#10;        ProjectSettlement settlement = projectCostDao.getSettlementById(id);&#10;        if (settlement != null) {&#10;            // 获取领料明细&#10;            List&lt;ProjectLeaseCostDetail&gt; leaseDetails = projectCostDao.querySettlementLeaseDetails(id);&#10;            settlement.setLeaseDetails(leaseDetails);&#10;            &#10;            // 获取退料明细&#10;            List&lt;ProjectLeaseCostDetail&gt; returnDetails = projectCostDao.querySettlementReturnDetails(id);&#10;            settlement.setReturnDetails(returnDetails);&#10;        }&#10;        return settlement;&#10;    }&#10;    &#10;    @Override&#10;    public boolean deleteSettlement(Integer id) {&#10;        return projectCostDao.deleteSettlement(id) &gt; 0;&#10;    }&#10;&#10;    @Override&#10;    public Map&lt;String, Object&gt; calculateSettlement(ProjectLeaseCostDetail o) {&#10;        // 获取领料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; leaseDetails = queryProjectLeaseDetails(o);&#10;        // 获取退料明细&#10;        List&lt;ProjectLeaseCostDetail&gt; returnDetails = queryProjectReturnDetails(o);&#10;&#10;        // 创建一个新的列表来存储合并后的结果&#10;        List&lt;ProjectLeaseCostDetail&gt; mergedList = new ArrayList&lt;&gt;();&#10;        if (leaseDetails != null) {&#10;            mergedList.addAll(leaseDetails);&#10;        }&#10;        if (returnDetails != null) {&#10;            mergedList.addAll(returnDetails);&#10;        }&#10;&#10;        // 按照machineTypeId分组进行计算&#10;        Map&lt;String, List&lt;ProjectLeaseCostDetail&gt;&gt; groupedByMachineType = mergedList.stream()&#10;                .filter(Objects::nonNull)&#10;                .filter(item -&gt; item.getMachineTypeId() != null)&#10;                .collect(Collectors.groupingBy(&#10;                        item -&gt; String.valueOf(item.getMachineTypeId())&#10;                ));&#10;        &#10;        // 存储计算结果&#10;        List&lt;Map&lt;String, Object&gt;&gt; calculationResults = new ArrayList&lt;&gt;();&#10;        double totalAmount = 0.0;&#10;        &#10;        // 获取统计开始和结束日期&#10;        String startTimeStr = o.getStartTime(); &#10;        String endTimeStr = o.getEndTime();&#10;        &#10;        // 转换为日期对象，如果为空则使用默认值&#10;        LocalDateTime startDate = null;&#10;        LocalDateTime endDate = null;&#10;        &#10;        try {&#10;            if (startTimeStr != null &amp;&amp; !startTimeStr.isEmpty()) {&#10;                // 尝试不同格式解析日期&#10;                try {&#10;                    // 尝试标准ISO格式 (yyyy-MM-ddTHH:mm:ss)&#10;                    startDate = LocalDateTime.parse(startTimeStr);&#10;                } catch (Exception e1) {&#10;                    try {&#10;                        // 尝试日期格式 (yyyy-MM-dd)&#10;                        startDate = LocalDateTime.parse(startTimeStr + &quot;T00:00:00&quot;);&#10;                    } catch (Exception e2) {&#10;                        // 使用默认值&#10;                        System.out.println(&quot;无法解析开始日期: &quot; + startTimeStr + &quot;, 使用默认值&quot;);&#10;                        startDate = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);&#10;                    }&#10;                }&#10;            } else {&#10;                // 默认使用当月第一天&#10;                startDate = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);&#10;            }&#10;            &#10;            if (endTimeStr != null &amp;&amp; !endTimeStr.isEmpty()) {&#10;                // 尝试不同格式解析日期&#10;                try {&#10;                    // 尝试标准ISO格式 (yyyy-MM-ddTHH:mm:ss)&#10;                    endDate = LocalDateTime.parse(endTimeStr);&#10;                } catch (Exception e1) {&#10;                    try {&#10;                        // 尝试日期格式 (yyyy-MM-dd)&#10;                        endDate = LocalDateTime.parse(endTimeStr + &quot;T23:59:59&quot;);&#10;                    } catch (Exception e2) {&#10;                        // 使用默认值&#10;                        System.out.println(&quot;无法解析结束日期: &quot; + endTimeStr + &quot;, 使用默认值&quot;);&#10;                        endDate = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);&#10;                    }&#10;                }&#10;            } else {&#10;                // 默认使用当天&#10;                endDate = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);&#10;            }&#10;        } catch (Exception e) {&#10;            // 解析日期失败，使用默认值&#10;            System.out.println(&quot;解析日期出错: &quot; + e.getMessage() + &quot;, 使用默认值&quot;);&#10;            startDate = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);&#10;            endDate = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);&#10;        }&#10;        &#10;        // 对每种物资类型进行计算&#10;        for (Map.Entry&lt;String, List&lt;ProjectLeaseCostDetail&gt;&gt; entry : groupedByMachineType.entrySet()) {&#10;            String machineTypeId = entry.getKey();&#10;            List&lt;ProjectLeaseCostDetail&gt; items = entry.getValue();&#10;            &#10;            // 按操作时间排序&#10;            items.sort(Comparator.comparing(&#10;                    ProjectLeaseCostDetail::getOperateTime,&#10;                    Comparator.nullsFirst(Comparator.naturalOrder())&#10;            ));&#10;            &#10;            // 获取该物资类型的第一条记录，用于提取物资名称等信息&#10;            ProjectLeaseCostDetail firstItem = items.get(0);&#10;            double unitPrice = firstItem.getPrice() != null ? firstItem.getPrice() : 0;&#10;            &#10;            // 计算租赁数量和金额&#10;            int currentCount = 0;&#10;            double totalItemAmount = 0.0;&#10;            Map&lt;String, Object&gt; timeLineData = new HashMap&lt;&gt;(); // 存储时间线上的数量变化&#10;            List&lt;Map&lt;String, Object&gt;&gt; segments = new ArrayList&lt;&gt;(); // 存储各个时间段&#10;            &#10;            LocalDateTime previousTime = startDate;&#10;            &#10;            for (ProjectLeaseCostDetail item : items) {&#10;                if (item == null || item.getOperateTime() == null) {continue;}&#10;&#10;                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);&#10;&#10;                LocalDateTime operateTime = LocalDateTime.parse(item.getOperateTime(), formatter);&#10;&#10;                // 如果操作时间超出统计范围，跳过&#10;                if (operateTime.isBefore(startDate) || operateTime.isAfter(endDate)) {&#10;                    continue;&#10;                }&#10;                &#10;                String operateTimeStr = operateTime.toString();&#10;                &#10;                // 判断操作类型：1-领料，2-退料&#10;                boolean isLease = (item.getOperateType() == null || item.getOperateType() == 1);&#10;                int quantity = 0;&#10;                &#10;                // 计算上一个时间点到当前操作时间的租赁费用&#10;                if (currentCount &gt; 0 &amp;&amp; !previousTime.equals(operateTime)) {&#10;                    // 计算两个时间点之间的天数&#10;                    long daysBetween = java.time.Duration.between(previousTime, operateTime).toDays();&#10;                    // 不足一天按一天计算&#10;                    if (daysBetween &lt; 1) {daysBetween = 1;}&#10;                    &#10;                    // 计算该时间段的租赁费用&#10;                    double segmentAmount = currentCount * unitPrice * daysBetween;&#10;                    totalItemAmount += segmentAmount;&#10;                    &#10;                    // 记录该时间段&#10;                    Map&lt;String, Object&gt; segment = new HashMap&lt;&gt;();&#10;                    segment.put(&quot;startTime&quot;, previousTime.toString());&#10;                    segment.put(&quot;endTime&quot;, operateTime.toString());&#10;                    segment.put(&quot;days&quot;, daysBetween);&#10;                    segment.put(&quot;count&quot;, currentCount);&#10;                    segment.put(&quot;amount&quot;, segmentAmount);&#10;                    segments.add(segment);&#10;                    &#10;                    // 添加调试信息&#10;                    System.out.println(&quot;物资ID: &quot; + machineTypeId + &#10;                            &quot;, 时段: &quot; + previousTime + &quot; 至 &quot; + operateTime + &#10;                            &quot;, 天数: &quot; + daysBetween +&#10;                            &quot;, 数量: &quot; + currentCount + &#10;                            &quot;, 单价: &quot; + unitPrice + &#10;                            &quot;, 段金额: &quot; + segmentAmount);&#10;                }&#10;                &#10;                // 更新当前在用数量&#10;                if (isLease) {&#10;                    quantity = item.getLeaseNum() != null ? item.getLeaseNum() : 0;&#10;                    currentCount += quantity;&#10;                } else {&#10;                    quantity = item.getReturnNum() != null ? item.getReturnNum() : 0;&#10;                    currentCount -= quantity;&#10;                }&#10;                &#10;                // 更新前一个时间点&#10;                previousTime = operateTime;&#10;                &#10;                // 记录时间线上的数量变化&#10;                timeLineData.put(operateTimeStr, currentCount);&#10;            }&#10;            &#10;            // 计算最后一个操作时间点到统计结束时间的租赁费用&#10;            if (currentCount &gt; 0 &amp;&amp; !previousTime.equals(endDate)) {&#10;                // 计算两个时间点之间的天数&#10;                long daysBetween = java.time.Duration.between(previousTime, endDate).toDays();&#10;                // 不足一天按一天计算&#10;                if (daysBetween &lt; 1) {daysBetween = 1;}&#10;                &#10;                // 计算该时间段的租赁费用&#10;                double segmentAmount = currentCount * unitPrice * daysBetween;&#10;                totalItemAmount += segmentAmount;&#10;                &#10;                // 记录该时间段&#10;                Map&lt;String, Object&gt; segment = new HashMap&lt;&gt;();&#10;                segment.put(&quot;startTime&quot;, previousTime.toString());&#10;                segment.put(&quot;endTime&quot;, endDate.toString());&#10;                segment.put(&quot;days&quot;, daysBetween);&#10;                segment.put(&quot;count&quot;, currentCount);&#10;                segment.put(&quot;amount&quot;, segmentAmount);&#10;                segments.add(segment);&#10;                &#10;                // 添加调试信息&#10;                System.out.println(&quot;物资ID: &quot; + machineTypeId +&#10;                        &quot;, 时段: &quot; + previousTime + &quot; 至 &quot; + endDate +&#10;                        &quot;, 天数: &quot; + daysBetween +&#10;                        &quot;, 数量: &quot; + currentCount + &#10;                        &quot;, 单价: &quot; + unitPrice + &#10;                        &quot;, 段金额: &quot; + segmentAmount);&#10;            }&#10;            &#10;            // 更新总金额&#10;            totalAmount += totalItemAmount;&#10;            &#10;            // 创建计算结果对象&#10;            Map&lt;String, Object&gt; calculationResult = new HashMap&lt;&gt;();&#10;            calculationResult.put(&quot;machineTypeId&quot;, machineTypeId);&#10;            calculationResult.put(&quot;machineTypeName&quot;, firstItem.getMachineTypeName());&#10;            calculationResult.put(&quot;machineModel&quot;, firstItem.getMachineModel());&#10;            calculationResult.put(&quot;machineUnit&quot;, firstItem.getMachineUnit());&#10;            calculationResult.put(&quot;price&quot;, unitPrice);&#10;            calculationResult.put(&quot;currentCount&quot;, currentCount);&#10;            calculationResult.put(&quot;amount&quot;, totalItemAmount);&#10;            calculationResult.put(&quot;timeline&quot;, timeLineData);&#10;            calculationResult.put(&quot;segments&quot;, segments);&#10;            &#10;            // 确保details数据中包含领料和退料记录&#10;            if (!items.isEmpty()) {&#10;                // 打印一下查看数据结构&#10;                System.out.println(&quot;第一条明细数据: &quot; + items.get(0));&#10;                &#10;                // 确保操作类型字段存在&#10;                for (ProjectLeaseCostDetail detail : items) {&#10;                    // 确保operateType字段有值&#10;                    if (detail.getOperateType() == null) {&#10;                        if (detail.getLeaseNum() != null &amp;&amp; detail.getLeaseNum() &gt; 0 &amp;&amp; (detail.getReturnNum() == null || detail.getReturnNum() == 0)) {&#10;                            // 如果leaseNum有值但returnNum没值，则为领料&#10;                            detail.setOperateType((byte) 1);&#10;                        } else if (detail.getReturnNum() != null &amp;&amp; detail.getReturnNum() &gt; 0 &amp;&amp; (detail.getLeaseNum() == null || detail.getLeaseNum() == 0)) {&#10;                            // 如果returnNum有值但leaseNum没值，则为退料&#10;                            detail.setOperateType((byte) 2);&#10;                        } else {&#10;                            // 默认为领料&#10;                            detail.setOperateType((byte) 1);&#10;                        }&#10;                    }&#10;                }&#10;            }&#10;            &#10;            calculationResult.put(&quot;details&quot;, items);&#10;            &#10;            calculationResults.add(calculationResult);&#10;        }&#10;        &#10;        // 将原始明细按操作时间排序&#10;        List&lt;ProjectLeaseCostDetail&gt; sortedDetails = mergedList.stream()&#10;                .filter(Objects::nonNull)&#10;                .sorted(Comparator.comparing(&#10;                        ProjectLeaseCostDetail::getOperateTime,&#10;                        Comparator.nullsFirst(Comparator.naturalOrder())&#10;                ))&#10;                .collect(Collectors.toList());&#10;&#10;        // 返回结果&#10;        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();&#10;        result.put(&quot;details&quot;, sortedDetails);  // 原始按时间排序的明细&#10;        result.put(&quot;calculationResults&quot;, calculationResults); // 计算结果&#10;        result.put(&quot;totalAmount&quot;, totalAmount); // 总金额&#10;        return result;&#10;    }&#10;&#10;    @Override&#10;    public List&lt;Map&lt;String, Object&gt;&gt; getAllProjects() {&#10;        List&lt;PlanProBean&gt; proList = planApplicationDao.getProList(new PlanDevBean());&#10;        return proList.stream().map(bean -&gt; {&#10;            Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();&#10;            map.put(&quot;id&quot;, bean.getId());&#10;            map.put(&quot;name&quot;, bean.getName());&#10;            // 可根据需要添加其他字段&#10;            return map;&#10;        }).collect(Collectors.toList());&#10;    }&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; getSettlementLeaseDetails(Integer settlementId) {&#10;        return Collections.emptyList();&#10;    }&#10;&#10;    @Override&#10;    public List&lt;ProjectLeaseCostDetail&gt; getSettlementReturnDetails(Integer settlementId) {&#10;        return Collections.emptyList();&#10;    }&#10;}" />
+                    </map>
+                  </option>
+                  <option name="messageId" value="0196d6a11ac17004be30177266349a01" />
+                  <option name="question" value="" />
+                  <option name="rating" value="UNRATED" />
+                  <option name="referenceBeans">
+                    <list />
+                  </option>
+                  <option name="status" value="SUCCESS" />
+                  <option name="variables">
+                    <list />
+                  </option>
+                </Turn>
+              </list>
+            </option>
+            <option name="updateTime" value="1747357612633" />
+          </Conversation>
+        </option>
+      </WebConversation>
+    </option>
+  </component>
+</project>

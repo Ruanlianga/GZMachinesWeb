@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MaOrgDao" >
+
+    <resultMap id="machineType" type="com.bonus.ma.beans.MaOrgBean"></resultMap>
+    
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+ 	
+ 	
+	<select id="getOrgTree" parameterType="com.bonus.ma.beans.MaOrgBean" resultMap="ZNode">
+		select * from (
+			SELECT ID,`NAME`,PARENT_ID as pId 
+				FROM pm_organization 
+				
+				WHERE IS_ACTIVE = '1' 
+			<if test="orgId == 1 or orgId == '1'">
+				and PARENT_ID in(0,1)
+			</if>
+			<if test="orgId != 1 and orgId != '1'">
+				and (PARENT_ID in(0) or id =#{orgId})
+			</if>	
+				
+		) a 
+				where a.ID is not null 
+	</select>
+	
+	<select id="getMaListByOrg" resultType="com.bonus.ma.beans.MaOrgBean"
+		parameterType="com.bonus.ma.beans.MaOrgBean">
+		SELECT
+			mt4.`NAME` as firstName,
+			mt3.`NAME` as secondName,
+			mt2.`NAME` as maType,
+			mt.`NAME` as maModel ,
+			mt.ID as maModelId ,
+			mr.org_id as orgId,
+			if(mr.TYPE_ID > 0,1,0) as isActive,
+				if(po.`NAME` is not null,GROUP_CONCAT(DISTINCT po.`NAME` SEPARATOR ','),'') orgName 
+			from
+			mm_type mt 
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_type mt3 on mt2.PARENT_ID = mt3.ID
+			LEFT JOIN mm_type mt4 on mt3.PARENT_ID = mt4.ID
+			LEFT JOIN ma_org_relation mr on mt.id = mr.type_id and mr.org_id =#{orgId}
+			LEFT JOIN pm_organization po on mr.org_id = po.id 
+			WHERE mt.`LEVEL` = 4 and mt.IS_ACTIVE = 1
+			<if test="keyWord!= null">
+			AND (	mt4.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR  mt3.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR  mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR 	mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			)
+		</if>
+			GROUP BY mt.ID
+		order by isActive DESC
+	</select>
+	
+	
+	
+	<insert id="insertOrgRelation" parameterType="java.util.ArrayList">
+		REPLACE into ma_org_relation (ORG_ID,TYPE_ID) 
+    values 
+    <foreach collection="list" item="item" index="index" separator=",">
+        (#{item.orgId},#{item.maModelId})
+    </foreach>
+	</insert>
+	
+	<delete id="delete" parameterType="com.bonus.ma.beans.MaOrgBean">
+		delete from
+		ma_org_relation
+		where ORG_ID = #{orgId} 
+		and TYPE_ID = #{maModelId}
+	</delete>
+
+</mapper>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.scrap.dao.ScrapApplyDao" >
+    <resultMap id="apply" type="com.bonus.scrap.beans.ScrapApplyBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+		SELECT wsa.id,
+		wsa.`CODE` as code,
+		pu.`NAME` as creator,
+		wsa.CREATE_TIME as createTime,
+		wsa.APPLY_REMARK as applyRemark,
+		CASE wsa.`STATUS`
+			WHEN "0" THEN "待审核"
+			WHEN "1" THEN "已审核"
+			WHEN "2" THEN "驳回"
+		END as status,
+		GROUP_CONCAT(DISTINCT mt2.`NAME`) as maName,
+		if(saf.ID is null ,'未上传','已上传') as isUploadFile
+		FROM wf_scrap_apply wsa
+		LEFT JOIN scrap_apply_details sad ON sad.apply_id=wsa.id
+		LEFT JOIN mm_machines ma ON ma.id=sad.ma_id
+		LEFT JOIN mm_type mt ON mt.id=ma.type
+		LEFT JOIN mm_type mt2 ON mt.PARENT_ID=mt2.id
+		left join pm_user pu on wsa.CREATOR = pu.ID
+		left join scrap_apply_file saf on saf.APPLY_ID = wsa.ID
+		WHERE 1=1
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				wsa.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR wsa.CREATOR LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wsa.APPLY_REMARK LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+		GROUP BY wsa.id
+		ORDER BY wsa.`CODE` desc
+ 	</select>
+ 	
+ 	
+    <select id="findParentTypeList" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+ 	    SELECT DISTINCT mt.id,mt.`NAME` 
+		FROM mm_type mt
+		LEFT JOIN mm_type mt2 ON mt2.PARENT_ID=mt.id
+		LEFT JOIN mm_machines mm ON mm.type=mt2.id
+		WHERE mt.`LEVEL`=3 AND mt.IS_ACTIVE="1" AND mt.IS_COUNT=0 AND mm.DEVICE_CODE is not null
+    </select>
+    
+     <select id="findRemark" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+ 	   SELECT ID ,AUDIT_REMARK as auditRemark
+FROM `wf_scrap_apply`
+where id=#{id}
+    </select>
+    
+ 	<select id="findTypeList" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+ 	    SELECT mt.id,mt.`NAME` 
+		FROM mm_type mt
+		WHERE mt.`PARENT_ID`=#{id} AND mt.IS_ACTIVE="1" AND mt.IS_COUNT=0
+    </select>
+    
+ 	<select id="findMaCodeList" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+ 	    SELECT
+			ma.ASSETS_NUM as fixedAssetsCode,
+			if(ma.`IS_FIXED_ASSETS` = 1,'是','否') as isAssets,
+			ma.PROPERTY_DEPARTMENT as `explain`,
+			ma.ORIGIN_NUM as originNum,
+			mt.PAY_PRICE as payPrice,
+			ma.ID as maId,
+			mt.id as typeId,
+			mt2.`NAME` as name,
+			mt.`NAME` as typeName,
+			ma.DEVICE_CODE as maCode,
+			if(ma.`BATCH_STATUS`=5,"在库","待报废") as status,
+			ma.REMARK as remark
+		FROM
+			mm_machines ma
+		LEFT JOIN mm_type mt on ma.type = mt.ID
+		LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+	   	WHERE  (ma.`BATCH_STATUS` = 5 or ma.BATCH_STATUS=10)
+	   <if test="parentId !=null and parentId !=''">
+	       and mt2.id=#{parentId}
+	   </if>
+	   <if test="typeId !=null and typeId !=''">
+	       and mt.id=#{typeId}
+	   </if>
+	   <if test="isCheck !=null">
+	       <if test="isCheck == 1 or isCheck == '1'">
+			 and ma.id in(
+				<foreach item="id" collection="checkedSet" open="" separator=","
+					close="">
+					#{id}
+				</foreach>
+				)
+			</if>
+	   </if>
+	    <if test="keyWord !=null and keyWord !='' ">
+			  And(
+					mt2.`NAME` like concat('%', #{keyWord} ,'%')
+				or	mt.`NAME` like concat('%',#{keyWord} ,'%')
+				or	ma.`DEVICE_CODE` like concat('%', #{keyWord} ,'%')
+			  )      
+		</if>	
+    </select>
+    
+ 	<insert id="insertFromBean" useGeneratedKeys="true" keyProperty="id" parameterType="com.bonus.scrap.beans.ScrapApplyBean">
+ 	    insert into 
+	    	wf_scrap_apply
+	    	<trim prefix="(" suffix=")" suffixOverrides=",">
+	    	<if test="code != null and code != ''">
+	    		CODE,
+	    	</if>
+	    	<if test="creator != null">
+	    		creator,
+	    	</if>
+	    	<if test="createTime != null ">
+	    		CREATE_TIME,
+	    	</if>
+	    	
+	    	<if test="applyRemark != null ">
+	    		APPLY_REMARK,
+	    	</if>
+	    	STATUS
+	   		</trim>
+	     <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+	    	<if test="code != null and code != ''">
+	    		#{code},
+	    	</if>
+	    	<if test="creator != null ">
+	    		#{creator},
+	    	</if>
+	    	<if test="createTime != null ">
+	    		#{createTime},
+	    	</if>
+	    	
+	    	<if test="applyRemark != null ">
+	    		#{applyRemark},
+	    	</if>
+	          0
+	    	</trim>
+ 	</insert>
+ 	
+ 	<insert id="insertDetailsBean"  parameterType="com.bonus.scrap.beans.ScrapApplyBean">
+ 	    insert into 
+	    	scrap_apply_details
+	    	<trim prefix="(" suffix=")" suffixOverrides=",">
+	    	<if test=" applyId != null and applyId != ''">
+	    		apply_id,
+	    	</if>
+	    	<if test="typeId != null  and typeId !=''">
+	    		type_id,
+	    	</if>
+	    	<if test="maId != null">
+	    		ma_id,
+	    	</if>
+	    	<if test="maCode != null">
+	    		ma_code,
+	    	</if>
+	    	<if test="scrapNum != null ">
+	    		num,
+	    	</if>
+	    	
+	    	<if test="remarks != null ">
+	    		REMARKS
+	    	</if>
+	    	
+	   		</trim>
+	     <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+	    	<if test="applyId != null and applyId != ''">
+	    		#{applyId},
+	    	</if>
+	    	<if test="typeId != null and typeId !=''">
+	    		#{typeId},
+	    	</if>
+	    	<if test="maId != null ">
+	    		#{maId},
+	    	</if>
+	    	<if test="maCode != null ">
+	    		#{maCode},
+	    	</if>
+	    	<if test="scrapNum != null ">
+	    		#{scrapNum},
+	    	</if>
+	    	
+	    	<if test="remarks != null ">
+	    		#{remarks}
+	    	</if>
+	          
+	    	</trim>
+    </insert>
+ 	
+ 	
+ 	<select id="findApplyNowDateNum" resultType="java.lang.Integer">
+ 	    SELECT count(1)+1 
+ 	    FROM wf_scrap_apply
+		WHERE CREATE_TIME=CURRENT_DATE
+ 	</select>
+ 	
+ 	<select id="findInventoryScrapDetailsById" parameterType="com.bonus.scrap.beans.ScrapApplyBean" resultMap="apply">
+ 	    SELECT  sad.id,
+		mt2.`NAME` as maName,
+		mt.`NAME` as typeName,
+		mt.UNIT as unit,
+		sad.ma_code as maCode,
+		sad.num,
+		sad.remarks,
+		mt.PAY_PRICE as payPrice
+		FROM scrap_apply_details sad
+		LEFT JOIN wf_scrap_apply wsa ON sad.apply_id=wsa.id
+		LEFT JOIN mm_type mt ON mt.id=sad.type_id
+		LEFT JOIN mm_type mt2 ON mt.PARENT_ID=mt2.id
+		WHERE sad.apply_id=#{id}
+ 	</select>
+ 	
+ 	<insert id="fileUpload" parameterType="com.bonus.scrap.beans.ScrapApplyFileBean">
+ 	    INSERT INTO `scrap_apply_file`(`FILE_URL`, `FILE_NAME`, `CREATE_TIME`, `APPLY_ID`) VALUES (#{fileUrl}, #{fileName}, CURRENT_DATE, #{id})
+ 	</insert>
+ 	
+ 	<select id="findFileList" parameterType="com.bonus.scrap.beans.ScrapApplyFileBean" resultType="com.bonus.scrap.beans.ScrapApplyFileBean">
+ 	    SELECT FILE_URL as fileUrl,
+		FILE_NAME as fileName,
+		CREATE_TIME as createTime
+		FROM scrap_apply_file
+		WHERE APPLY_ID=#{id}
+ 	</select>
+
+    <select id="findExistsMaCodeList" resultType="java.lang.String">
+		SELECT ma_code FROM scrap_apply_details WHERE ma_code in(
+		<foreach item="maCode" collection="maIdList" open="" separator="," close="">
+			#{maCode}
+		</foreach>
+		)
+	</select>
+</mapper>

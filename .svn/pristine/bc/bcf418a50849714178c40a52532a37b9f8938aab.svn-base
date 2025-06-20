@@ -1,0 +1,510 @@
+package com.bonus.newSettlement.controller;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.bonus.exp.POIOutputHelper;
+import com.bonus.newSettlement.beans.MaTypeProjectStorageBean;
+import com.bonus.newSettlement.beans.ProjectSettlementInfoBean;
+import com.bonus.newSettlement.service.MaTypeProjectStorageService;
+import com.bonus.newSettlement.service.ProjectSettlementInfoService;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseController;
+import com.bonus.sys.GlobalConst;
+import com.bonus.sys.Page;
+import com.bonus.sys.UserShiroHelper;
+import com.bonus.sys.beans.UserBean;
+import com.bonus.sys.dao.FileUploadInfoDao;
+import com.bonus.sys.service.FileUploadService;
+import com.bonus.sys.service.UserService;
+
+@Controller
+@RequestMapping("/backstage/projectSettlement/")
+public class ProjectSettlementInfoController extends BaseController<ProjectSettlementInfoBean> {
+
+	@Autowired
+	FileUploadInfoDao dao;
+
+	@Autowired
+	FileUploadService fservice;
+
+	@Autowired
+	ProjectSettlementInfoService service;
+
+	@Autowired
+	MaTypeProjectStorageService psService;
+
+	@Autowired
+	UserService userService;
+	
+	
+	/* zwc
+	 * 结算文件上传
+	 */
+	@RequestMapping("imgSllt")
+	public String imgSllt(Model model, HttpServletRequest req) {
+		return "/newSettlement/imgSllt";
+	}
+
+	@RequestMapping("list")
+	public String settlementList(Model model) {
+
+		return "/newSettlement/projectSettlementManagement";
+	}
+
+	@RequestMapping("uploadFileUrl")
+	public String uploadFile(Model model) {
+		return "/newSettlement/newSettlementFile";
+	}
+
+	@RequestMapping("toSettle")
+	public String toSettle(Model model) {
+		return "/newSettlement/toSettleList";
+	}
+
+	@RequestMapping("findSettleContent")
+	public String findSettleContent(@RequestBody Page<ProjectSettlementInfoBean> page, ProjectSettlementInfoBean o,
+			Model model) {
+		page = service.findSettleContent(page, o);
+		model.addAttribute("page", page);
+		return "/newSettlement/toSettleContentList";
+	}
+
+	@RequestMapping("updateSettleSta")
+	@ResponseBody
+	public AjaxRes updateSettleSta(@RequestBody ProjectSettlementInfoBean o, Model model) {
+		AjaxRes ar = getAjaxRes();
+		Integer res = 0;
+		res = service.updateSettleSta(o);
+		if (res == 1) {
+			ar.setSucceedMsg("确认结算成功！");
+		} else {
+			ar.setFailMsg("结算失败！");
+		}
+
+		return ar;
+	}
+
+	/**
+	 * @Author js
+	 * @Date 2020-06-11
+	 * @function 工程结算列表
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("findByPage")
+	public String getSettlementList(@RequestBody Page<ProjectSettlementInfoBean> page, ProjectSettlementInfoBean o,
+			Model model) {
+		try {
+			UserBean user = UserShiroHelper.getRealCurrentUser();
+		    String companyId = user.getCompanyId();
+		    o = page.getObj();
+		    o.setOrgId(companyId);
+			page = service.findByPage(o, page);
+			model.addAttribute("page", page);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "/newSettlement/projectSettlementList";
+	}
+
+	/**
+	 * @Author js
+	 * @Date 2020-06-11
+	 * @function 跳转新增结算页面
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("addPage")
+	public String addPage(Model model) {
+
+		return "/newSettlement/addProjectSettlement";
+	}
+
+	/**
+	 * @Author js
+	 * @Date 2020-06-11
+	 * @function 工程结算列表
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("findUnSltMaTypeList")
+	public String findUnSltMaTypeList(@RequestBody MaTypeProjectStorageBean o, Model model) {
+		try {
+			List<MaTypeProjectStorageBean> list = psService.findUnSltMaTypeList(o);
+			model.addAttribute("list", list);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "/newSettlement/unSltMaTypeList";
+	}
+
+	/**
+	 * 生成结算
+	 * 
+	 * @param page
+	 * @param o
+	 * @return
+	 * @date 2020-06-11
+	 * @author js
+	 */
+	@RequestMapping(value = "insertSlt", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes insertSlt(@RequestBody ProjectSettlementInfoBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			int a = service.insertSlt(o);
+			if (a > 0) {
+				ar.setSucceedMsg("结算任务添加成功!");
+			}
+
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg("新增失败!");
+		}
+		return ar;
+	}
+
+	/**
+	 * @Author js
+	 * @Date 2020-06-12
+	 * @function 查看结算列表
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("view")
+	public String viewSettlementInfo(ProjectSettlementInfoBean o, Model model) {
+		try {
+			ProjectSettlementInfoBean bean = service.findSettlementInfoById(o);
+			List<ProjectSettlementInfoBean> baseList = service.findBaseInfoById(o);
+			List<ProjectSettlementInfoBean> maList = service.findMaInfoById(o);
+			model.addAttribute("bean", bean);
+			model.addAttribute("baseList", baseList);
+			model.addAttribute("maList", maList);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "/newSettlement/viewSettlementInfo";
+	}
+
+	/**
+	 * @Author js
+	 * @Date 2020-06-12
+	 * @function 查看结算列表
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("print")
+	public String printSettlementInfo(ProjectSettlementInfoBean o, Model model) {
+		try {
+			ProjectSettlementInfoBean bean = service.findSettlementInfoById(o);
+			List<ProjectSettlementInfoBean> baseList = service.findBaseInfoById(o);
+			List<ProjectSettlementInfoBean> maList = service.findMaInfoById(o);
+			model.addAttribute("bean", bean);
+			model.addAttribute("baseList", baseList);
+			model.addAttribute("maList", maList);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return "/newSettlement/printSettlementInfo";
+	}
+
+	@RequestMapping(value = "export")
+	@ResponseBody
+	public void export(HttpServletRequest request, HttpServletResponse response, MaTypeProjectStorageBean o) {
+		try {
+			String ids = request.getParameter("iddl");
+			String[] a = ids.split(";");
+			List<MaTypeProjectStorageBean> list = psService.findUnSltMaTypeLists(o);
+			// 唯一主键
+			for (int i = 0; i < a.length; i++) {
+				String[] b = a[i].split(",");
+				for (int j = 0; j < list.size(); j++) {
+					if (list.get(j).getId().toString().equals(b[0])) {
+						list.get(j).setSt(b[2]);
+						list.get(j).setDl(b[1]);
+					}
+				}
+			}
+			expOutExcel1(response, list, "工程租赁费结算");
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+	}
+
+	private void expOutExcel1(HttpServletResponse response, List<MaTypeProjectStorageBean> list, String filename)
+			throws Exception {
+		if (list != null) {
+			List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+			int size = list.size();
+			for (int i = 0; i < size; i++) {
+				MaTypeProjectStorageBean bean = list.get(i);
+				Map<String, Object> maps = outCheckToMap(i, bean);
+				results.add(maps);
+			}
+			List<String> headers = reportHeader();
+			HSSFWorkbook workbook = POIOutputHelper.excel(results, headers, filename);
+
+			OutputStream out = null;
+			response.setContentType("application/vnd.ms-excel;charset=UTF-8");
+			response.addHeader("Content-Disposition",
+					"attachment;filename=" + URLEncoder.encode(filename, "UTF-8") + ".xls");
+			response.setHeader("Pragma", "No-cache");
+			out = response.getOutputStream();
+			workbook.write(out);
+			out.flush();
+			out.close();
+		}
+	}
+
+	private Map<String, Object> outCheckToMap(int i, MaTypeProjectStorageBean o) {
+		Map<String, Object> maps = new LinkedHashMap<String, Object>();
+		maps.put("id", i + 1);
+		String parentName = "";
+		if (o.getType() != null) {
+			parentName = o.getType().getParentName();
+		}
+		maps.put("parentName", parentName);
+
+		String name = "";
+		if (o.getType() != null) {
+			name = o.getType().getName();
+		}
+		maps.put("name", name);
+
+		Float num;
+		String unit = "";
+
+		if (o.getType() != null) {
+			unit = o.getType().getUnit();
+		}
+		num = o.getNum();
+		unit = num + "" + unit;
+
+		maps.put("unit", unit);
+
+		String deviceCode = "";
+		if (o.getMachine() != null) {
+			deviceCode = o.getMachine().getDeviceCode();
+		}
+		maps.put("deviceCode", deviceCode);
+		maps.put("price", o.getPrice());
+		maps.put("startDate", o.getStartDate());
+		String status = o.getStatus().toString();
+		if ("1".equals(status)) {
+			status = "在用";
+		} else {
+			status = "已退租";
+		}
+		maps.put("status", status);
+
+		maps.put("backDate", o.getBackDate());
+		maps.put("lastSltDate", o.getLastSltDate());
+		/*
+		 * String[] b = o.getSt(); for(int a =0;a<b.length;i++){
+		 * 
+		 * } String[] c = o.getDl(); for(int a =0;a<c.length;i++){
+		 * maps.put("dl", o.getDl()); }
+		 */
+
+		maps.put("dl", o.getDl());
+		maps.put("st", o.getSt());
+		return maps;
+	}
+
+	private List<String> reportHeader() {
+		ArrayList<String> list = new ArrayList<String>();
+		list.add("序号");
+		list.add("机具名称");
+		list.add("机具规格");
+		list.add("数量(单位)");
+		list.add("设备编码");
+		list.add("租赁单价");
+		list.add("起租日期");
+		list.add("状态");
+		list.add("退租日期");
+		list.add("上次结算日期");
+		list.add("结算时常");
+		list.add("小计金额(元)");
+		return list;
+	}
+
+	@RequestMapping(value = "uploadFile", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes uploadFile(HttpServletRequest request, ProjectSettlementInfoBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.uploadFile(request, o);
+			ar.setSucceedMsg(GlobalConst.UPLOAD_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPLOAD_FAIL);
+		}
+		return ar;
+	}
+
+	public HttpServletResponse downloadLocal(HttpServletResponse response,HttpServletRequest request, ProjectSettlementInfoBean o)
+			throws FileNotFoundException, Exception {
+
+		ProjectSettlementInfoBean bean = service.findSettlementFileUrlById(o);
+		String fileUrl = bean.getFileUrl();
+		String oldFileUrl = bean.getOldFileUrl();
+		System.err.println("oldFileUrl=="+oldFileUrl);
+		// 文件存放的路径
+		fileUrl = request.getSession().getServletContext().getRealPath("/ProjectSettlementInfoFile") + fileUrl.toString();
+//		fileUrl = "D:\\PowerEnterprises\\.metadata\\.plugins\\org.eclipse.wst.server.core\\tmp1\\wtpwebapps\\GZMachinesWeb\\ProjectSettlementInfoFile\\"
+//				+ fileUrl.toString(); // 文件的默认保存名
+		System.err.println(fileUrl);
+		response.setContentType("text/html;charset=UTF-8");
+		File file = new File(fileUrl);
+		BufferedInputStream bis = new BufferedInputStream(new FileInputStream(fileUrl));
+		BufferedOutputStream bos = new BufferedOutputStream(response.getOutputStream());
+		try{
+			long fileLength = file.length();
+			String fileName = file.getName();
+			System.err.println("fileName=="+fileName);
+			response.setContentType("application/vnd.ms-excel;charset=UTF-8");
+			response.addHeader("Content-disposition",
+					"attachment; filename=" + URLEncoder.encode(oldFileUrl, "UTF-8"));
+			response.setHeader("Content-Length", String.valueOf(fileLength));
+			byte[] buff = new byte[2048];
+			int bytesRead;
+			while (-1 != (bytesRead = bis.read(buff, 0, buff.length))) {
+				bos.write(buff, 0, bytesRead);
+			}
+			bos.flush();
+			bos.close();
+			return response;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return response;
+		}finally {
+			bis.close();
+			if(bis != null){
+				bis.close();
+            }
+		}
+	}
+	
+	@RequestMapping(value = "downloadDocument")
+	@ResponseBody
+	public void download(HttpServletResponse response,HttpServletRequest request, ProjectSettlementInfoBean o) throws Exception{
+        try {
+        	ProjectSettlementInfoBean bean = service.findSettlementFileUrlById(o);
+    		String fileUrl = bean.getFileUrl();
+     		fileUrl = request.getSession().getServletContext().getRealPath("/ProjectSettlementInfoFile") + "/"+fileUrl.toString();
+            // path是指欲下载的文件的路径。
+            File file = new File(fileUrl);
+            // 以流的形式下载文件。
+            InputStream fis = new BufferedInputStream(new FileInputStream(fileUrl));
+            byte[] buffer = new byte[fis.available()];
+            fis.read(buffer);
+            // 设置response的Header
+            response.addHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileUrl, "UTF-8"));
+            response.addHeader("Content-Length", "" + file.length());
+            OutputStream os = new BufferedOutputStream(response.getOutputStream());
+            response.setContentType("application/octet-stream");
+            os.write(buffer);
+            fis.close();
+            os.flush();
+            os.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+	
+	@RequestMapping(value = "uploadImgSllt")
+	@ResponseBody
+    public Map<String,Object> upload(@RequestParam("file")MultipartFile file,ProjectSettlementInfoBean o,HttpServletRequest request){
+        String prefix="";
+        String dateStr="";
+        //保存上传
+        OutputStream out = null;
+        InputStream fileInput=null;
+        try{
+            if(file!=null){
+            	String ids = request.getParameter("id");
+			    Integer id =Integer.valueOf(ids).intValue();
+				o.setId(id);
+					 
+                String fileName = file.getOriginalFilename();
+                Date date = new Date();
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                dateStr = simpleDateFormat.format(date);
+                //String filepath = "D:\\mycode\\machine\\images\\" + dateStr+"\\"+fileName;
+//                String saveDirectory = request.getSession().getServletContext().getRealPath("/ProjectSettlementInfoFile");
+                String mkdirsName = "ProjectSettlementInfoFile"; // 机具管理-机具类型管理
+         		String saveDirectory = "/data/gzimt/" + mkdirsName + "/"; // linux 系统路径
+                 String os = System.getProperty("os.name");
+                 if (os.toLowerCase().startsWith("win")) {
+                 	saveDirectory = "D://GZMachinesWeb/" + mkdirsName + "/";
+                 }
+                 File files = new File(saveDirectory);
+      		     if (!files.exists()) {
+      		      files.mkdirs();
+      		    }
+                File dest=new File(files,fileName);
+                file.transferTo(dest);
+                //保存文件名文件路径
+                o.setFileUrl(fileName);
+                List<ProjectSettlementInfoBean> list = new ArrayList<ProjectSettlementInfoBean>();
+                service.update(o);		
+                Map<String,Object> map2=new HashMap<>();
+                Map<String,Object> map=new HashMap<>();
+                map.put("code",0);
+                map.put("msg","");
+                map.put("fileName",fileName);
+                map.put("data",map2);
+                map2.put("src","/images/"+ dateStr+"/"+fileName);
+                return map;
+            }
+
+        }catch (Exception e){
+        	logger.error(e.toString(),e);
+        }finally{
+            try {
+                if(out!=null){
+                    out.close();
+                }
+                if(fileInput!=null){
+                    fileInput.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("code",1);
+        map.put("msg","");
+        return map;
+    }
+	
+}

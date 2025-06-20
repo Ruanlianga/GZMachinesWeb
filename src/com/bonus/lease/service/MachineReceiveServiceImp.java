@@ -1,0 +1,57 @@
+package com.bonus.lease.service;
+
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.lease.beans.MachineReceiveBean;
+import com.bonus.lease.dao.MachineReceiveDao;
+import com.bonus.sys.BaseServiceImp;
+
+@Service("MachineReceiveService")
+public class MachineReceiveServiceImp extends BaseServiceImp<MachineReceiveBean>
+implements MachineReceiveService{
+
+	@Autowired
+	private MachineReceiveDao dao;
+
+	@Override
+	public List<MachineReceiveBean> findLeaseSheet(MachineReceiveBean o) {
+		// TODO Auto-generated method stub
+		return dao.findLeaseSheet(o);
+	}
+
+	@Override
+	public List<MachineReceiveBean> findTaskIdAndModelId(MachineReceiveBean o) {
+		// TODO Auto-generated method stub
+		return dao.findTaskIdAndModelId(o);
+	}
+	
+	@Override
+	public int saveMaterialRequisition(MachineReceiveBean o) {
+		// TODO Auto-generated method stub
+		return dao.saveMaterialRequisition(o);
+	}
+
+	@Override
+	public int saveMainTask(MachineReceiveBean o) {
+		// TODO Auto-generated method stub
+		return dao.saveMainTask(o);
+	}
+	
+	@Override
+	public int del(MachineReceiveBean o){
+		return dao.del(o);
+	}
+	
+	public List<MachineReceiveBean> findDetails(MachineReceiveBean o) {
+		return dao.findDetails(o);
+	}
+
+	@Override
+	public int updateConfirmStatus(String taskId) {
+		return dao.updateConfirmStatus(taskId);
+	}
+}

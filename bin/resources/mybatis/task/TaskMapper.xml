@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.task.dao.TaskDao" >
+    <resultMap id="task" type="com.bonus.task.beans.TaskBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.task.beans.TaskBean" resultMap="task">
+		SELECT bat.ID,bat.`NAME` FROM bm_area_type bat
+		WHERE 1 = 1
+		<if test="param.keyWord!= null">
+			AND bat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.task.beans.TaskBean" resultMap="task">
+ 	    SELECT bat.ID,bat.`NAME` FROM bm_area_type bat
+		WHERE bat.ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.task.beans.TaskBean" useGeneratedKeys="true" keyProperty="id">
+		insert into tm_task(code,name,type_id,status,creator,create_time,remark) 
+		values (#{code},#{name},#{type},#{status},#{creator},#{createTime},#{remark})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.task.beans.TaskBean">
+		update bm_area_type set 
+		NAME = #{name}
+		where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.task.beans.TaskBean">
+		delete from bm_area_type
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+ 	
+</mapper>

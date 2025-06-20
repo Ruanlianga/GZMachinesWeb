@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.CompanyDao" >
+
+    <select id="getCompany" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        select ID,`NAME` from bm_company where IS_ACTIVE=1
+    </select>
+    
+    <select id="getCompanyType" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        select ID,`NAME` from bm_company_type where IS_ACTIVE=1
+    </select>
+    <delete id="delete" parameterType="com.bonus.bm.beans.CompanyBean">
+        update bm_unit set IS_ACTIVE =0 where id=#{id}
+    </delete>
+    
+    <select id="findByPage" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+		SELECT bmu.ID,bmu.COMPANY_ID as companyId,bmc.`NAME` as companyName,
+		bmu.TYPE_ID as typeId,bmt.`NAME` as typeName,
+		bmu.`NAME` as name,bmu.MATERIAL_CLERK as materialClerk,bmu.MANAGER as manager,
+		bmu.PHONE as phone,bmu.IS_DISMISS as isDismiss
+		 from bm_unit bmu
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_company_type bmt on bmt.ID = bmu.TYPE_ID
+		where  1=1 
+		<if test="param.isDis !=null">
+		   and bmu.IS_ACTIVE=#{param.isDis}
+		</if>
+		<if test="param.typeId !=0">
+		   and bmu.TYPE_ID =#{param.typeId}
+		</if>
+		<if test="param.companyId !=0">
+		   and bmu.COMPANY_ID=#{param.companyId}
+		</if> 
+		<if test="param.keyWord !=null">
+		   and ( 
+		   bmu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmu.MATERIAL_CLERK LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmu.MANAGER LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   bmu.PHONE LIKE CONCAT('%',#{param.keyWord},'%') 
+			)
+		</if> 
+		ORDER BY bmu.TIME DESC      
+    </select>
+    
+    <insert id="insert" parameterType="com.bonus.bm.beans.CompanyBean"> 
+       insert into bm_unit
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+        	<if test="name !=null">
+        	    NAME,
+        	</if>
+        	<if test="typeId1 !=null">
+        	    TYPE_ID,
+        	</if>
+        	<if test="companyId1 !=null">
+        	    COMPANY_ID,
+        	</if>
+        	<if test="materialClerk !=null">
+        	    MATERIAL_CLERK,
+        	</if>
+        	<if test="manager !=null">
+        	    MANAGER,
+        	</if>
+        	<if test="phone !=null">
+        	    PHONE,
+        	</if>
+        	<if test="isDismiss !=null">
+        	    IS_DISMISS,
+        	</if>
+        	TIME,
+        </trim>
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+        	<if test="name !=null">
+        	    #{name},
+        	</if>
+        	<if test="typeId1 !=null">
+        	    #{typeId1},
+        	</if>
+        	<if test="companyId1 !=null">
+        	   #{companyId1},
+        	</if>
+        	<if test="materialClerk !=null">
+        	    #{materialClerk},
+        	</if>
+        	<if test="manager !=null">
+        	    #{manager},
+        	</if>
+        	<if test="phone !=null">
+        	    #{phone},
+        	</if>
+        	<if test="isDismiss !=null">
+        	    #{isDismiss},
+        	</if>
+        	NOW(),
+        </trim>
+    </insert>
+    
+    <select id="find" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        SELECT bmu.ID,bmu.COMPANY_ID as companyId,bmc.`NAME` as companyName,
+		bmu.TYPE_ID as typeId,bmt.`NAME` as typeName,
+		bmu.`NAME` as name,bmu.MATERIAL_CLERK as materialClerk,bmu.MANAGER as manager,
+		bmu.PHONE as phone,bmu.IS_DISMISS as isDismiss
+		 from bm_unit bmu
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_company_type bmt on bmt.ID = bmu.TYPE_ID
+		where bmu.IS_ACTIVE=1
+		and bmu.ID=#{id}
+    </select>
+
+    <update id="update" parameterType="com.bonus.bm.beans.CompanyBean">
+       update bm_unit
+        <set>
+             <if test="name !=null">
+        	    NAME =#{name},
+        	</if>
+        	<if test="typeId1 !=null">
+        	    TYPE_ID =#{typeId1},
+        	</if>
+        	<if test="companyId1 !=null">
+        	    COMPANY_ID =#{companyId1},
+        	</if>
+        	<if test="materialClerk !=null">
+        	    MATERIAL_CLERK =#{materialClerk},
+        	</if>
+        	<if test="manager !=null">
+        	    MANAGER =#{manager},
+        	</if>
+        	<if test="phone !=null">
+        	    PHONE =#{phone},
+        	</if>
+        	<if test="isDismiss !=null">
+        	    IS_DISMISS =#{isDismiss},
+        	</if>
+        </set>
+        where id=#{id}
+    </update>
+    
+</mapper>

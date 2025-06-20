@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.AreaTypeDao" >
+    <resultMap id="areaType" type="com.bonus.bm.beans.AreaTypeBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.bm.beans.AreaTypeBean" resultMap="areaType">
+		SELECT bat.ID,bat.`NAME` FROM bm_area_type bat
+		WHERE 1 = 1
+		<if test="param.keyWord!= null">
+			AND bat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.bm.beans.AreaTypeBean" resultMap="areaType">
+ 	    SELECT bat.ID,bat.`NAME` FROM bm_area_type bat
+		WHERE bat.ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.bm.beans.AreaTypeBean">
+		insert into bm_area_type(name) values (#{name})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.bm.beans.AreaTypeBean">
+		update bm_area_type set 
+		NAME = #{name}
+		where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.bm.beans.AreaTypeBean">
+		delete from bm_area_type
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findAreaType" parameterType="com.bonus.bm.beans.AreaTypeBean" resultMap="areaType">
+		SELECT ID,NAME FROM bm_area_type
+ 	</select>
+
+ 	
+<!--  		<select id="findma" parameterType="com.bonus.bm.beans.AreaTypeBean" resultType="com.bonus.bm.beans.AreaTypeBean" >
+SELECT  DISTINCT ma.TYPE_ID  as maid, mt.NAME as mtname FROM   ma_model ma
+LEFT JOIN ma_type mt on mt.id=ma.TYPE_ID
+ 	</select>
+ 	<select id="findmt" parameterType="com.bonus.bm.beans.AreaTypeBean" resultType="com.bonus.bm.beans.AreaTypeBean" >
+SELECT  NAME as maname  FROM  ma_model where  TYPE_ID = #{mtid}
+ 	</select> -->
+ 	
+ 	
+ 	
+ 	<select id="orgTree" resultType="com.bonus.sys.beans.ZNode">
+	SELECT  id ,name,PARENT_ID as pid  FROM  ma_type
+	</select>
+ 	
+ 	
+ 	
+</mapper>

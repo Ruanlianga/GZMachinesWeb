@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.InventoryRecordDao">
+
+	<resultMap id="inventoryRecord" type="com.bonus.ma.beans.InventoryRecordBean"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.InventoryRecordBean"
+		resultMap="inventoryRecord">
+		SELECT
+			wfr.id,
+			wfr.MODEL_ID AS modelId,
+			wfr.INVENTORY_TYPE AS inventoryType,
+			wfr.INVENTORY_PERSON AS inventoryPerson,
+			wfr.INVENTORY_TIME AS inventoryTime,
+			wfr.INVENTORY_NUM AS inventoryNum,
+			wfr.remark,
+			mta.id AS maModelId,
+			mtb.`NAME` AS maTypeName,
+			mta.`NAME` AS maModelName,
+			pmo.name as companyName,
+			mta.unit
+		FROM
+			wf_inventory_record wfr
+			LEFT JOIN mm_type mta ON wfr.MODEL_ID = mta.ID
+			LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID
+			LEFT JOIN pm_organization pmo ON pmo.id = wfr.ORG_ID
+		WHERE
+	        1 = 1
+	    <if test="param.orgId != 1 and param.orgId != '1'">
+			and wfr.org_id=#{param.orgId}
+		</if>
+	    <if test="param.keyWord != null and param.keyWord != ''">
+			AND(
+				wfr.INVENTORY_PERSON LIKE CONCAT('%',#{param.keyWord},'%') OR
+				pmo.name LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wfr.INVENTORY_TIME LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mtb.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wfr.INVENTORY_TYPE LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mta.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mta.unit LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+	    	ORDER BY 	wfr.INVENTORY_TIME desc
+	 </select>
+	 
+	  <insert id="insert" parameterType="com.bonus.ma.beans.InventoryRecordBean" keyProperty="id" useGeneratedKeys="true"> 
+        INSERT into wf_inventory_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id !=null">
+                ID,
+            </if>
+            <if test="orgId !=null">
+                ORG_ID,
+            </if>
+            <if test="modelId !=null">
+                MODEL_ID,
+            </if>
+            <if test="inventoryPerson !=null">
+                INVENTORY_PERSON,
+            </if>
+            
+            <if test="inventoryTime !=null">
+                INVENTORY_TIME,
+            </if>
+            
+             <if test="inventoryType !=null">
+                INVENTORY_TYPE,
+            </if>
+            <if test="inventoryNum !=null">
+                INVENTORY_NUM,
+            </if>
+            
+             <if test="remark !=null">
+                REMARK
+            </if>
+  
+        </trim>
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+             <if test="id !=null">
+                 #{id},
+            </if>
+            <if test="orgId !=null">
+                 #{orgId},
+            </if>
+             <if test="modelId !=null">
+                 #{modelId},
+            </if>
+               <if test="inventoryPerson !=null">
+                 #{inventoryPerson},
+            </if>
+            <if test="inventoryTime !=null">
+                 #{inventoryTime},
+            </if>
+            <if test="inventoryType != null and inventoryType != ''">
+                 #{inventoryType},
+            </if>
+             <if test="inventoryNum != null and inventoryNum != ''">
+                 #{inventoryNum},
+            </if>
+             <if test="remark !=null">
+                 #{remark}
+            </if>
+          
+        </trim>
+    </insert>
+
+	 
+</mapper>

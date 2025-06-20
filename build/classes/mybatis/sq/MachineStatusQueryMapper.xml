@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sq.dao.MachineStatusQueryDao" >
+    <resultMap id="machinequery" type="com.bonus.sq.beans.MachineStatusQueryBean"></resultMap>
+ 	
+ 	<select id="machineStatusQuery" parameterType="com.bonus.sq.beans.MachineStatusQueryBean" resultMap="machinequery">
+ SELECT DISTINCT pMachineName,
+	machineName,
+	machineModel,
+	typeId,
+	ROUND(buyPrice) as buyPrice,
+	ROUND(if(SUM(storageNum) is null,0,SUM(storageNum)))  AS storageNum,
+	ROUND(sum(leaseNum)) as leaseNum,
+	ROUND(SUM(repairNum)) repairNum,
+	ROUND(SUM(checkNum)) checkNum,
+	ROUND(SUM(scrapNum)) scrapNum,
+	ROUND(SUM(loseNum)) loseNum,
+	ROUND(sum(waitInputNum)) as waitInputNum,
+	isCount,
+	ROUND(if(SUM(storageNum) is null,0,SUM(storageNum)))+ROUND(sum(leaseNum))+ROUND(SUM(repairNum))  + ROUND(SUM(checkNum))  +ROUND(SUM(waitInputNum))  -ROUND(SUM(loseNum)) AS totalStorageNum
+	 FROM (
+			SELECT 	DISTINCT mat3.`NAME` as pMachineName,mat2.`NAME` as machineName,mat1.`NAME` as machineModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,mat1.NUM storageNum,
+					0 leaseNum,0 repairNum,0 checkNum,0 scrapNum,0 loseNum,0 waitInputNum,1 as isCount
+			FROM mm_type mat1
+			LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+			LEFT JOIN mm_type mat3 on mat3.ID = mat2.PARENT_ID
+			WHERE mat1.IS_COUNT = 1 and  mat1.`LEVEL` = 4 and mat1.IS_ACTIVE = '1'
+      GROUP BY mat1.ID
+     UNION
+			SELECT 	DISTINCT pMachineName,machineName,machineModel,typeId,buyPrice,0 storageNum,sum(leaseNum) - SUM(backNum) leaseNum,0 repairNum,0 checkNum,0 scrapNum,0 loseNum,0 waitInputNum,1 as isCount
+			  FROM (
+			SELECT 	mmt1.`NAME` as pMachineName,mmt.`NAME` as machineName,
+							mt.`NAME` as machineModel,
+							mt.ID as typeId,
+							mt.BUY_PRICE as buyPrice,
+							mt.UNIT,SUM(wir.NUM) as leaseNum,
+							0 as backNum,mt.IS_COUNT AS isCount
+							FROM wf_info_record wir 
+LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+		LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID and wcd.MODEL_ID = wir.MODEL_ID
+		WHERE wir.TYPE = 2 AND mt.IS_COUNT = 1 and wtr2.IS_ACTIVE = 1 and wcd.IS_APPROVAL = 1 
+		GROUP BY mt.ID
+		UNION
+				SELECT 
+				mmt1.`NAME` as pMachineName,
+				mmt.`NAME` as machineName,
+							mt.`NAME` as machineModel,
+							mt.ID as typeId,
+							mt.BUY_PRICE as buyPrice,
+							mt.UNIT,0 as leaseNum,
+	          	SUM(wir.NUM) as backNum,mt.IS_COUNT AS isCount
+		FROM wf_info_record wir 
+        LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+		LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+		WHERE wir.TYPE = 4 AND mt.IS_COUNT = 1 and wtr.IS_ACTIVE = 1
+		GROUP BY mt.ID
+				  ) a
+	      GROUP BY typeId
+    UNION
+			SELECT DISTINCT
+	mat3.`NAME` AS pMachineName,
+	mat2.`NAME` AS machineName,
+	mat1.`NAME` AS machineModel,
+	mat1.ID AS typeId,
+	mat1.BUY_PRICE AS buyPrice,
+	0 storageNum,
+	0 leaseNum,
+	SUM( wrd.REPAIR_NUM ) -  SUM( wrd.ALREPAIR_NUM ) - SUM(SCRAP_NUM) as repairNum,
+	0 checkNum,
+	0 scrapNum,
+	0 loseNum,
+	0 waitInputNum,
+	1 AS isCount 
+FROM
+	wf_repair_details wrd
+	LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+	LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+	LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+WHERE
+
+ mat1.IS_COUNT = 1 
+GROUP BY
+	wrd.MODEL_ID
+		UNION
+SELECT DISTINCT
+	mat3.`NAME` AS pMachineName,
+	mat2.`NAME` AS machineName,
+	mat1.`NAME` AS machineModel,
+	mat1.ID AS typeId,
+	mat1.BUY_PRICE AS buyPrice,
+	0 storageNum,
+	0 leaseNum,
+	0 repairNum,
+	SUM( wrc.CHECK_NUM ) -  SUM( wrc.ALCHECK_NUM )  as checkNum,
+	0 scrapNum,
+	0 loseNum,
+	0 waitInputNum,
+	1 AS isCount 
+FROM
+	wf_repair_check wrc
+	LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+	LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+	LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+WHERE
+
+ mat1.IS_COUNT = 1 
+GROUP BY
+	wrc.MODEL_ID
+	
+ 	UNION
+			SELECT DISTINCT mat3.`NAME` as pMachineName,mat2.`NAME` as machineName,mat1.`NAME` as machineModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,0 storageNum,
+							0 leaseNum,0 repairNum,0 checkNum,SUM(wsd.ALSCRAP_NUM) scrapNum ,0 loseNum,0 waitInputNum,1 as isCount
+			FROM wf_scrap_details wsd
+			LEFT JOIN mm_type mat1 on wsd.MODEL_ID = mat1.ID
+			LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+			LEFT JOIN mm_type mat3 on mat3.ID = mat2.PARENT_ID
+			where wsd.IS_SURE = 1 AND mat1.IS_COUNT = 1
+			GROUP BY wsd.MODEL_ID
+		UNION
+			SELECT DISTINCT mat3.`NAME` as pMachineName,mat2.`NAME` as machineName,mat1.`NAME` as machineModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,0 storageNum,
+							0 leaseNum,0 repairNum,0 checkNum,0 as scrapNum,0 loseNum,SUM(IFNULL(PRE_PUT_NUM,0)) - sum(IFNULL(AL_PUT_NUM,0)) as waitInputNum ,1 as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mat1 on wpd.MODEL_ID = mat1.ID
+			LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+			LEFT JOIN mm_type mat3 on mat3.ID = mat2.PARENT_ID
+			where wpd.IS_SURE = 0 
+			GROUP BY wpd.MODEL_ID
+ 	UNION
+		SELECT DISTINCT mat3.`NAME` as pMachineName,mat2.`NAME` as machineName,mat1.`NAME` as machineModel,mat1.ID as typeId,mat1.BUY_PRICE as buyPrice,0 storageNum,
+									0 leaseNum,0 repairNum,0 checkNum,0 scrapNum ,SUM(wsdd.NUM) AS loseNum,0 waitInputNum,mat1.IS_COUNT as isCount
+			from wf_settlement_details wsdd
+			LEFT JOIN mm_type mat1 on wsdd.MA_TYPE_ID = mat1.ID
+			LEFT JOIN mm_type mat2 on mat2.ID = mat1.PARENT_ID
+			LEFT JOIN mm_type mat3 on mat3.ID = mat2.PARENT_ID
+			WHERE wsdd.IS_SETTLEMENT = 0 AND wsdd.TYPE = 2 
+			GROUP BY wsdd.MA_TYPE_ID 
+		 ) res 
+		where machineName is not null 
+		<if test="machineName !='' and machineName !=null">
+		    and machineName like concat('%',#{machineName},'%')
+		</if>
+		<if test="machineModel !='' and machineModel !=null">
+		    and machineModel like concat('%',#{machineModel},'%')
+		</if>
+		<if test="keyWord !='' and keyWord !=null">
+		    and (
+		    	machineName like concat('%',#{keyWord},'%') or
+		    	machineModel like concat('%',#{keyWord},'%') or
+		    	pMachineName like concat('%',#{keyWord},'%')
+		    ) 
+		</if>
+    	GROUP BY typeId
+		order by isCount,machineName
+ 	</select>
+
+	<select id="findTypeId" parameterType="com.bonus.sq.beans.MachineStatusQueryBean" resultMap="machinequery">
+		SELECT type_id as typeId, user_id as userId from ma_type_collect where user_id = #{userId}
+	</select>
+
+	<insert id="addCollect">
+		insert into ma_type_collect(type_id,user_id) values(#{typeId},#{userId})
+	</insert>
+
+	<delete id="removeCollect">
+		delete from ma_type_collect where type_id = #{typeId} and user_id = #{userId}
+	</delete>
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.VenderDao" >
+    <resultMap id="vender" type="com.bonus.ma.beans.VenderBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.VenderBean" resultMap="vender">
+		SELECT ID,`NAME`,ADDRESS,COMPANY_MAN as companyMan,
+		MAIN_PERSON as mainPerson,PHONE,SCOPE_BUSINESS as scopeBusiness,
+		NOTES,PIC_URL as picUrl
+		FROM ma_vender
+		WHERE 1 = 1
+		<if test="param.keyWord!= null">
+			AND (
+				`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR ADDRESS LIKE CONCAT('%',#{param.keyWord},'%')
+				OR COMPANY_MAN LIKE CONCAT('%',#{param.keyWord},'%')
+				OR MAIN_PERSON LIKE CONCAT('%',#{param.keyWord},'%')
+				OR PHONE LIKE CONCAT('%',#{param.keyWord},'%')
+				OR SCOPE_BUSINESS LIKE CONCAT('%',#{param.keyWord},'%')
+				OR NOTES LIKE CONCAT('%',#{param.keyWord},'%')
+				OR PIC_URL LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.ma.beans.VenderBean" resultMap="vender">
+ 	    SELECT ID,`NAME`,ADDRESS,COMPANY_MAN as companyMan,
+		MAIN_PERSON as mainPerson,PHONE,SCOPE_BUSINESS as scopeBusiness,
+		NOTES,PIC_URL as picUrl
+		FROM ma_vender
+		WHERE ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.ma.beans.VenderBean">
+		insert into ma_vender
+		(NAME,ADDRESS,COMPANY_MAN,MAIN_PERSON,PHONE,SCOPE_BUSINESS,NOTES,PIC_URL) 
+		values (#{name},#{address},#{companyMan},#{mainPerson},#{phone},#{scopeBusiness},#{notes},#{picUrl})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.ma.beans.VenderBean">
+		update ma_vender set 
+		NAME = #{name},
+		ADDRESS = #{address},
+		COMPANY_MAN = #{companyMan},
+		MAIN_PERSON = #{mainPerson},
+		PHONE = #{phone},
+		SCOPE_BUSINESS = #{scopeBusiness},
+		NOTES = #{notes},
+		PIC_URL = #{picUrl}
+		where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.ma.beans.VenderBean">
+		delete from ma_vender
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM ma_vender WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findVender" parameterType="com.bonus.ma.beans.VenderBean" resultMap="vender">
+		SELECT ID,NAME FROM ma_vender
+ 	</select>
+ 	
+</mapper>

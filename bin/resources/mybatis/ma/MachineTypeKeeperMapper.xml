@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineTypeKeeperDao" >
+  	<resultMap id="BaseResultMap" type="com.bonus.ma.beans.MachineTypeKeeperBean" >
+	    <id column="ID" property="id" jdbcType="INTEGER" />
+	    <result column="NAME" property="name" jdbcType="VARCHAR" />
+	    <result column="IS_ACTIVE" property="isActive" jdbcType="CHAR" />
+  	</resultMap>
+  	<select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+	    select ID,NAME,IS_ACTIVE 
+	    from pm_role
+	    where ID = #{id,jdbcType=INTEGER}
+	</select>
+  
+  	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+  
+  	<select id="getMachineTypeKeeperBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,'0' as pId FROM pm_user WHERE IS_ACTIVE = '1' and POST_ID = 2
+  	</select>
+  
+  	<delete id="deleteByPrimaryKey" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean" >
+	    delete from pm_user
+	    where ID = #{id,jdbcType=INTEGER}
+  	</delete>
+  	<insert id="insertBean" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean" >
+	    insert into pm_user (ID, NAME, IS_ACTIVE
+	      )
+	    values (#{id,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, "1"
+	      )
+	    <selectKey resultType="int" keyProperty="id" >
+	      	SELECT last_insert_id() as ID;
+	    </selectKey>
+  	</insert>
+  	<insert id="insertSelective" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean" >
+    	insert into pm_user
+	    <trim prefix="(" suffix=")" suffixOverrides="," >
+	      	<if test="id != null" >
+	       		ID,
+	      	</if>
+	      	<if test="name != null" >
+	        	NAME,
+	      	</if>
+	      	<if test="isActive != null" >
+	        	IS_ACTIVE,
+	      	</if>
+	    </trim>
+	    <trim prefix="values (" suffix=")" suffixOverrides="," >
+	      	<if test="id != null" >
+	        	#{id,jdbcType=INTEGER},
+	      	</if>
+	      	<if test="name != null" >
+	        	#{name,jdbcType=VARCHAR},
+	      	</if>
+	      	<if test="isActive != null" >
+	        	#{isActive,jdbcType=CHAR},
+	      	</if>
+	    </trim>
+  	</insert>
+  	<update id="updateByPrimaryKeySelective" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean" >
+	    update pm_user
+	    <set >
+	      	<if test="name != null" >
+	        	NAME = #{name,jdbcType=VARCHAR},
+	      	</if>
+	      	<if test="isActive != null" >
+	        	IS_ACTIVE = #{isActive,jdbcType=CHAR},
+	      	</if>
+	    </set>
+	    where ID = #{id,jdbcType=INTEGER}
+  	</update>
+  	<update id="updateByPrimaryKey" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean" >
+	    update pm_user
+	    set NAME = #{name,jdbcType=VARCHAR},
+	    IS_ACTIVE = #{isActive,jdbcType=CHAR}
+	    where ID = #{id,jdbcType=INTEGER}
+  	</update>
+  
+  	<select id="findAllByKeeper" resultType="com.bonus.ma.beans.MachineTypeBean"
+		parameterType="com.bonus.sys.beans.UserBean">
+		SELECT 	DISTINCT mat.ID,mat.`NAME`,mat2.`NAME` as parentName,mat3.`NAME` as secondName,
+				mat4.`NAME` as firstName,if(mkt.TYPE_ID > 0,1,0) as isActive
+		FROM ma_type mat 
+		LEFT JOIN ma_type mat2 on mat2.ID = mat.PARENT_ID 
+		LEFT JOIN ma_type mat3 on mat3.ID = mat2.PARENT_ID 
+		LEFT JOIN ma_type mat4 on mat4.ID = mat3.PARENT_ID 
+		LEFT JOIN ma_keeper_type mkt on mat.id = mkt.TYPE_ID and mkt.USER_ID=#{roleId}
+		where mat.IS_ACTIVE='1' and mat4.`NAME` is not NULL
+		<if test="keyWord!= null">
+			AND (mat.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR mat2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR mat3.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			OR mat4.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+			)
+		</if>
+	</select>
+	
+	<delete id="deleteKeeperType">
+		delete from
+		ma_keeper_type
+		where USER_ID = #{userId}
+	</delete>
+	
+	<insert id="insertKeeperType" parameterType="com.bonus.ma.beans.MachineTypeKeeperBean">
+		insert into ma_keeper_type 
+		(USER_ID,TYPE_ID) 
+		values
+		(#{id},#{typeId})
+	</insert>
+</mapper>

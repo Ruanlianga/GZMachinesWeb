@@ -1,0 +1,311 @@
+package com.bonus.lease.controller;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.bonus.lease.beans.OutStorageBean;
+import com.bonus.lease.service.OutStorageService;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseController;
+import com.bonus.sys.GlobalConst;
+import com.bonus.sys.Page;
+import com.bonus.sys.UserShiroHelper;
+
+@Controller
+@RequestMapping("/backstage/out/")
+public class OutStorageController extends BaseController<OutStorageBean> {
+
+	@Autowired
+	private OutStorageService service;
+
+	@RequestMapping("list")
+	public String index(Model model) {
+		return "/lease/outStorageAuditinglist";
+	}
+
+	@RequestMapping("isBackApproval")
+	public String isBackApproval(Model model) {
+		return "/lease/outBackStorageApprovallist";
+	}
+	
+	@RequestMapping("isApproval")
+	public String isApproval(Model model) {
+		return "/lease/outStorageApprovallist";
+	}
+
+	@RequestMapping(value = "findByPage", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findByPage(Page<OutStorageBean> page, OutStorageBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			Page<OutStorageBean> result = service.findByPage(o, page);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", result);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "findApproval", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findApproval(Page<OutStorageBean> page, OutStorageBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			Page<OutStorageBean> result = service.findApproval(o, page);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", result);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "findBackApproval", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findBackApproval(Page<OutStorageBean> page, OutStorageBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			Page<OutStorageBean> result = service.findBackApproval(o, page);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", result);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	/**
+	 * 批准
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping(value = "isApproval", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes isApproval(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			res = service.isApproval(o);
+			if (res == "1") {
+				ar.setSucceedMsg("审批成功");
+			} else {
+				ar.setFailMsg("审批失败");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+
+	/***
+	 * 批量退料审核
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("batchAuditApproval")
+	@ResponseBody
+	public AjaxRes batchAuditApproval(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			String allId = o.getIds();
+			String[] ids = allId.split("-");
+			for (String id : ids) {
+				String[] idss = id.split(",");
+				o.setTaskId(idss[0]);
+				o.setMaModelId(idss[1]);
+				o.setOutNum(idss[2]);
+				o.setLeaseProjectId(Integer.valueOf(idss[3]));
+				o.setPlanOutId(Integer.valueOf(idss[4]));
+				res = service.isApproval(o);
+				if (res == "1") {
+					ar.setSucceedMsg("审核成功");
+				} else {
+					ar.setFailMsg("审核失败");
+				}
+			}
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+
+	/***
+	 * 批量退料审核
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("batchAudit")
+	@ResponseBody
+	public AjaxRes batchAudit(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			String allId = o.getIds();
+			String[] ids = allId.split("-");
+			for (String id : ids) {
+				String[] idss = id.split(",");
+				o.setTaskId(idss[0]);
+				o.setMaModelId(idss[1]);
+				res = service.isExamine(o);
+				if (res == "1") {
+					ar.setSucceedMsg("审核成功");
+				} else {
+					ar.setFailMsg("审核失败");
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+
+	/***
+	 * 审核
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping(value = "isExamine", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes isExamine(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			res = service.isExamine(o);
+			if (res == "1") {
+				ar.setSucceedMsg("审核成功");
+			} else {
+				ar.setFailMsg("审核失败");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+	/***
+	 * 审核驳回
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping(value = "rejectExamine", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes rejectExamine(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			res = service.rejectExamine(o);
+			if (res == "1") {
+				ar.setSucceedMsg("审核驳回成功");
+			} else {
+				ar.setFailMsg("审核驳回失败");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+	/***
+	 * 批准驳回
+	 * 
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping(value = "rejectApproval", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes rejectApproval(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			res = service.rejectApproval(o);
+			if (res == "1") {
+				ar.setSucceedMsg("批准驳回成功");
+			} else {
+				ar.setFailMsg("批准驳回失败");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+	
+	
+	
+	/**
+	 * 领料出库退回-批量退回
+	 * @param o
+	 * @return
+	 */
+	@RequestMapping("batchBackAuditApproval")
+	@ResponseBody
+	public AjaxRes batchBackAuditApproval(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			String allId = o.getIds();
+			String[] ids = allId.split("-");
+			for (String id : ids) {
+				String[] idss = id.split(",");
+				o.setTaskId(idss[0]);
+				o.setMaModelId(idss[1]);
+				o.setOutNum(idss[2]);
+				res = service.isBackApproval(o);
+				if (res == "1") {
+					ar.setSucceedMsg("退回成功");
+				} else {
+					ar.setFailMsg("退回失败");
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+	
+	
+	/**
+	 * 退回
+	 */
+	@RequestMapping(value = "backData", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes backData(OutStorageBean o) {
+		String res = "";
+		AjaxRes ar = getAjaxRes();
+		try {
+			res = service.isBackApproval(o);
+			if (res == "1") {
+				ar.setSucceedMsg("退回成功");
+			} else {
+				ar.setFailMsg("退回失败");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+		}
+		return ar;
+	}
+}

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.NewInputDao" >
+
+    <resultMap id="new" type="com.bonus.newInput.beans.NewInputBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+		SELECT 	wta.ID as id, wta.LAUNCH_TIME AS launchTime,pu.`NAME` AS receiveName,
+				pu1.`NAME` AS launchName,if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS maType,wta.REMARK AS remark,
+				wta.FINISH_TIME AS finishTime,wta.TASK_STATUS AS taskStatus,
+				wta.TASK_ID as taskId,wtr.IS_FINISH as isFinish,wnd.IS_EXAMINE as isExamine
+		FROM wf_task_appoint wta
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wta.TASK_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wta.RECEIVE
+		LEFT JOIN pm_user pu1 ON pu1.ID = wta.LAUNCH_USER
+		WHERE wtr.DEFINITION_ID = '12' AND wta.IS_ACTIVE = '1' 
+		AND left(wta.LAUNCH_TIME,10) between #{param.startTime} and #{param.endTime} 
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND( 
+				pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR pu1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR wta.REMARK LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		<if test="param.isSure != '-1'">
+			AND wta.IS_SURE = #{param.isSure}
+		</if>
+		<if test='t.companyId != "1"'>
+			and wtr.org_id = #{t.companyId}
+		</if>
+		GROUP BY wta.TASK_ID
+		order by wta.LAUNCH_TIME desc
+ 	</select>
+ 	
+ 	<select id="findIsExamine" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+		SELECT wnd.ID AS id,SUM(wir.NUM) AS nums,wnd.IS_APPROVAL AS isApproval,
+		wnd.IS_EXAMINE AS isExamine,mt.`NAME` AS maModel,mtt.`NAME` AS maType,
+		pu.`NAME` AS checker,puu.`NAME` AS customerRep,wnd.QUALIFIED_NUM AS checkNum
+		FROM wf_new_details wnd
+		LEFT JOIN wf_task_appoint wta ON wta.TASK_ID = wnd.TASK_ID
+		LEFT JOIN wf_info_record wir ON wir.SUP_ID = wnd.TASK_ID AND wnd.MODEL_ID = wir.MODEL_ID
+		LEFT JOIN pm_user pu on pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user puu ON puu.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN ma_org_relation mor on mor.TYPE_ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mt ON mt.ID = mor.TYPE_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wir.NUM IS NOT NULL AND wta.IS_ACTIVE = 1
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND( 
+				pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR puu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		<if test='t.companyId != "1"'>
+			and mor.ORG_ID = #{t.companyId}
+		</if>
+		GROUP BY wnd.MODEL_ID,wnd.TASK_ID 
+		ORDER BY wnd.IS_EXAMINE 
+ 	</select>
+ 	
+ 	
+ 	<select id="newPurchaseReceipt" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+    	SELECT
+			wnd.TASK_ID AS taskId,
+			wnd.ID AS id,
+			mtt.`NAME` AS machineType,
+			mt.`NAME` AS machineModel,
+			wnd.ARRIVAL_NUM AS arrivalNum,
+			wnd.MODEL_ID AS maModelId,
+			mt.unit,
+			pu.`NAME` AS checker,
+			wnd.ACTUAL_PRICE AS buyPrice,
+			mv.`NAME` AS venderName
+		FROM
+			wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER
+		WHERE
+			wnd.TASK_ID = #{id}
+		AND 
+		    wnd.IS_ACTIVE = '1'
+ 	</select>
+ 	
+ 	
+ 	<select id="findIsApproval" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+		SELECT wnd.ID AS id,SUM(wir.NUM) AS nums,wnd.IS_APPROVAL AS isApproval,
+		wnd.IS_EXAMINE AS isExamine,mt.`NAME` AS maModel,mtt.`NAME` AS maType,
+		pu.`NAME` AS checker,puu.`NAME` AS customerRep,wnd.QUALIFIED_NUM AS checkNum,
+		wnd.MODEL_ID as maModelId,wnd.TASK_ID as taskId
+		FROM wf_new_details wnd
+		LEFT JOIN wf_task_appoint wta ON wta.TASK_ID = wnd.TASK_ID
+		LEFT JOIN wf_info_record wir ON wir.SUP_ID = wnd.TASK_ID AND wnd.MODEL_ID = wir.MODEL_ID
+		LEFT JOIN pm_user pu on pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user puu ON puu.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN ma_org_relation mor on mor.TYPE_ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mt ON mt.ID = mor.TYPE_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wir.NUM IS NOT NULL AND wnd.IS_EXAMINE = 1 AND wta.IS_ACTIVE = 1
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND( 
+				pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR puu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		<if test='t.companyId != "1"'>
+			and mor.ORG_ID = #{t.companyId}
+		</if>
+		GROUP BY wnd.MODEL_ID,wnd.TASK_ID
+		ORDER BY wnd.IS_APPROVAL
+ 	</select>
+ 	
+	<select id="find" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+	    SELECT wta.ID as id, wta.LAUNCH_TIME AS launchTime,pu.`NAME` AS receiveName,
+		pu1.`NAME` AS launchName,mtt.`NAME` AS maType,wta.REMARK AS remark,
+		wta.FINISH_TIME AS finishTime,wta.TASK_STATUS AS taskStatus,
+		wta.TASK_ID as taskId,wta.RECEIVE AS receiveId
+		FROM wf_task_appoint wta
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wta.TASK_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_new_details wnd ON wnd.ID = wta.TASK_ID
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wta.RECEIVE
+		LEFT JOIN pm_user pu1 ON pu1.ID = wta.LAUNCH_USER
+		WHERE wtr.DEFINITION_ID = '12' AND wta.IS_ACTIVE = '1' AND wta.TASK_ID = #{id}
+	</select>
+	
+	<select id="findTaskById" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+	   SELECT TASK_ID AS taskId
+		FROM wf_task_appoint 
+		WHERE ID = #{id}
+	</select>
+	
+	<select id="findCodeByModel" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+	   SELECT wir.`CODE` AS deviceCode
+		FROM wf_info_record wir
+		WHERE wir.MODEL_ID = #{maModelId} AND wir.SUP_ID = #{taskId}
+	</select> 
+	
+	<select id="findDetailsByTask" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+	   SELECT wnd.MODEL_ID AS maModelId,wnd.IS_APPROVAL AS isApproval,
+		wnd.IS_EXAMINE AS isExamine
+		FROM wf_new_details wnd
+		WHERE TASK_ID = #{taskId}
+	</select>
+	
+	<insert id="add" parameterType="com.bonus.newInput.beans.NewInputBean" 
+ 		useGeneratedKeys="true" keyProperty="batchId">
+		insert into wf_task_appoint
+		(TASK_ID,LAUNCH_TIME,FINISH_TIME,LAUNCH_USER,RECEIVE,REMARK,IS_ACTIVE,IS_SURE) 
+		values 
+		(#{taskId},#{launchTime},#{finishTime},#{launchId},#{receiveName},
+		#{remark},'1','0')
+	</insert>
+	
+	<update id="update" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_task_appoint 
+		  <set>
+             <if test="launchTime !=null">
+        	    LAUNCH_TIME =#{launchTime},
+        	</if>
+        	<if test="finishTime !=null">
+        	    FINISH_TIME =#{finishTime},
+        	</if>
+        	<if test="receiveName !=null">
+        	    RECEIVE =#{receiveName},
+        	</if>
+        	<if test="remark !=null">
+        	    REMARK =#{remark},
+        	</if>
+        </set>
+		where 	task_id = #{id}
+	</update>
+	
+	<update id="updateStatus" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_task_appoint set
+		TASK_STATUS = #{taskStatus}
+		where TASK_ID = #{taskId}
+	</update>
+	
+	<update id="isExamine" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_new_details set
+		IS_EXAMINE = #{isExamine}
+		where ID = #{id}
+	</update>
+	
+	<update id="isApproval" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_new_details set
+		IS_APPROVAL = #{isApproval}
+		where ID = #{id}
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_task_appoint set  
+		IS_ACTIVE = '0'
+		where TASK_ID = #{id}
+	</delete>
+	
+	<select id="findMaId" parameterType="com.bonus.newInput.beans.NewInputBean" 
+    	resultMap="new">
+	   SELECT MA_ID as maId
+		FROM mm_newinput 
+		WHERE TASK_ID = #{id}
+	</select>
+	
+	<delete id="deleteMachine" parameterType="com.bonus.newInput.beans.NewInputBean">
+		delete from mm_machines  
+		where ID = #{maId}
+	</delete>
+	
+	<delete id="delDetails" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update wf_new_details set IS_ACTIVE = '0'
+		where TASK_ID = #{id}
+	</delete>
+	
+</mapper>

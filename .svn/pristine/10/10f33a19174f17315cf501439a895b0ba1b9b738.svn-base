@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineRfidDao" >
+    <resultMap id="machine" type="com.bonus.ma.beans.MachineRfidBean"></resultMap>
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+    
+ 	    <select id="findByPage"  parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mbr.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mt.UNIT as deviceUnit ,
+			mbr.create_time as createTime ,
+			pu.`NAME` as creator,
+			po.`NAME` as companyName 
+			
+			FROM
+			ma_bind_record mbr
+			LEFT JOIN mm_machines mm on mbr.ma_id = mm.id
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN pm_user pu on mbr.creator = pu.id
+			LEFT JOIN pm_organization po on pu.COMPANY_ID = po.id 
+			where left(mbr.create_time,10) between #{param.startTime} and #{param.endTime}
+		<if test='param.companyId != "1"'>
+			and pu.COMPANY_ID = #{param.companyId}
+		</if>
+		<if test="param.deviceName !=null and param.deviceName !=''">
+		   and mt2.`NAME` LIKE CONCAT('%',#{param.deviceName},'%') 
+		</if> 
+		<if test="param.deviceModel !=null and param.deviceModel !=''">
+		   and mt.`NAME` LIKE CONCAT('%',#{param.deviceModel},'%') 
+		</if> 
+		<if test="param.keyWord !=null and param.keyWord !='' ">
+		   and (
+		   		mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+		   		mm.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%')
+		   ) 
+		</if> 
+	
+    </select>
+ 	 	
+ 	    <select id="getBaseList"  parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mbr.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mt.UNIT as deviceUnit ,
+			mbr.create_time as createTime ,
+			pu.`NAME` as creator,
+			po.`NAME` as companyName 
+			
+			FROM
+			ma_bind_record mbr
+			LEFT JOIN mm_machines mm on mbr.ma_id = mm.id
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN pm_user pu on mbr.creator = pu.id
+			LEFT JOIN pm_organization po on pu.COMPANY_ID = po.id 
+			where left(mbr.create_time,10) between #{startTime} and #{endTime}
+		<if test='companyId != "1"'>
+			and pu.COMPANY_ID = #{companyId}
+		</if>
+		<if test="deviceName !=null and deviceName!=''">
+		   and mt2.`NAME` LIKE CONCAT('%',#{deviceName},'%') 
+		</if> 
+		<if test="deviceModel !=null and deviceModel!='' ">
+		   and mt.`NAME` LIKE CONCAT('%',#{deviceModel},'%') 
+		</if> 
+		<if test="keyWord !=null and keyWord !='' ">
+		   and (
+		   		mt2.`NAME` LIKE CONCAT('%',#{keyWord},'%') OR
+		   		mm.DEVICE_CODE LIKE CONCAT('%',#{keyWord},'%')
+		   ) 
+		</if> 
+	 
+    </select>
+ 	 	
+ 	<select id="findMachineByCode" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   	SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mm.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel
+			FROM
+			mm_machines mm
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			where mm.DEVICE_CODE = #{deviceCode}
+		   <if test="maId !=null and maId !=''">
+				and mm.ID = #{maId}
+			</if>
+			
+ 	</select>
+ 	
+ 	<select id="findMachineByEpcCode" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   	SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mm.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel
+			FROM
+			mm_machines mm
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			where  mm.EPC_CODE = #{epcCode}
+		
+ 	</select>
+ 	
+ 	<select id="findListByEpcCode" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   	SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mm.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mm.batch_status as batchStatus,
+			IFNULL(mm.NEXT_CHECK_TIME,'暂无') as nextRepairTime,
+			to_days(ifnull(mm.NEXT_CHECK_TIME,now())) - to_days(now()) AS days
+			FROM
+			mm_machines mm
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			where  mm.epc_code = #{epcCode} and mm.TYPE  =#{typeId}
+			<if test="batchStatus !=null and batchStatus !='' and batchStatus !='null'">
+				and mm.batch_status = #{batchStatus}
+			</if>
+			
+		
+ 	</select>
+ 	
+ 	<select id="findMachineListByEpcCode" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   	SELECT
+			mm.ID as maId,
+			mm.TYPE as typeId,
+			mm.DEVICE_CODE as deviceCode,
+			mm.EPC_CODE as epcCode ,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mm.batch_status as batchStatus,
+			IFNULL(mm.NEXT_CHECK_TIME,'暂无') as nextRepairTime,
+			to_days(ifnull(mm.NEXT_CHECK_TIME,now())) - to_days(now()) AS days
+			FROM
+			mm_machines mm
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			where  mm.epc_code = #{epcCode} 
+		
+ 	</select>
+ 	
+ 	<insert id="insertRfidBind" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		INSERT into ma_bind_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="maId !=null">
+				ma_id,
+			</if>
+			<if test="deviceCode !=null">
+				device_code,
+			</if>
+			<if test="epcCode !=null">
+				epc_code,
+			</if>
+			<if test="creator !=null">
+				creator,
+			</if>
+			<if test="createTime !=null">
+				create_time
+			</if>
+			
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="maId !=null">
+				#{maId},
+			</if>
+			<if test="deviceCode !=null">
+				#{deviceCode},
+			</if>
+			<if test="epcCode !=null">
+				#{epcCode},
+			</if>
+			<if test="creator !=null">
+				#{creator},
+			</if>
+			<if test="createTime !=null">
+				#{createTime}
+			</if>
+			
+		</trim>
+	</insert>
+
+	<update id="updateMaEpcCode" parameterType="com.bonus.ma.beans.MachineRfidBean">
+		UPDATE mm_machines
+		<set>
+			<if test="epcCode != null">
+				epc_code = #{epcCode}
+			</if>
+		</set>
+		where id=#{maId}
+	</update>
+ 
+ 
+  	<select id="getAlOutNum" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT DISTINCT wmo.ID as id,wmo.TASK_ID as taskId,wmo.MODEL_ID as typeId,wmo.OUT_PERSON AS outPersonId,pu.`NAME` as outPerson,
+			mmt.`NAME` AS maType,mt.`NAME` AS maModel,wmo.PRE_COLLAR_NUM as preOutNum,wmo.ALREDY_COLLAR_NUM as alOutNum,mt.IS_COUNT as isCount,wmo.IS_SURE as isSure
+			FROM wf_ma_outstock wmo
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		where wmo.ID =#{id}
+ 	</select>
+ 	
+ 		<update id="updateAlOutNum" parameterType="com.bonus.ma.beans.MachineRfidBean">
+		update wf_ma_outstock
+        <set>
+            <if test="alOutNum != null">
+				ALREDY_COLLAR_NUM = #{alOutNum}
+			</if>
+        </set>
+       	where ID =#{id}
+	</update>
+	
+		<update id="updateMachineStatus" parameterType="com.bonus.ma.beans.MachineBean">
+	update mm_machines
+       <set>
+           <if test="batchStatus != null">
+             BATCH_STATUS = #{batchStatus},
+           </if>
+       </set>
+      	where ID = #{id} 
+    </update>
+    
+    <insert id="addOutRecord" parameterType="com.bonus.ma.beans.MachineRfidBean" >
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="outTime != null">
+				TIME,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="maId != null">
+				MA_ID,
+			</if>
+			<if test="thisOutNum != null">
+				NUM,
+			</if>
+			
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="outTime != null">
+				#{outTime},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="maId != null">
+				#{maId},
+			</if>
+			<if test="thisOutNum != null">
+				#{thisOutNum},
+			</if>
+			
+		</trim>
+	</insert>
+	
+		<select id="confirmOutTask" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT DISTINCT wmo.ID as id,wmo.TASK_ID as taskId,wmo.MODEL_ID as typeId,wmo.OUT_PERSON AS outPersonId,pu.`NAME` as outPerson,
+			mmt.`NAME` AS maType,mt.`NAME` AS maModel,wmo.PRE_COLLAR_NUM as preOutNum,wmo.ALREDY_COLLAR_NUM as alOutNum,mt.IS_COUNT as isCount,wmo.IS_SURE as isSure
+			FROM wf_ma_outstock wmo
+			LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+		where wmo.ID =#{id}
+ 	</select> 
+ 	
+ 	 	<update id="updateIsSure" parameterType="com.bonus.ma.beans.MachineRfidBean">
+		update wf_ma_outstock set IS_SURE = '1'
+       	where ID  = #{id}
+	</update>
+	
+	<select id="findIsSureInfo" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT wmo.TASK_ID AS taskId,wmo.IS_SURE AS isSure
+			FROM wf_ma_outstock wmo
+			WHERE wmo.TASK_ID = #{taskId} AND wmo.IS_SURE = '0'
+ 	</select>
+	<select id="getRfidDeviceInfo" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   SELECT mt.`NAME` AS deviceModel,mtt.`NAME` AS deviceName,
+			mm.DEVICE_CODE AS deviceCode,mm.BATCH_STATUS AS batchStatus
+			FROM mm_machines mm
+			LEFT JOIN mm_type mt ON mt.ID = mm.TYPE
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			WHERE mm.EPC_CODE = #{epcCode}
+ 	</select>
+ 	
+	<select id="getAlPutNum" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+ 	   SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId,wpd.MODEL_ID as typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,
+			ROUND(wpd.PRE_PUT_NUM) as prePutNum,ROUND(wpd.AL_PUT_NUM) as alPutNum,wpd.CUSTOMER_SERVICE_REP as userId,pu.`NAME` as creator,mt.IS_COUNT as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+        LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.ID=#{id}
+ 	</select>
+ 	
+	<update id="updateAlPutNum" parameterType="com.bonus.ma.beans.MachineRfidBean">
+		update wf_put_storage_details
+        set AL_PUT_NUM = #{alPutNum}
+       	where ID =#{id}
+	</update>
+	
+	<insert id="addPutRecord" parameterType="com.bonus.ma.beans.MachineRfidBean">
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="putTime != null">
+				TIME,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="thisPutNum != null">
+				NUM,
+			</if>
+			
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="putTime != null">
+				#{putTime},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="thisPutNum != null">
+				#{thisPutNum},
+			</if>
+		</trim>
+	</insert>
+	
+	<select id="confirmPutTask" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId,wpd.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			ROUND(wpd.PRE_PUT_NUM) as prePutNum,ROUND(wpd.AL_PUT_NUM) as alPutNum,wpd.CUSTOMER_SERVICE_REP as userId,pu.`NAME` as creator,mt.IS_COUNT as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+        LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.ID=#{id}
+ 	</select>
+ 	
+	<update id="updatePutIsSure" parameterType="com.bonus.ma.beans.MachineRfidBean">
+	    update wf_put_storage_details
+        set IS_SURE = 1
+       	where ID =#{id}
+	</update>
+	
+	<select id="findIsFinish" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT wpd.TASK_ID AS taskId,wpd.ID AS id
+			FROM wf_put_storage_details wpd 
+			WHERE wpd.TASK_ID = #{taskId} AND wpd.IS_SURE = '0'
+ 	</select>
+ 	
+ 	<select id="getRfidNMachineNum" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT mmt.`NAME` as deviceModel,mmt2.`NAME` as deviceName,COUNT(mm.ID) as num,mmt.ID as typeId
+		FROM mm_machines mm
+		LEFT JOIN mm_type mmt ON mmt.ID = mm.TYPE
+		LEFT JOIN mm_type mmt2 ON mmt2.ID = mmt.PARENT_ID
+		WHERE !ISNULL(mm.EPC_CODE)
+		<if test="keyWord != null and keyWord != '' ">
+			and (
+	   		mmt.`NAME` LIKE CONCAT('%',#{keyWord},'%') OR
+	   		mmt2.`NAME` LIKE CONCAT('%',#{keyWord},'%')
+	   		) 
+		</if>
+		GROUP BY mmt.ID
+ 	</select>
+ 	
+ 	<select id="getMachineDetails" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT DEVICE_CODE as deviceCode,EPC_CODE as epcCode,BATCH_STATUS as batchStatus
+		FROM mm_machines
+		WHERE TYPE = #{typeId} and !ISNULL(EPC_CODE) and BATCH_STATUS = 5
+		<if test="keyWord != null and keyWord != '' ">
+			and DEVICE_CODE LIKE CONCAT('%',#{keyWord},'%') 
+		</if>
+ 	</select>
+ 	
+ 		<select id="getRfidNMachineStatus" parameterType="com.bonus.ma.beans.MachineRfidBean" resultMap="machine">
+		SELECT DEVICE_CODE as deviceCode,EPC_CODE as epcCode,BATCH_STATUS as batchStatus
+		FROM mm_machines mm
+		WHERE EPC_CODE = #{epcCode} and TYPE = #{typeId}
+ 	</select>
+	
+</mapper>

@@ -1,0 +1,124 @@
+package com.bonus.plan.beans;
+/**
+ * 工程 计划-发货-汇总表
+ * @author xj
+ *
+ */
+public class ProPlanInfoBean {
+	
+	private String id;
+	/**
+	 * 工程id
+	 */
+	private String proId;
+	
+	/**
+	 * 计划 量
+	 */
+	private int planNum;
+	/**
+	 * 出库单量
+	 */
+	private int recordNum;
+	
+	/**
+	 * 出库单量
+	 */
+	private int tzNum;
+	
+	
+	/**
+	 * 需用数量
+	 */
+	private int needNum;
+	/**
+	 * 出库量
+	 */
+	private int outNum;
+	
+	private int	outNum2;
+	
+	private int	recordNum2;
+	/**
+	 * 状态
+	 */
+	private int status;
+	/**
+	 * 最后发货时间
+	 */
+	private String lastDay;
+	
+	
+	
+	
+	public int getOutNum2() {
+		return outNum2;
+	}
+	public void setOutNum2(int outNum2) {
+		this.outNum2 = outNum2;
+	}
+	public int getRecordNum2() {
+		return recordNum2;
+	}
+	public void setRecordNum2(int recordNum2) {
+		this.recordNum2 = recordNum2;
+	}
+	public int getTzNum() {
+		return tzNum;
+	}
+	public void setTzNum(int tzNum) {
+		this.tzNum = tzNum;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getProId() {
+		return proId;
+	}
+	public void setProId(String proId) {
+		this.proId = proId;
+	}
+	public int getPlanNum() {
+		return planNum;
+	}
+	public void setPlanNum(int planNum) {
+		this.planNum = planNum;
+	}
+	public int getRecordNum() {
+		return recordNum;
+	}
+	public void setRecordNum(int recordNum) {
+		this.recordNum = recordNum;
+	}
+	public int getNeedNum() {
+		return needNum;
+	}
+	public void setNeedNum(int needNum) {
+		this.needNum = needNum;
+	}
+	public int getOutNum() {
+		return outNum;
+	}
+	public void setOutNum(int outNum) {
+		this.outNum = outNum;
+	}
+	public int getStatus() {
+		return status;
+	}
+	public void setStatus(int status) {
+		this.status = status;
+	}
+	public String getLastDay() {
+		return lastDay;
+	}
+	public void setLastDay(String lastDay) {
+		this.lastDay = lastDay;
+	}
+	
+	
+	
+
+}

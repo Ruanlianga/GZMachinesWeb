@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.NewReportDao" >
+
+    <resultMap id="newReport" type="com.bonus.newInput.beans.NewReportBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.NewReportBean" 
+    	resultMap="newReport">
+		SELECT
+			wir.id,
+			mt2.`NAME` AS maTypeName,
+			mt.`NAME` AS maModelName,
+			mt.UNIT as unit,
+			wir.time as purchaseTime,
+			ROUND(wir.num) as num,
+			wnd.ACTUAL_PRICE AS actualPrice,
+			mv. NAME as manufactorName
+		FROM
+			wf_new_details wnd
+			LEFT JOIN wf_task_appoint wta ON wnd.TASK_ID = wta.TASK_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = wnd.MODEL_ID AND wnd.TASK_ID = wir.SUP_ID
+			LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+			LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_vender mv ON wnd.MA_VENDER = mv.id
+	    WHERE
+			    wta.IS_ACTIVE = 1 AND
+	        wir.TYPE = 5
+		AND left(wir.time,10) between #{param.startTime} and #{param.endTime} 
+		<if test="param.companyId != 1 and param.companyId != '1' and param.companyId !='' and param.companyId !=null ">
+		 and  wtr.org_id =#{param.companyId}
+		</if>
+		    
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND( 
+				mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mv.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select>
+</mapper>

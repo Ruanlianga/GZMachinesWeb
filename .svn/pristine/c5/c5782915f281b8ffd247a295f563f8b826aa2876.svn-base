@@ -1,0 +1,878 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.index.dao.IndexHomeDao" >
+
+    <resultMap id="index" type="com.bonus.index.beans.IndexHomeBean">
+          <id column="id" property="id" />	
+          <result column="projectNum" property="partOne.projectCount" />	
+          <result column="maTypeNum" property="partOne.equipmentTypes" />	
+          <result column="maTotalNum" property="partOne.totalCount" />	
+          <result column="maStorageNum" property="partOne.stockCount" />	
+          <result column="maUseNum" property="partOne.inUseCount" />	
+          <result column="maRepairNum" property="partOne.repairCount" />	
+          <result column="maScrapNum" property="partOne.scrappedCount" />	
+          <result column="newInputNum" property="partTwo.newStorage.value" />
+      	  <result column="newTotal" property="partTwo.newStorage.total" />
+      	  <result column="repairInputNum" property="partTwo.repairStorage.value" />
+      	  <result column="repairInputTotal" property="partTwo.repairStorage.total" />
+      	  <result column="bdInputNum" property="partTwo.inventoryStorage.value" />
+      	  <result column="bdInputTotal" property="partTwo.inventoryStorage.total" />
+      	  <result column="backInputNum" property="partTwo.returnStorage.value" />
+      	  <result column="backInputTotal" property="partTwo.returnStorage.total" />
+      	  <result column="slInputNum" property="partTwo.equipmentCount.value" />
+      	  <result column="slInputTotal" property="partTwo.equipmentCount.total" />
+      	  <result column="bmInputNum" property="partTwo.deviceCount.value" />
+      	  <result column="bmInputTotal" property="partTwo.deviceCount.total" />
+      	  <result column="storageNum" property="partFour.storageNum" />
+      	  <result column="checkNum" property="partFour.checkNum" />
+      	  <result column="useNum" property="partFour.useNum" />
+      	  <result column="changeNum" property="partFour.changeNum" />
+      
+          
+          
+          
+    </resultMap>
+    
+   
+    
+     <resultMap id="two" type="com.bonus.index.beans.PartTwoBean" >
+	   <id column="id" property="id" />	
+   	
+ 	
+	   	  <result column="newInputNum" property="newStorage.value" />
+      	  <result column="newTotal" property="newStorage.total" />
+      	  <result column="repairInputNum" property="repairStorage.value" />
+      	  <result column="repairInputTotal" property="repairStorage.total" />
+      	  <result column="bdInputNum" property="inventoryStorage.value" />
+      	  <result column="bdInputTotal" property="inventoryStorage.total" />
+      	  <result column="backInputNum" property="returnStorage.value" />
+      	  <result column="backInputTotal" property="returnStorage.total" />
+      	  <result column="slInputNum" property="equipmentCount.value" />
+      	  <result column="slInputTotal" property="equipmentCount.total" />
+      	  <result column="bmInputNum" property="deviceCount.value" />
+      	  <result column="bmInputTotal" property="deviceCount.total" />
+ 	
+	  </resultMap>
+    
+    
+      <resultMap id="six" type="com.bonus.index.beans.PartSixBean" >
+	   <id column="date" property="date" />	
+   	
+ 		<collection property="list" ofType="com.bonus.index.beans.PartSixBean">
+			<id column="dtype" property="type"  />
+		 	<result column="leaseNum" property="leaseNum" />	
+		 	<result column="backNum" property="backNum" />	
+		 	<result column="checkNum" property="checkNum" />	
+		 	<result column="scrapNum" property="scrapNum" />	
+		 	<result column="inputNum" property="inputNum" />	
+		 	<result column="newNum" property="newNum" />	
+		 	<result column="bdNum" property="bdNum" />	
+		 	
+		   
+	   		
+	   	</collection> 
+	   	
+ 	
+	  </resultMap>
+      
+    
+    <select id="getPartOneData" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="index">
+  		SELECT
+			*
+			FROM
+			index_part_one 
+			ORDER BY id desc 
+			limit 1
+	</select>
+	
+      <select id="getPartTwoData" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="index">
+  		SELECT
+			pt.newInputNum,
+			pt.repairInputNum,
+			pt.bdInputNum,
+			pt.backInputNum,
+			pt.slInputNum,
+			pt.bmInputNum,
+			pt.total as newTotal,
+			pt.total as repairInputTotal,
+			pt.total as bdInputTotal,
+			pt.total as backInputTotal,
+			pt.totalNum as slInputTotal,
+			pt.totalNum as bmInputTotal
+		FROM
+			index_part_two pt
+		ORDER BY pt.ID desc
+		limit 1
+	</select>
+	
+       <select id="getPartThreeData" parameterType="com.bonus.index.beans.IndexHomeBean" resultType="com.bonus.index.beans.PartThreeBean">
+  		SELECT
+      		id as id,
+			projectName,
+			SUM( leaseNum ) AS useCount,
+			SUM( backNum ) AS returnCount,
+			SUM( leaseNum ) - SUM( backNum ) diffCount 
+		FROM
+			(
+			SELECT
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+				wla.`CODE` AS agreementCode,
+				SUM( wir.NUM ) AS leaseNum,
+				"0" AS backNum,
+				wla.ID AS agreementId 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+				LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 2 
+				AND wtr.IS_ACTIVE = 1 
+			GROUP BY
+				wla.ID UNION
+			SELECT
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+				wla.`CODE` AS agreementCode,
+				"0" AS leaseNum,
+				SUM( wir.NUM ) AS backNum,
+				wla.ID AS agreementId 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+				LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 4 
+				AND wtr.IS_ACTIVE = 1 
+			GROUP BY
+				wla.ID 
+			) a 
+		GROUP BY
+			a.projectName
+			order by diffCount desc 
+			LIMIT 20
+	</select>
+	
+         <select id="getPartFourData" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="index">
+  		
+				SELECT
+					SUM(storageNum) as storageNum,
+					SUM(checkNum) as checkNum,
+					SUM(useNum) as useNum,
+					SUM(changeNum) as changeNum
+					FROM
+					(
+					SELECT
+					COUNT(DISTINCT mt.ID) as storageNum,
+					0 as checkNum,
+					0 as useNum,
+					0 as changeNum
+					FROM
+					mm_type mt 
+					WHERE mt.`LEVEL` =4 and mt.NUM = 0 and mt.IS_ACTIVE = 1
+					UNION
+					SELECT
+					0 AS storageNum,
+					COUNT(DISTINCT ID) as checkNum,
+					0 as useNum,
+					0 as changeNum
+					FROM
+					(
+					SELECT
+					mm.ID,
+					to_days(ifnull(mm.NEXT_CHECK_TIME,now())) - to_days(now()) AS days
+					FROM
+					mm_machines mm 
+					) rs 
+					WHERE 30 > rs.days 
+					UNION
+					
+					SELECT
+					0 AS storageNum,
+					0 AS checkNum,
+					COUNT(DISTINCT maId) as useNum,
+					0 as changeNum
+					FROM
+					(
+					SELECT
+					DISTINCT ps.machine as maId,
+					to_days(now())  -to_days(ps.start_date)  as days 
+					FROM 
+					ma_type_project_storage ps
+					LEFT JOIN mm_machines mm on ps.machine = mm.ID
+					WHERE ps.`status` =1 and ps.is_count = 0
+					and mm.BATCH_STATUS = 6
+					GROUP BY ps.machine
+					) rs 
+					WHERE rs.days> 180
+					UNION
+					
+					SELECT
+					0 as storageNum,
+					0 as checkNum,
+					0 as useNum,
+					COUNT(DISTINCT id) as changeNum
+					FROM
+					(
+					SELECT
+					mc.id,
+					to_days(now())  -to_days(mc.time)  as days  
+					FROM
+					ma_total_change mc
+					) rs 
+					WHERE rs.days &lt; 30
+					) res 
+	</select>
+	
+    <select id="getPartFiveData" parameterType="com.bonus.index.beans.IndexHomeBean" resultType="com.bonus.index.beans.PartFiveBean">
+  			SELECT
+				SUM(newNum) AS newNum,
+				SUM(leaseNum) AS leaseNum,
+				SUM(backNum) AS backNum,
+				SUM(scrapNum) AS scrapNum
+				FROM
+				(
+				
+				SELECT
+				COUNT(DISTINCT wd.TASK_ID) as newNum,
+				0 as leaseNum,
+				0 as backNum,
+				0 as scrapNum
+				FROM
+				wf_new_details wd
+				
+				WHERE wd.IS_APPROVAL = 0
+				UNION
+				
+				SELECT
+				0 as newNum,
+				COUNT(DISTINCT wcd.TASK_ID) leaseNum,
+				0 as backNum,
+				0 as scrapNum
+				FROM
+				wf_collar_details wcd
+				
+				WHERE wcd.IS_APPROVAL = 0 and wcd.IS_EXAMINE =1
+				UNION
+				SELECT
+				0 as newNum,
+				0 as leaseNum,
+				COUNT(DISTINCT rm.TASK_ID)  as backNum,
+				0 as scrapNum
+				FROM
+				wf_return_material_details rm 
+				
+				WHERE rm.IS_APPROVAL = 0
+				UNION
+				
+				SELECT
+				0 as newNum,
+				0 as leaseNum,
+				0 as backNum,
+				COUNT(DISTINCT ws.id) scrapNum
+				FROM
+				wf_scrap_details ws
+				WHERE ws.IS_SURE = 0
+				
+				) res 
+
+              
+	</select>
+	
+              <select id="getPartSixData" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="six">
+  			SELECT
+					LEFT(wi.TIME,10) as date,
+					wi.TYPE as dtype,
+					if(wi.TYPE = 2, SUM(wi.NUM),0) AS leaseNum,
+					if(wi.TYPE = 4, SUM(wi.NUM),0) AS backNum,
+					if(wi.TYPE = 6, SUM(wi.NUM),0) AS checkNum,
+					if(wi.TYPE = 5, SUM(wi.NUM),0) AS newNum,
+					if(wi.TYPE = 3, SUM(wi.NUM),0) AS inputNum
+					FROM
+					wf_info_record wi 
+					
+					WHERE LEFT(wi.TIME,7) = #{time}
+					GROUP BY LEFT(wi.TIME,10),wi.TYPE
+                  
+	</select>
+    
+              
+              <select id="getOverview" parameterType="com.bonus.index.beans.IndexHomeBean" resultType="com.bonus.index.beans.PartOneBean">
+  		SELECT
+			SUM(projectCount) projectCount,
+			SUM(equipmentTypes) equipmentTypes,
+			SUM(totalCount) totalCount,
+			SUM(stockCount) stockCount,
+			SUM(inUseCount) inUseCount,
+			SUM(repairCount) repairCount,
+			SUM(scrappedCount) scrappedCount
+			FROM
+			(
+			
+			
+			SELECT
+				COUNT( DISTINCT bp.ID ) AS projectCount,
+				0 AS equipmentTypes,
+				0 AS totalCount,
+				0 AS stockCount,
+				0 AS inUseCount,
+				0 AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				bm_project bp 
+			WHERE
+				bp.IS_ACTIVE = 1 UNION
+			SELECT
+				0 AS projectCount,
+				COUNT( DISTINCT mt.ID ) AS equipmentTypes,
+				0 AS totalCount,
+				0 AS stockCount,
+				0 AS inUseCount,
+				0 AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				mm_type mt 
+			WHERE
+				mt.`LEVEL` = 4 
+				AND mt.IS_ACTIVE = 1 UNION
+			SELECT
+				0 AS projectCount,
+				0 AS equipmentTypes,
+				ROUND(
+				IF
+					(
+						SUM( storageNum ) IS NULL,
+						0,
+					SUM( storageNum )))+ ROUND(
+					sum( leaseNum ))+ ROUND(
+					SUM( repairNum )) + ROUND(
+				SUM( checkNum )) + ROUND( SUM( waitInputNum ) ) AS totalCount,
+				0 AS stockCount,
+				0 AS inUseCount,
+				0 AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				(
+				SELECT
+					mat1.ID AS typeId,
+					mat1.NUM storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					mm_type mat1
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					mat1.`LEVEL` = 4 
+					AND mat1.IS_ACTIVE = '1' 
+				GROUP BY
+					mat1.ID UNION
+				SELECT
+					typeId,
+					0 storageNum,
+					sum( leaseNum ) - SUM( backNum ) leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					(
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						SUM( wir.NUM ) AS leaseNum,
+						0 AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+						LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+						LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+						AND wcd.MODEL_ID = wir.MODEL_ID 
+					WHERE
+						wir.TYPE = 2 
+						AND wtr2.IS_ACTIVE = 1 
+						AND wcd.IS_APPROVAL = 1 
+					GROUP BY
+						mt.ID UNION
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						0 AS leaseNum,
+						SUM( wir.NUM ) AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+						LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+					WHERE
+						wir.TYPE = 4 
+						AND wtr.IS_ACTIVE = 1 
+					GROUP BY
+						mt.ID 
+					) a 
+				GROUP BY
+					typeId UNION
+				SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					SUM( wrd.REPAIR_NUM ) - SUM( wrd.ALREPAIR_NUM ) - SUM( SCRAP_NUM ) AS repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_repair_details wrd
+					LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrd.MODEL_ID UNION
+				SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					SUM( wrc.CHECK_NUM ) - SUM( wrc.ALCHECK_NUM ) AS checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_repair_check wrc
+					LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrc.MODEL_ID UNION
+				SELECT DISTINCT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 AS scrapNum,
+					0 loseNum,
+					SUM(
+						IFNULL( PRE_PUT_NUM, 0 )) - sum(
+					IFNULL( AL_PUT_NUM, 0 )) AS waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_put_storage_details wpd
+					LEFT JOIN mm_type mat1 ON wpd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					wpd.IS_SURE = 0 
+				GROUP BY
+					wpd.MODEL_ID 
+				) res UNION
+			SELECT
+				0 AS projectCount,
+				0 AS equipmentTypes,
+				0 AS totalCount,
+				SUM( mat1.NUM ) AS stockCount,
+				0 AS inUseCount,
+				0 AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				mm_type mat1 
+			WHERE
+				mat1.`LEVEL` = 4 
+				AND mat1.IS_ACTIVE = '1' UNION
+			SELECT
+				0 AS projectCount,
+					0 AS equipmentTypes,
+				0 AS totalCount,
+				0 AS stockCount,
+				sum( leaseNum ) - SUM( backNum ) inUseCount,
+				0 AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				(
+				SELECT
+					mmt1.`NAME` AS pMachineName,
+					mmt.`NAME` AS machineName,
+					mt.`NAME` AS machineModel,
+					mt.ID AS typeId,
+					mt.BUY_PRICE AS buyPrice,
+					mt.UNIT,
+					SUM( wir.NUM ) AS leaseNum,
+					0 AS backNum,
+					mt.IS_COUNT AS isCount 
+				FROM
+					wf_info_record wir
+					LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+					LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+					LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+					LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+					LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+					LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+					AND wcd.MODEL_ID = wir.MODEL_ID 
+				WHERE
+					wir.TYPE = 2 
+					AND wtr2.IS_ACTIVE = 1 
+					AND wcd.IS_APPROVAL = 1 
+				GROUP BY
+					mt.ID UNION
+				SELECT
+					mmt1.`NAME` AS pMachineName,
+					mmt.`NAME` AS machineName,
+					mt.`NAME` AS machineModel,
+					mt.ID AS typeId,
+					mt.BUY_PRICE AS buyPrice,
+					mt.UNIT,
+					0 AS leaseNum,
+					SUM( wir.NUM ) AS backNum,
+					mt.IS_COUNT AS isCount 
+				FROM
+					wf_info_record wir
+					LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+					LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+					LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+					LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+					LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+				WHERE
+					wir.TYPE = 4 
+					AND wtr.IS_ACTIVE = 1 
+				GROUP BY
+					mt.ID 
+				) a UNION
+			SELECT
+				0 AS projectCount,
+					0 AS equipmentTypes,
+				0 AS totalCount,
+				0 AS stockCount,
+				0 inUseCount,
+				SUM( repairNum )+ SUM( checkNum )+ SUM( waitInputNum ) AS repairCount,
+				0 AS scrappedCount 
+			FROM
+				(
+				SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					SUM( wrd.REPAIR_NUM ) - SUM( wrd.ALREPAIR_NUM ) - SUM( SCRAP_NUM ) AS repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_repair_details wrd
+					LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrd.MODEL_ID UNION
+				SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					SUM( wrc.CHECK_NUM ) - SUM( wrc.ALCHECK_NUM ) AS checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_repair_check wrc
+					LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrc.MODEL_ID UNION
+				SELECT DISTINCT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 AS scrapNum,
+					0 loseNum,
+					SUM(
+						IFNULL( PRE_PUT_NUM, 0 )) - sum(
+					IFNULL( AL_PUT_NUM, 0 )) AS waitInputNum,
+					1 AS isCount 
+				FROM
+					wf_put_storage_details wpd
+					LEFT JOIN mm_type mat1 ON wpd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					wpd.IS_SURE = 0 
+				GROUP BY
+					wpd.MODEL_ID 
+				) res UNION
+			SELECT
+				0 AS projectCount,
+					0 AS equipmentTypes,
+				0 AS totalCount,
+				0 AS stockCount,
+				0 inUseCount,
+				0 AS repairCount,
+				SUM( wsd.ALSCRAP_NUM ) AS scrappedCount 
+			FROM
+				wf_scrap_details wsd
+				LEFT JOIN mm_type mat1 ON wsd.MODEL_ID = mat1.ID
+				LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+				LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+			WHERE
+				wsd.IS_SURE = 1
+				) rs 
+			                  
+	</select>    
+              
+              
+     	<insert id="insertPartOne" parameterType="com.bonus.index.beans.PartOneBean"> 
+	   	insert into index_part_one(projectNum,maTypeNum,maTotalNum,maStorageNum,maUseNum,maRepairNum,maScrapNum,time) values
+	   	 (#{projectCount},#{equipmentTypes},#{totalCount},#{stockCount},#{inUseCount},#{repairCount},#{scrappedCount},#{time})
+   </insert>      
+   
+     	
+     	
+       <select id="getInputview" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="two">
+  			SELECT
+				SUM(newInputNum) as newInputNum,
+				SUM(repairInputNum) as repairInputNum,
+				SUM(bdInputNum) as bdInputNum,
+				SUM(backInputNum) as backInputNum,
+				SUM(newInputNum) + SUM(repairInputNum)+SUM(bdInputNum)+SUM(backInputNum) as newTotal,
+				SUM(newInputNum) + SUM(repairInputNum)+SUM(bdInputNum)+SUM(backInputNum) as repairInputTotal,
+				SUM(newInputNum) + SUM(repairInputNum)+SUM(bdInputNum)+SUM(backInputNum) as bdInputTotal,
+				SUM(newInputNum) + SUM(repairInputNum)+SUM(bdInputNum)+SUM(backInputNum) as backInputTotal
+				FROM
+				(
+				SELECT
+				SUM(wir.NUM) AS newInputNum,
+				0 repairInputNum,
+				0 bdInputNum,
+				0 backInputNum
+				FROM
+				wf_info_record wir 
+				where wir.TYPE = 5
+				union
+				SELECT
+				
+				0 AS newInputNum,
+				SUM(wir.NUM)  repairInputNum,
+				0 bdInputNum,
+				0 backInputNum
+				FROM
+				wf_info_record wir
+					where wir.TYPE = 3
+					union
+					SELECT
+					0 AS newInputNum,
+					0 repairInputNum,
+				SUM(wr.INVENTORY_NUM) bdInputNum,
+					0 backInputNum
+					FROM
+					wf_inventory_record wr
+					WHERE wr.INVENTORY_TYPE = "盘盈"
+					) rs 
+                  
+	</select>
+	
+      <select id="getTypeview" parameterType="com.bonus.index.beans.IndexHomeBean" resultMap="two">
+  			
+			SELECT
+				SUM(if(rs.iscount =0,rs.totalCount, 0)) as bmInputNum,
+				SUM(if(rs.iscount =1,rs.totalCount, 0)) as slInputNum,
+				SUM(rs.totalCount) as slInputTotal,
+				SUM(rs.totalCount) as bmInputTotal
+				FROM
+				(
+				SELECT
+					ROUND(
+					IF
+						(
+							SUM( storageNum ) IS NULL,
+							0,
+						SUM( storageNum )))+ ROUND(
+						sum( leaseNum ))+ ROUND(
+						SUM( repairNum )) + ROUND(
+					SUM( checkNum )) + ROUND( SUM( waitInputNum ) ) AS totalCount,
+					iscount 
+				FROM
+				(
+					SELECT
+						mat1.ID AS typeId,
+						mat1.NUM storageNum,
+						0 leaseNum,
+						0 repairNum,
+						0 checkNum,
+						0 scrapNum,
+						0 loseNum,
+						0 waitInputNum,
+						mat1.IS_COUNT AS isCount 
+					FROM
+						mm_type mat1
+						LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+						LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+					WHERE
+						mat1.`LEVEL` = 4 
+						AND mat1.IS_ACTIVE = '1' 
+					GROUP BY
+						mat1.ID UNION
+					SELECT
+						typeId,
+						0 storageNum,
+						sum( leaseNum ) - SUM( backNum ) leaseNum,
+						0 repairNum,
+						0 checkNum,
+						0 scrapNum,
+						0 loseNum,
+						0 waitInputNum,
+					isCount AS isCount 
+					FROM
+						(
+						SELECT
+							mmt1.`NAME` AS pMachineName,
+							mmt.`NAME` AS machineName,
+							mt.`NAME` AS machineModel,
+							mt.ID AS typeId,
+							mt.BUY_PRICE AS buyPrice,
+							mt.UNIT,
+							SUM( wir.NUM ) AS leaseNum,
+							0 AS backNum,
+							mt.IS_COUNT AS isCount 
+						FROM
+							wf_info_record wir
+							LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+							LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+							LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+							LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+							LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+							LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+							AND wcd.MODEL_ID = wir.MODEL_ID 
+						WHERE
+							wir.TYPE = 2 
+							AND wtr2.IS_ACTIVE = 1 
+							AND wcd.IS_APPROVAL = 1 
+						GROUP BY
+							mt.ID UNION
+						SELECT
+							mmt1.`NAME` AS pMachineName,
+							mmt.`NAME` AS machineName,
+							mt.`NAME` AS machineModel,
+							mt.ID AS typeId,
+							mt.BUY_PRICE AS buyPrice,
+							mt.UNIT,
+							0 AS leaseNum,
+							SUM( wir.NUM ) AS backNum,
+							mt.IS_COUNT AS isCount 
+						FROM
+							wf_info_record wir
+							LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+							LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+							LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+							LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+							LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+						WHERE
+							wir.TYPE = 4 
+							AND wtr.IS_ACTIVE = 1 
+						GROUP BY
+							mt.ID 
+						) a 
+					GROUP BY
+						typeId
+					
+				) res 
+				GROUP BY isCount 
+				) rs 
+                  
+	</select>
+	
+          	<insert id="insertPartTwo" parameterType="com.bonus.index.beans.PartTwoBean"> 
+	   	insert into index_part_two(newInputNum,repairInputNum,bdInputNum,backInputNum,total,slInputNum,bmInputNum,totalNum,time) values
+	   	 (#{newStorage.value},#{repairStorage.value},#{inventoryStorage.value},#{returnStorage.value},#{newStorage.total},#{equipmentCount.value},#{deviceCount.value},#{equipmentCount.total},#{time})
+   </insert>      
+   
+          	  <select id="getHomeResource" parameterType="com.bonus.index.beans.IndexHomeResourseBean" resultType="com.bonus.index.beans.IndexHomeResourseBean">
+  		
+				SELECT
+				
+				pr.ID,
+				pr.`NAME` as rsName,
+				pr.ICON as rsIcon,
+				pr.URL as rsUrl 
+				FROM
+				pm_user_resourse pur
+				LEFT JOIN pm_resources pr on pur.resourse_id = pr.ID
+				WHERE pur.user_id =#{userId}
+              
+	</select>
+	
+   
+	<select id="getResource" parameterType="com.bonus.index.beans.IndexHomeResourseBean" resultType="com.bonus.index.beans.IndexHomeResourseBean">
+		SELECT
+			pr.ID,
+			pr.`NAME` as rsName,
+			pr.ICON as rsIcon,
+			pr.URL as rsUrl ,
+			IF(pr.ID = pur.resourse_id,1,0) as isCheck
+		FROM
+			pm_resources pr
+		LEFT JOIN pm_user_resourse pur on pr.ID = pur.resourse_id and pur.user_id =#{userId}
+		INNER JOIN (
+				SELECT
+					purole.ROLE_ID,prr.RES_ID
+				FROM
+					pm_user_role purole
+				RIGHT JOIN pm_role_resources prr ON prr.ROLE_ID = purole.ROLE_ID
+				WHERE purole.USER_ID = #{userId}
+			) b ON pr.ID = b.RES_ID
+		WHERE pr.PARENT_ID != 0
+	</select>
+	
+          	  
+          	  	<delete id="deleteResourse" parameterType="com.bonus.index.beans.IndexHomeResourseBean">
+		DELETE FROM pm_user_resourse
+	
+		where user_id = #{userId}
+	</delete>
+          	  
+          	  	
+       <insert id="insertResourse" parameterType="com.bonus.index.beans.IndexHomeResourseBean">
+		insert into pm_user_resourse
+		(user_id,resourse_id)
+		values
+		(#{userId},#{rsId})
+	</insert>
+	
+          	  
+   
+       
+</mapper>

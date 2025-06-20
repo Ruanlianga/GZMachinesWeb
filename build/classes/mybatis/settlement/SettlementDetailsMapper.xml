@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.settlement.dao.SettlementDetailsDao" >
+    <resultMap id="settlementDetails" type="com.bonus.settlement.beans.SettlementDetailsBean"></resultMap>
+    
+    <select id="getLeaseList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	select DISTINCT wir.ID as id,wat.AGREEMENT_ID as agreementId,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseName,bp.`NAME` AS leaseProject,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,
+		   mt.UNIT as deviceUnit,wir.`CODE` as deviceCode,left(wir.TIME,10) as leaseDate,ROUND(wir.NUM) as leaseNum,mt.LEASE_PRICE as leasePrice,mt.IS_COUNT as isCount,wir.TYPE as type
+		from wf_info_record wir
+		  LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		  LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		  LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+		  LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		  LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		  LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+		  LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		  LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		  where  wir.TYPE = 2 AND wat.AGREEMENT_ID = #{agreementId}
+    GROUP BY wir.ID
+ 	</select>
+ 	
+ 	 <select id="getBackList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	select DISTINCT wir.ID as id,wat.AGREEMENT_ID as agreementId,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseName,bp.`NAME` AS leaseProject,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,
+		mt.UNIT as deviceUnit,wir.`CODE` as deviceCode,left(wir.TIME,10) as returnDate,ROUND(wir.NUM) as returnNum,mt.LEASE_PRICE as leasePrice,mt.IS_COUNT as isCount,wir.TYPE as type
+		from wf_info_record wir
+		LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+		LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+		LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		where  wir.TYPE = 4 AND wat.AGREEMENT_ID = #{agreementId}
+		GROUP BY wir.ID
+ 	</select>
+ 	
+ 	<update id="editLeasePrice" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" >
+		update wf_settlement_apply set LEASE_PRICE = #{leasePrice}
+       	where ID = #{id}
+	</update>
+ 	
+ 	<update id="editStopDays" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" >
+		update wf_settlement_apply set STOP_DAY = #{stopDays}
+       	where AGREEMENT_ID = #{agreementId} and BATCH = #{batch}
+	</update>
+	
+	<update id="update" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" >
+		update wf_settlement_apply set LEASE_MONEY = #{leaseMoney}
+       	where ID = #{id} 
+	</update>
+	
+ 	<select id="getSettlementApply" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	    select DISTINCT wsa.ID AS id,wsa.AGREEMENT_ID AS agreementId,wsa.TYPE_ID AS typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,mt.UNIT as deviceUnit,mt.LEASE_PRICE as planLeasePrice,wsa.LEASE_PRICE AS leasePrice,wsa.LEASE_NUM AS leaseNum,wsa.LEASE_DATE AS leaseDate,
+			wsa.BACK_NUM as returnNum,wsa.BACK_DATE as returnDate,wsa.SETTLEMENT_DATE as settlementTime,wsa.STOP_DAY as stopDays,wsa.LEASE_DAY as leaseDays,wsa.LEASE_MONEY AS leaseMoney,wsa.IS_SETTLEMENT as isSettlement,wsa.BATCH as batch
+			from wf_settlement_apply wsa
+			LEFT JOIN mm_type mt ON wsa.TYPE_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mmt.ID = mt.PARENT_ID
+		where wsa.AGREEMENT_ID = #{agreementId}
+	    <if test="batch != 0 and batch != '0'">
+			and wsa.BATCH  = #{batch}
+		</if>
+ 	</select>
+ 	
+ 	<select id="findSettlementApply" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	    select DISTINCT wsa.AGREEMENT_ID AS agreementId,wsa.TYPE_ID AS typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,mt.UNIT as deviceUnit,mt.LEASE_PRICE as planLeasePrice,wsa.LEASE_PRICE AS leasePrice,wsa.LEASE_NUM AS leaseNum,wsa.LEASE_DATE AS leaseDate,
+			wsa.BACK_NUM as returnNum,wsa.BACK_DATE as returnDate,wsa.SETTLEMENT_DATE as settlementTime,wsa.STOP_DAY as stopDays,wsa.LEASE_DAY as leaseDays,wsa.LEASE_MONEY AS leaseMoney,wsa.IS_SETTLEMENT as isSettlement,wsa.BATCH as batch
+			from wf_settlement_apply wsa
+			LEFT JOIN mm_type mt ON wsa.TYPE_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mmt.ID = mt.PARENT_ID
+		where wsa.AGREEMENT_ID = #{agreementId}
+		<if test="batch != 0 and batch != '0'">
+			and wsa.BATCH  = #{batch}
+		</if>
+ 	</select>
+ 	
+ 	<select id="findTitle" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	     SELECT distinct wla.ID as id,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,
+				bp.`NAME` as projectName,wla.IS_BALANCE as isSettlement
+		        FROM wf_lease_agreement wla
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		where wla.ID = #{agreementId}
+ 	</select>
+ 	
+ 	<select id="selectBatch" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	    select DISTINCT wsa.AGREEMENT_ID AS agreementId,wsa.BATCH as batch
+			from wf_settlement_apply wsa
+		where wsa.AGREEMENT_ID = #{agreementId}
+ 	</select>
+ 	
+ 	<select id="getDeductionList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	  select DISTINCT wsd.AGREEMENT_ID AS agreementId,wsd.DEDUCTION_MONEY AS deductionMoney,wsd.REMARK AS remark,wsd.BATCH as batch
+			from wf_settlement_deduction wsd
+		where wsd.AGREEMENT_ID = #{agreementId}
+		<if test="batch != null and batch != ''">
+			and wsd.BATCH  = #{batch}
+		</if>
+ 	</select>
+ 	
+ 	<select id="findSettlementInfo" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">  
+		select a.AGREEMENT_ID as agreementId,left(a.SETTLEMENT_DATE,10) as settlementTime,a.BATCH as batch
+		from wf_settlement_apply a
+		JOIN (
+			select AGREEMENT_ID,MAX(SETTLEMENT_DATE) maxTime 
+			from wf_settlement_apply
+		) b on a.AGREEMENT_ID = b.AGREEMENT_ID and a.SETTLEMENT_DATE = b.maxTime
+		where a.AGREEMENT_ID = #{agreementId}
+		LIMIT 1
+ 	</select>
+ 	
+ 	<insert id="editDeduction" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_settlement_deduction
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="agreementId != null">
+				AGREEMENT_ID,
+			</if>
+			<if test="deductionMoney != null">
+				DEDUCTION_MONEY,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			<if test="batch != null">
+				BATCH,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="agreementId != null">
+				#{agreementId},
+			</if>
+			<if test="deductionMoney != null">
+				#{deductionMoney},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			<if test="batch != null">
+				#{batch},
+			</if>
+		</trim>
+	</insert>
+	
+ 	<insert id="insert" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_settlement_apply
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="agreementId != null">
+				AGREEMENT_ID,
+			</if>
+			<if test="typeId != null">
+				TYPE_ID,
+			</if>
+			<if test="leaseNum != null">
+				LEASE_NUM,
+			</if>
+			<if test="leaseDate != null">
+				LEASE_DATE,
+			</if>
+			<if test="returnNum != null">
+				BACK_NUM,
+			</if>
+			<if test="returnDate != null">
+				BACK_DATE,
+			</if>
+			<if test="settlementTime != null">
+				SETTLEMENT_DATE,
+			</if>
+			<if test="leaseDays != null">
+				LEASE_DAY,
+			</if>
+			<if test="batch != null">
+				BATCH,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="agreementId != null">
+				#{agreementId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="leaseNum != null">
+				#{leaseNum},
+			</if>
+			<if test="leaseDate != null">
+				#{leaseDate},
+			</if>
+			<if test="returnNum != null">
+				#{returnNum},
+			</if>
+			<if test="returnDate != null">
+				#{returnDate},
+			</if>
+			<if test="settlementTime != null">
+				#{settlementTime},
+			</if>
+			<if test="leaseDays != null">
+				#{leaseDays},
+			</if>
+			<if test="batch != null">
+				#{batch},
+			</if>
+		</trim>
+	</insert>
+	<select id="getLoseList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">
+	   SELECT DISTINCT agreementId,typeId,deviceName,deviceModel,deviceUnit,buyPrice,SUM(leaseNum) leaseNum,SUM(returnNum) returnNum,ROUND(SUM(leaseNum) - SUM(returnNum)) as loseNum,
+		      ROUND((SUM(leaseNum) - SUM(returnNum))*buyPrice) as loseMoney
+	   FROM(
+		  SELECT DISTINCT wla.ID as agreementId,wmo.MODEL_ID as typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,
+		         mt.UNIT as deviceUnit,mt.BUY_PRICE as buyPrice,wmo.ALREDY_COLLAR_NUM as leaseNum,0 returnNum
+		  FROM wf_ma_outstock wmo
+		    LEFT JOIN wf_task_record wtr ON wmo.TASK_ID = wtr.ID
+			LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		    LEFT JOIN mm_type mt ON wmo.MODEL_ID = mt.ID
+		    LEFT JOIN mm_type mmt ON mmt.ID = mt.PARENT_ID
+		  GROUP BY wmo.MODEL_ID
+		UNION
+		select DISTINCT wat.AGREEMENT_ID as agreementId,wir.MODEL_ID as typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,
+				mt.UNIT as deviceUnit,mt.BUY_PRICE as buyPrice,0 leaseNum,SUM(wir.NUM ) as returnNum
+				from wf_info_record wir
+				LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+				LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+				where  wir.TYPE = 4 
+		GROUP BY wir.MODEL_ID
+		) a 
+		where agreementId = #{agreementId}
+		GROUP BY typeId
+		having ROUND(SUM(leaseNum) - SUM(returnNum),3) >0
+ 	</select>
+ 	
+ 	<select id="getRepairList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">  
+		SELECT DISTINCT wla.ID AS agreementId,mt.ID AS typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,mt.UNIT as deviceUnit,
+			ROUND(SUM(wrd.REPAIR_NUM),3) as repairNum,ROUND(wrd.REPAIR_MONEY,2) as repairMoney
+			FROM wf_repair_details wrd
+			LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.SUP_ID
+			LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN mm_type mt ON wrd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mmt.ID = mt.PARENT_ID
+		 where wla.ID = #{agreementId}
+		GROUP BY wrd.MODEL_ID
+ 	</select>
+ 	
+ 	<select id="getScrapList" parameterType="com.bonus.settlement.beans.SettlementDetailsBean" resultMap="settlementDetails">  
+		SELECT DISTINCT wla.ID AS agreementId,mt.ID AS typeId,mmt.`NAME` as deviceName,mt.`NAME` as deviceModel,mt.UNIT as deviceUnit,
+			ROUND(SUM(wsd.SCRAP_NUM)) as scrapNum,ROUND(SUM(wsd.SCRAP_NUM)*mt.BUY_PRICE) as repairMoney
+			FROM wf_scrap_details wsd
+			LEFT JOIN wf_task_record wtr ON wsd.TASK_ID = wtr.SUP_ID
+			LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN mm_type mt ON wsd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mmt.ID = mt.PARENT_ID
+		 where wla.ID = #{agreementId}
+		GROUP BY wsd.MODEL_ID
+ 	</select>
+</mapper>

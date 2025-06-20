@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.ScrapDao" >
+    <resultMap id="scrap" type="com.bonus.lease.beans.ScrapBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.lease.beans.ScrapBean" resultMap="scrap">
+		SELECT wod.DEVICE_NUM as deviceNum,mam.`NAME` as machinesName,
+		mam.MODEL,COUNT(mam.ID) as machinesNum,mam.UNIVALENT as price,
+		CAST(mam.UNIVALENT * COUNT(mam.ID) AS DECIMAL(8,3)) as prices,
+		bpda.work_name as collarProject,bpdb.work_name as collarCompany,
+		wri.batch_num as repairNum,wod.status as batchStatus
+		FROM wa_out_device wod
+		LEFT JOIN ma_machines mam ON wod.DEVICE_NUM = mam.DEVICE_NUM
+		LEFT JOIN wa_out_batch woba ON wod.out_id = woba.id
+		LEFT JOIN wa_out_batch wobb ON woba.parent_id = wobb.id
+		LEFT JOIN bm_project_department bpda ON wobb.id = bpda.id
+		LEFT JOIN bm_project_department bpdb ON bpda.parent_id = bpdb.id
+		LEFT JOIN wa_repair_input wri ON mam.id = wri.machines_name
+		WHERE wod.`STATUS` = 2
+		
+ 	</select>
+ 	
+    <select id="find" parameterType="com.bonus.lease.beans.ScrapBean" resultMap="scrap">
+        SELECT wod.DEVICE_NUM as deviceNum,mam.`NAME` as machinesName,
+		mam.MODEL,COUNT(mam.ID) as machinesNum,mam.UNIVALENT as price,
+		CAST(mam.UNIVALENT * COUNT(mam.ID) AS DECIMAL(8,3)) as prices,
+		bpda.work_name as collarProject,bpdb.work_name as collarCompany,
+		wri.batch_num as repairNum,wod.status as batchStatus
+		FROM wa_out_device wod
+		LEFT JOIN ma_machines mam ON wod.DEVICE_NUM = mam.DEVICE_NUM
+		LEFT JOIN wa_out_batch woba ON wod.out_id = woba.id
+		LEFT JOIN wa_out_batch wobb ON woba.parent_id = wobb.id
+		LEFT JOIN bm_project_department bpda ON wobb.id = bpda.id
+		LEFT JOIN bm_project_department bpdb ON bpda.parent_id = bpdb.id
+		LEFT JOIN wa_repair_input wri ON mam.id = wri.machines_name
+		WHERE wod.`STATUS` = 2
+		and wod.DEVICE_NUM = #{deviceNum}
+    </select>
+
+</mapper>

@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.NewInputQrcodeDao" >
+
+    <resultMap id="newQrcode" type="com.bonus.newInput.beans.NewInputQrcodeBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+		SELECT wta.ID as id,pu.`NAME` AS launchName,pu1.`NAME` AS receiveName,wta.TASK_ID as taskId,
+			if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS maType,
+			wta.LAUNCH_TIME AS launchTime,wta.FINISH_TIME AS finishTime,wnd.CHECK_STATUS AS checkStatus
+				FROM wf_task_appoint wta
+				LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+				LEFT JOIN pm_user pu ON pu.ID = wta.LAUNCH_USER
+				LEFT JOIN pm_user pu1 ON pu1.ID = wta.RECEIVE 
+				LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mt.ID
+				WHERE mt.IS_COUNT = '0' AND wnd.CHECK_STATUS BETWEEN 4 AND 30 AND wta.IS_ACTIVE = 1
+				<if test='param.orgId !=null and param.orgId!="" and  param.orgId!="1" and  param.orgId!=1'>
+					and  rel.ORG_ID=#{param.orgId}
+				</if>
+				AND wta.LAUNCH_TIME between #{param.startTime} and #{param.endTime} 
+				<if test="param.keyWord != null and param.keyWord != ''">
+					AND( 
+						pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						OR pu1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						OR mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+					)
+				</if>
+				GROUP BY wnd.TASK_ID  
+			order by wta.LAUNCH_TIME desc
+ 	</select>
+ 	
+    <select id="findQrcodeByTaskId" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+		SELECT wta.ID as id,pu.`NAME` AS launchName,pu1.`NAME` AS receiveName,
+				mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.QUALIFIED_NUM AS qrCodeNum,
+				wta.LAUNCH_TIME AS launchTime,wta.FINISH_TIME AS finishTime,
+				wnd.CHECK_STATUS AS checkStatus,wnd.CUSTOMER_SERVICE_REP AS customerRep,
+				wnd.MODEL_ID AS maModelId,wnd.MA_VENDER AS maVender,wta.TASK_ID as taskId
+				FROM wf_task_appoint wta
+				LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+				LEFT JOIN pm_user pu ON pu.ID = wta.LAUNCH_USER
+				LEFT JOIN pm_user pu1 ON pu1.ID = wta.RECEIVE 
+				LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				WHERE mt.IS_COUNT = '0' AND wnd.CHECK_STATUS BETWEEN 4 AND 30
+				and wta.TASK_ID = #{param.taskId} AND wta.IS_ACTIVE = 1 AND wnd.IS_ACTIVE = 1
+				<if test="param.keyWord != null and param.keyWord != ''">
+			AND( 
+				pu1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+				GROUP BY wnd.MODEL_ID   
+ 	</select>
+ 	
+    <select id="putInStorageList" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT d.id as id ,d.launchName as launchName,d.receiveName as receiveName,d.taskId as taskId,GROUP_CONCAT(DISTINCT d.maModel) as maModel,GROUP_CONCAT(DISTINCT d.maType) as maType,
+	SUM(d.qrCodeNum) as qrCodeNum ,d.launchTime as launchTime,d.finishTime as finishTime,d.checkStatus as checkStatus,d.isSure as isSure
+
+FROM (
+	SELECT wta.ID as id,pu.`NAME` AS launchName,pu1.`NAME` AS receiveName,wnd.TASK_ID as taskId,
+			mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.QUALIFIED_NUM AS qrCodeNum,
+			wta.LAUNCH_TIME AS launchTime,wta.FINISH_TIME AS finishTime,wnd.CHECK_STATUS AS checkStatus,wta.IS_SURE as isSure
+				FROM wf_task_appoint wta
+				LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+				LEFT JOIN pm_user pu ON pu.ID = wta.LAUNCH_USER
+				LEFT JOIN pm_user pu1 ON pu1.ID = wta.RECEIVE 
+				LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				LEFT JOIN pm_organization po ON po.PARENT_ID = pu.COMPANY_ID
+				WHERE mt.IS_COUNT = '0' AND wnd.CHECK_STATUS BETWEEN 4 AND 30 
+				AND left(wta.FINISH_TIME,10) between #{param.startTime} and  #{param.endTime}
+				AND wta.IS_SURE = #{param.isSure} 
+				<if test="param.checker != null and param.checker !='' ">
+					AND wnd.CHECKER = #{param.checker}
+				</if>
+
+		GROUP BY wnd.TASK_ID ,wnd.MODEL_ID,wnd.CHECKER
+	order by wta.LAUNCH_TIME desc
+) d
+GROUP BY d.taskId
+ 	</select>
+ 	
+    <select id="putInStorageDetails" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,
+		wnd.ARRIVAL_NUM AS checkNum,wnd.QUALIFIED_NUM AS qualifiedNum,wnd.MODEL_ID as modelId,
+		SUM(IF(bq.IS_BIND = 1,1,0)) AS alreadyBindingNum
+		FROM wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN bm_qrcode bq ON bq.TASK_ID = wnd.TASK_ID AND wnd.MODEL_ID = bq.MA_MODEL
+		WHERE wnd.TASK_ID = #{param.taskId} AND mt.IS_COUNT = 0
+		GROUP BY wnd.MODEL_ID
+ 	</select>
+ 	
+ 	  <select id="findAlBindNum" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,
+		wnd.ARRIVAL_NUM AS checkNum,wnd.QUALIFIED_NUM AS qualifiedNum,wnd.MODEL_ID as modelId,
+		SUM(IF(bq.IS_BIND = 1,1,0)) AS alreadyBindingNum
+		FROM wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN bm_qrcode bq ON bq.TASK_ID = wnd.TASK_ID AND wnd.MODEL_ID = bq.MA_MODEL
+		WHERE wnd.TASK_ID = #{taskId} AND mt.IS_COUNT = 0 and wnd.MODEL_ID =#{maModelId}
+ 	</select>
+ 	
+ 	 <select id="newBindingRecord" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	   SELECT DISTINCT bq.TASK_ID as taskId,mtt.`NAME` as maType,mt.`NAME` as maModel,bq.BIND_TIME as bindTime,mm.DEVICE_CODE as deviceCode
+			from bm_qrcode bq
+			LEFT JOIN mm_machines mm ON bq.`CODE` = mm.QRCODE
+			LEFT JOIN mm_type mt ON mt.ID = bq.MA_MODEL
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+	    WHERE bq.TASK_ID = #{taskId} AND bq.MA_MODEL = #{maModelId} and bq.IS_BIND = 1
+ 	</select>
+ 	
+ 	 <select id="newInputRecord" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	    SELECT DISTINCT wir.SUP_ID as taskId,mtt.`NAME` as maType,mt.`NAME` as maModel,wir.TIME as inPutTime,wir.CODE as deviceCode
+			FROM wf_info_record wir
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+        WHERE wir.SUP_ID = #{taskId} and wir.MODEL_ID = #{maModelId}
+ 	</select>
+ 	<!-- 查询新购入库的设备编码 -->
+ 	<select id="newInputRecordStroageRack" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	   SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,mt.ID AS maModelId,wnd.TASK_ID as taskId,wir.`CODE` as deviceCode
+    	FROM wf_new_details wnd
+    		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+    		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN wf_info_record wir ON wir.MODEL_ID = wnd.MODEL_ID  and wir.SUP_ID = wnd.TASK_ID
+   	 	WHERE wnd.TASK_ID =  #{taskId} AND mt.ID = #{maModelId}
+
+ 	</select>
+ 	
+ 	
+    <select id="findNewInputList" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT wta.ID as id,pu.`NAME` AS launchName,pu1.`NAME` AS receiveName,wta.TASK_ID AS taskId,
+			mt.`NAME` AS maModel,if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS maType,sum(wnd.QUALIFIED_NUM) AS qrCodeNum,
+			wta.LAUNCH_TIME AS launchTime,wta.FINISH_TIME AS finishTime,wnd.CHECK_STATUS AS checkStatus,wtr.IS_FINISH as isFinish
+				FROM wf_task_appoint wta
+				LEFT JOIN wf_task_record wtr on wta.TASK_ID = wtr.ID
+				LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.TASK_ID
+				LEFT JOIN pm_user pu ON pu.ID = wta.LAUNCH_USER
+				LEFT JOIN pm_user pu1 ON pu1.ID = wta.RECEIVE 
+				LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+				LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+				WHERE wnd.CHECK_STATUS BETWEEN 4 AND 30 and wta.IS_ACTIVE = 1
+				<if test="param.isFinish == 0 or param.isFinish =='0' ">
+				and wtr.IS_FINISH = #{param.isFinish}
+				</if>
+				<if test="param.isFinish == 1 or param.isFinish =='1' ">
+				and wtr.IS_FINISH = #{param.isFinish}
+				AND left(wta.FINISH_TIME,10) between #{param.startTime} and #{param.endTime}
+				</if>
+			
+				
+				AND wnd.CUSTOMER_SERVICE_REP = #{param.customerRep}
+				<if test="param.companyId != '1'">
+   					AND wtr.ORG_ID = #{param.companyId}
+                </if>
+		GROUP BY wnd.TASK_ID  
+	order by wta.LAUNCH_TIME desc
+ 	</select>
+ 	
+    <select id="findNewInputListDetails" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,mt.ID AS maModelId,
+		wnd.ARRIVAL_NUM AS checkNum,wnd.QUALIFIED_NUM AS qualifiedNum,wnd.TASK_ID as taskId,
+		SUM(IF(bq.IS_BIND = 1,1,0)) AS alreadyBindingNum,ROUND(wnd.INPUT_NUM)  AS alInputNum,mt.IS_COUNT as isCount
+		FROM wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN bm_qrcode bq ON wnd.MODEL_ID = bq.MA_MODEL and wnd.TASK_ID = bq.TASK_ID
+		WHERE wnd.TASK_ID = #{param.taskId} AND wnd.CUSTOMER_SERVICE_REP = #{param.customerRep}
+		GROUP BY wnd.MODEL_ID 
+ 	</select>
+ 	
+ 	 <select id="findNewInputByNum" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,
+		wnd.ARRIVAL_NUM AS checkNum,wnd.QUALIFIED_NUM AS qualifiedNum,wnd.TASK_ID as taskId,
+		ROUND(wnd.INPUT_NUM)  AS alInputNum,mt.IS_COUNT as isCount
+		FROM wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wnd.TASK_ID = #{taskId} and wnd.MODEL_ID =#{maModelId}
+ 	</select>
+ 	
+ 	 <select id="findAlInputInfo" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.CHECK_TIME AS checkTime,
+		wnd.ARRIVAL_NUM AS checkNum,wnd.QUALIFIED_NUM AS qualifiedNum,wnd.TASK_ID as taskId,
+		SUM(IF(bq.IS_BIND = 1,1,0)) AS alreadyBindingNum,ROUND(wnd.INPUT_NUM)  AS alInputNum,mt.IS_COUNT as isCount
+		FROM wf_new_details wnd
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		LEFT JOIN bm_qrcode bq ON  wnd.MODEL_ID = bq.MA_MODEL and wnd.TASK_ID = bq.TASK_ID
+		WHERE wnd.TASK_ID = #{taskId} and wnd.MODEL_ID =#{maModelId}
+ 	</select>
+ 	
+ 	 <select id="findIsSure" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	SELECT DISTINCT mt.`NAME` AS maModel,mtt.`NAME` AS maType,wnd.IS_SURE as isSure
+		FROM wf_new_details wnd
+	    LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		WHERE wnd.TASK_ID = #{taskId} AND wnd.IS_SURE = 0
+ 	</select>
+ 	
+ 	<update id="updateNewBindTask" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" >
+		update wf_task_appoint  set IS_SURE = 1
+       	where TASK_ID = #{taskId} 
+	</update>
+	
+ 	<update id="updateNewInputTask" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" >
+		update wf_new_details set  IS_SURE = 1
+       	where TASK_ID = #{taskId} and MODEL_ID =#{maModelId}
+	</update>
+	
+	<update id="updateNewTask" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" >
+		update wf_task_record set  IS_FINISH = 1
+       	where ID = #{taskId} 
+	</update>
+	
+	<update id="updateAlInputNum" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" >
+		update wf_new_details set INPUT_NUM = #{alInputNum}
+       	where TASK_ID = #{taskId} and MODEL_ID =#{maModelId}
+	</update>
+	
+ 	<insert id="insert" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_new_qrcode
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maModelId != null">
+				MODEL_ID,
+			</if>
+			<if test="qrCode != null">
+				QRCODE,
+			</if>
+			<if test="deviceCode != null">
+				DEVICE_CODE,
+			</if>
+			<if test="qrCodeStatus != null">
+				STATUS,
+			</if>
+			<if test="genTime != null">
+				GEN_TIME,
+			</if>
+			<if test="qrCodeNum != null">
+				DEVICE_NUM,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maModelId != null">
+				#{maModelId},
+			</if>
+			<if test="qrCode != null">
+				#{qrCode},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="qrCodeStatus != null">
+				#{qrCodeStatus},
+			</if>
+			<if test="genTime != null">
+				#{genTime},
+			</if>
+			<if test="qrCodeNum != null">
+				#{qrCodeNum},
+			</if>
+		</trim>
+	</insert>
+ 	
+	<select id="find" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	    SELECT wta.ID as id, wta.LAUNCH_TIME AS launchTime,pu.`NAME` AS receiveName,
+		pu1.`NAME` AS launchName,mtt.`NAME` AS maType,wta.REMARK AS remark,
+		wta.FINISH_TIME AS finishTime,wta.TASK_STATUS AS taskStatus,
+		wta.TASK_ID as taskId,wta.RECEIVE AS receiveId
+		FROM wf_task_appoint wta
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wta.TASK_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_new_details wnd ON wnd.ID = wtr1.ID
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wta.RECEIVE
+		LEFT JOIN pm_user pu1 ON pu1.ID = wta.LAUNCH_USER
+		WHERE wtr.DEFINITION_ID = '12' AND wta.IS_ACTIVE = '1' AND wta.ID = #{id}
+	</select>
+	
+	<select id="findTaskById" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	   SELECT TASK_ID AS taskId
+		FROM wf_task_appoint 
+		WHERE ID = #{id}
+	</select>
+	
+	<select id="findByDevCode" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	   SELECT mt.`NAME` AS maModel,mtt.`NAME` AS maType,
+			mm.QRCODE AS qrCode,mm.THIS_CHECK_TIME AS tOverhaulTime,
+			mm.NEXT_CHECK_TIME as nOverhaulTime,pu.`NAME` AS tOverhaulPersion,
+			mm.DEVICE_CODE AS deviceCode
+			FROM mm_machines mm
+			LEFT JOIN mm_type mt ON mt.ID = mm.TYPE
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN pm_user pu ON pu.ID = mm.THIS_CHECK_MAN
+			WHERE mm.DEVICE_CODE = #{deviceCode}
+	</select>
+	
+		<select id="findByQrcode" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+	 SELECT mt.`NAME` AS maModel,mtt.`NAME` AS maType,
+		mm.QRCODE AS qrCode,mm.THIS_CHECK_TIME AS tOverhaulTime,
+		mm.NEXT_CHECK_TIME as nOverhaulTime,pu.`NAME` AS tOverhaulPersion,
+		mm.DEVICE_CODE AS deviceCode
+		FROM mm_machines mm
+		LEFT JOIN mm_type mt ON mt.ID = mm.TYPE
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = mm.THIS_CHECK_MAN
+		WHERE mm.QRCODE = #{qrCode}
+	</select>
+	
+	<select id="findByDevCodeIsExist" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" resultType="java.lang.Integer">
+	 	SELECT count(CODE)
+		FROM wf_info_record 
+		WHERE CODE= #{deviceCode} and SUP_ID =#{taskId} and MODEL_ID =#{maModelId} and TYPE = 5
+	</select>
+	
+	<update id="update" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean">
+		update wf_task_appoint set
+		LAUNCH_TIME = #{launchTime},
+		FINISH_TIME = #{finishTime},
+		RECEIVE = #{receiveName},
+		REMARK = #{remark}
+		where ID = #{id}
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean">
+		update wf_task_appoint set  
+		IS_ACTIVE = '0'
+		where ID = #{id}
+	</delete>
+	
+	<insert id="insertInfoRecord" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean">
+	    insert into wf_info_record
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				<if test="taskId != null">
+					SUP_ID,
+				</if>
+				<if test="maModelId != null">
+					MODEL_ID,
+				</if>
+				<if test="deviceCode != null">
+					CODE,
+				</if>
+				<if test="operationTime != null">
+					TIME,
+				</if>
+				<if test="nums != null">
+					NUM,
+				</if>
+				<if test="state != null">
+					TYPE,
+				</if>
+				<if test="rmStatus != null">
+					RM_STATUS,
+				</if>
+			</trim>
+			<trim prefix="values (" suffix=")" suffixOverrides=",">
+				<if test="taskId != null">
+					#{taskId},
+				</if>
+				<if test="maModelId != null">
+					#{maModelId},
+				</if>
+				<if test="deviceCode != null">
+					#{deviceCode},
+				</if>
+				<if test="operationTime != null">
+					#{operationTime},
+				</if>
+				<if test="nums != null">
+					#{nums},
+				</if>
+				<if test="state != null">
+					#{state},
+				</if>
+				<if test="rmStatus != null">
+					#{rmStatus},
+				</if>
+			</trim>
+    </insert>
+    
+    <select id="findInfoByDeviceCode" parameterType="com.bonus.newInput.beans.NewInputQrcodeBean" 
+    	resultMap="newQrcode">
+    SELECT  
+    	mm.TYPE as maModelId,mm.BATCH_STATUS as batchStatus,mm.DEVICE_CODE as deviceCode
+    FROM
+    	mm_machines as mm
+	WHERE 
+		TYPE=#{maModelId}  AND DEVICE_CODE = #{deviceCode}
+    </select>
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.MachineReceiveDao" >
+    <resultMap id="repairInput" type="com.bonus.lease.beans.MachineReceiveBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.lease.beans.MachineReceiveBean" resultMap="repairInput">
+ 		SELECT
+				bp.`NAME` AS leaseProject,
+				bu.`NAME` AS leaseCompany,
+				wtr.OPERATION_TIME AS applyTime,
+				wtr.NUMBER AS applyNUmber,
+				wtr.LEASE_PERSON AS leasePerson,
+				wtr.PHONE AS phone,
+				wtr.ID AS taskId,
+				wla.CONTRACT_NUMBER AS contractNum,
+				wla.CODE AS agreementCode,
+				 acc.num ,
+				 acc.wsh,
+				 acc.shtg,
+				 acc.shbh,
+				 acc.wpz,
+				 acc.pztg,
+				 acc.pzbh
+			FROM
+				wf_task_record wtr
+				LEFT JOIN (SELECT
+								res.taskId,
+								SUM(res.wsh) as wsh,
+								SUM(res.shtg) as shtg,
+								SUM(res.shbh) as shbh,
+								SUM(res.wpz) as wpz,
+								SUM(res.pztg) as pztg,
+								SUM(res.pzbh) as pzbh,
+								COUNT(res.taskId) as num 
+					FROM
+					(
+					
+					SELECT
+					wcd.TASK_ID as taskId,
+					IF(wcd.IS_EXAMINE =0,1,0) AS  'wsh',
+					IF(wcd.IS_EXAMINE =1,1,0) AS  'shtg',
+					IF(wcd.IS_EXAMINE =2,1,0) AS  'shbh',
+					IF(wcd.IS_APPROVAL =0,1,0) AS  'wpz',
+					IF(wcd.IS_APPROVAL =1,1,0) AS  'pztg',
+					IF(wcd.IS_APPROVAL =2,1,0) AS  'pzbh'
+					
+					FROM
+					wf_task_record wtr 
+					LEFT JOIN wf_collar_details wcd on wtr.ID = wcd.TASK_ID
+			WHERE
+				wtr.OPERATION_TIME >= CONCAT(#{param.startTime},' 00:00:00')
+					
+					AND CONCAT(#{param.endTime},' 23:59:59') >= wtr.OPERATION_TIME
+						
+			) res
+			GROUP BY res.taskId ) acc on wtr.ID = acc.taskId
+				
+				LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+		WHERE wtr.OPERATION_TIME >= CONCAT(#{param.startTime},' 00:00:00') 
+		and CONCAT(#{param.endTime},' 23:59:59') >= wtr.OPERATION_TIME 
+		and wtd.ID = 2
+		<if test="param.companyId != null and param.companyId != '' and param.companyId != '1' and param.companyId != 1">
+			and wtr.ORG_ID = #{param.companyId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				bp.`NAME` like concat('%',#{param.keyWord},'%') OR
+				bu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wtr.LEASE_PERSON like concat('%',#{param.keyWord},'%') OR
+				wla.CODE like concat('%',#{param.keyWord},'%') OR
+				wtr.NUMBER like concat('%',#{param.keyWord},'%') OR
+				wla.CONTRACT_NUMBER like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+		ORDER BY wtr.OPERATION_TIME DESC
+ 	</select>
+ 	
+ 	<select id="findLeaseSheet" parameterType="com.bonus.lease.beans.MachineReceiveBean" 
+ 		resultMap="repairInput">
+	 	 select DISTINCT wir.ID as id, wtr1.ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseCompany,bp.`NAME` AS leaseProject,
+		        mmt2.`NAME` as machineType,mmt.`NAME` as machineName,mt.`NAME` as machineModel,mt.UNIT as machineUnit,wtr1.NUMBER as applyNumber,
+				wir.`CODE` as deviceCode,mt.LEASE_PRICE as leasePrice,wtr.OPERATION_TIME AS applyTime,ROUND(wir.NUM) as thisOutNum,mt.IS_COUNT as isCount,
+				wir.TYPE as type, wtr.REMARK as taskRemark, wir.REMARK as remarkMachine,wmo.TASK_ID as taskId1,wmo.MODEL_ID as modelId,wca.ID AS acaId,
+				if(mt.IS_COUNT = 0 ,"固定","非固定") as isFixedAssets,bs.`NAME` AS subcontractors,mam.REMARK AS remark,pu2.SIGN_URL as examineUrl,
+				pu3.SIGN_URL as approvalUrl,pu4.SIGN_URL as opeatorUrl
+				from wf_info_record wir
+			  LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+	          LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+				LEFT JOIN wf_task_record wtr2 ON wtr1.SUP_ID = wtr2.ID
+			  LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+			  LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+			  LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			  LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			  LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+			  LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID
+			  LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			  LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		    	LEFT JOIN mm_type mmt2 ON mmt.PARENT_ID = mmt2.ID
+		    	LEFT JOIN mm_machines mam ON mam.ID = wir.MA_ID
+				LEFT JOIN wf_collar_apply wca ON wca.APPLY_NUMBER = wtr2.NUMBER
+				LEFT JOIN bm_subcontractors bs ON bs.ID = wca.SUBCONTRACTORS_ID
+				LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr1.ID
+				LEFT JOIN pm_user pu2 ON pu2.ID = wcd.EXAMINE_USER
+				LEFT JOIN pm_user pu3 ON pu3.ID = wcd.APPROVAL_USER
+				LEFT JOIN pm_user pu4 ON pu4.`NAME` = wca.OPERATOR
+	    where wir.TYPE = 2 AND wtr1.ID =  #{taskId} 
+	    GROUP BY mt.ID,wir.`CODE`
+ 	</select>
+ 	
+ 	<update id="update" parameterType="com.bonus.lease.beans.MachineReceiveBean" >
+ 	    update ba_ma_collar 
+ 	    set COLLAR_MAN = #{leaseMan},
+ 	    COLLAR_PHONE = #{phone},
+ 	    REMARK = #{remark}
+ 	    where ID = #{taskId}
+ 	</update> 
+ 	
+ 	<update id="delete" parameterType="com.bonus.lease.beans.MachineReceiveBean" >
+ 	    delete from ba_ma_collar 
+ 	    where ID = #{taskId}
+ 	</update> 
+ 	
+ 	<update id="machineReceive" parameterType="com.bonus.lease.beans.MachineReceiveBean" >
+ 	    update ma_machines set BATCH_STATUS =7
+ 	    where DEVICE_NUM = #{deviceNum}
+ 	</update>
+ 	
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.lease.beans.MachineReceiveBean" useGeneratedKeys="true" keyProperty="id">
+		insert into ba_ma_collar
+		(ID,APPLY_NUMBER,CREATOR,CREATE_TIME,COLLAR_MAN,COLLAR_PHONE,REMARK) 
+		values 
+		(#{taskId},#{applyNumber},#{applyMan},#{createTime},#{leaseMan},#{phone},#{remark})
+	</insert>
+	
+	<select id="findApplyNumber" parameterType="com.bonus.lease.beans.MachineReceiveBean" resultType="java.lang.String">
+ 		SELECT COUNT(bmc.ID)
+		FROM ba_ma_collar bmc
+		WHERE bmc.CREATE_TIME LIKE CONCAT("%",#{createTime},"%")
+ 	</select>
+ 	
+	<select id="findTaskIdAndModelId" parameterType="com.bonus.lease.beans.MachineReceiveBean" resultType="com.bonus.lease.beans.MachineReceiveBean">
+ 		SELECT wtr.id as supId ,wtr1.id as taskId,wmo.MODEL_ID as modelId
+		FROM wf_task_record wtr
+		LEFT JOIN wf_task_record wtr1 ON wtr1.SUP_ID = wtr.ID
+		LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wtr1.ID
+		
+		WHERE wtr.ID = #{supId}
+ 	</select>
+ 	<update id="saveMainTask" parameterType="com.bonus.lease.beans.MachineReceiveBean">
+ 		UPDATE wf_task_record SET REMARK = #{taskRemark} WHERE ID = #{taskId} 
+ 	</update>
+ 	<update id="saveMaterialRequisition" parameterType="com.bonus.lease.beans.MachineReceiveBean">
+ 		UPDATE wf_info_record SET REMARK = #{remarkMachine} 
+ 		where ID = #{id}
+ 	</update>
+ 	
+ 	<delete id="del" parameterType="com.bonus.lease.beans.MachineReceiveBean" >
+ 	    delete from wf_task_record 
+ 	    where ID = #{taskId}
+ 	</delete> 
+ 	
+ 	<select id="findDetails" parameterType="com.bonus.lease.beans.MachineReceiveBean" resultType="com.bonus.lease.beans.MachineReceiveBean">
+ 		SELECT wcd.ALREADY_COLLAR_NUM AS alreadyCollerNum,mtt.`NAME` AS maType,mt.`NAME` AS maModel,
+			mt.UNIT AS maUnit,mt.LEASE_PRICE AS leasePrice,wcd.PRE_COLLAR_NUM AS preCollerNum,
+			wcd.IS_SURE AS isSure,pu.`NAME` AS checker,puu.`NAME` AS customerSrep,wcd.CHECKER AS checkerId,
+			wcd.CUSTOMER_SERVICE_REP AS customerSrepId,wcd.TASK_ID AS taskId,wcd.MODEL_ID AS maModelId,wcd.ID
+			FROM wf_collar_details wcd
+			LEFT JOIN mm_type mt ON wcd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+			LEFT JOIN pm_user pu ON pu.ID = wcd.CHECKER 
+			LEFT JOIN pm_user puu ON puu.ID = wcd.CUSTOMER_SERVICE_REP
+			WHERE wcd.TASK_ID= #{taskId}
+			AND wcd.IS_ACTIVE = 1
+		GROUP BY mt.ID
+ 	</select>
+</mapper>

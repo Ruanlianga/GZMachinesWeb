@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.RepairMachineDao">
+
+	<resultMap type="com.bonus.lease.beans.RepairMachineBean" id="BaseResultMap">
+		<result column="ID" property="id" jdbcType="VARCHAR"/>
+		<result column="PARENT_ID" property="parentId" jdbcType="VARCHAR"/>
+		<result column="OUT_NUM" property="outNum" jdbcType="VARCHAR"/>
+		<result column="OUT_TIME" property="outTime" jdbcType="VARCHAR"/>
+		<result column="PICK_COMPANY" property="pickCompany" jdbcType="VARCHAR"/>
+		<result column="PICK_PROJECT" property="pickProject" jdbcType="VARCHAR"/>
+		<result column="GIVE_COMPANY" property="giveCompany" jdbcType="VARCHAR"/>
+		<result column="MACHINES_ID" property="machinesId" jdbcType="VARCHAR"/>
+		<result column="MODEL_ID" property="modelId" jdbcType="VARCHAR"/>
+		<result column="PICK_NUM" property="pickNum" jdbcType="VARCHAR"/>
+		<result column="INVOICE_NUM" property="invoiceNum" jdbcType="VARCHAR"/>
+		<result column="INVOICE_URL" property="invoiceUrl" jdbcType="VARCHAR"/>
+		<result column="BACK_TIME" property="backTime" jdbcType="VARCHAR"/>
+		<result column="NOTICE" property="notice" jdbcType="VARCHAR"/>
+		<result column="MACHINES_URL" property="machinesUrl" jdbcType="VARCHAR"/>
+		<result column="BATCH_STATUS" property="batchStatus" jdbcType="VARCHAR"/>
+		
+	</resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.lease.beans.RepairMachineBean"
+		resultType="com.bonus.lease.beans.RepairMachineBean">
+		SELECT 	wob.id,wob.PARENT_ID parentId,wob.OUT_NUM outNum,wob.OUT_TIME outTime,
+				wob.BACK_TIME as backTime,bpd2.WORK_NAME pickCompany,
+				bpd1.WORK_NAME pickProject,wob.PICK_NUM pickNum,
+				wob.BATCH_STATUS batchStatus
+		FROM wa_out_batch wob
+		LEFT JOIN pm_organization pmo on pmo.ID = wob.GIVE_COMPANY
+		LEFT JOIN bm_project_department bpd1 on bpd1.ID = wob.PICK_PROJECT
+		LEFT JOIN bm_project_department bpd2 on bpd2.ID = bpd1.PARENT_ID
+		LEFT JOIN wa_out_device wod on wod.OUT_ID = wob.ID
+		where wob.PARENT_ID = 0 and wob.BATCH_STATUS >= 6
+		and wob.BACK_TIME like concat(#{param.backTime},'%')
+		<if test="param.keyword != null and param.keyword != ''">
+			and (wob.OUT_NUM like concat('%',#{param.keyword},'%')
+			|| bpd2.WORK_NAME like concat('%',#{param.keyword},'%')
+			|| bpd1.WORK_NAME like concat('%',#{param.keyword},'%')
+			)
+		</if>
+	</select>
+
+	<select id="findDetails" parameterType="com.bonus.lease.beans.RepairMachineBean"
+		resultType="com.bonus.lease.beans.RepairMachineBean">
+		SELECT 	DISTINCT wob.OUT_NUM outNum,mam.`NAME` as machinesName,mam.MODEL as model,
+				wod.DEVICE_NUM as deviceNum,wod.`STATUS`
+		FROM wa_out_batch wob
+		LEFT JOIN ma_machines mam on mam.ID = wob.MACHINES_ID
+		LEFT JOIN wa_out_device wod on wod.OUT_ID = wob.ID
+		where wob.OUT_NUM = #{param.outNum} and wod.DEVICE_NUM is not NULL
+		<if test="param.keyword != null and param.keyword != ''">
+			and (
+				mam.`NAME` like concat('%',#{param.keyword},'%')
+				|| mam.MODEL like concat('%',#{param.keyword},'%')
+				|| wod.DEVICE_NUM like concat('%',#{param.keyword},'%')
+			)
+		</if>
+	</select>
+
+	<update id="update" parameterType="com.bonus.lease.beans.RepairMachineBean">
+		update wa_out_batch set BATCH_STATUS = 6,BACK_TIME = #{backTime} where OUT_NUM = #{outNum}
+	</update>
+	
+	<update id="chooseInput" parameterType="com.bonus.lease.beans.RepairMachineBean">
+	    update wa_out_device set STATUS = #{status} 
+	    where device_num = #{deviceNum}
+	</update>
+	
+	<insert id="insertRepairInfo" parameterType="com.bonus.lease.beans.RepairMachineBean">
+	        replace into wa_repair_info
+	        (device_num,`current_time`,next_time,next_person,repair_person,repair_company,repair_content) 
+	        values(#{deviceNum},#{currentTime},#{nextTime},#{nextPerson},#{repairPerson},
+	        #{repairCompany},#{repairContent})
+	</insert>
+	
+	<insert id="insertBean" parameterType="com.bonus.lease.beans.RepairMachineBean">
+	    replace into wa_repair_info
+	    (device_num,repair_company,repair_person,repair_money,repair_content,repair_parts,parts_model,parts_price)
+	    values 
+	    (#{deviceNum},#{repairCompany},#{repairPerson},#{repairMoney},#{repairContent},#{repairParts},#{partsModel},#{partsPrice})
+	</insert>
+	
+</mapper>

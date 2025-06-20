@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.settlement.dao.SettlementTotalDao" >
+    <resultMap id="settlementTotal" type="com.bonus.settlement.beans.SettlementTotalBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.settlement.beans.SettlementTotalBean" resultMap="settlementTotal">
+	 SELECT DISTINCT agreementId,agreementCode,leaseName,projectName,SUM(leaseMoney) leaseMoney,SUM(loseMoney) loseMoney,SUM(deductionMoney) deductionMoney,
+	         ROUND((SUM(leaseMoney) + SUM(loseMoney) - SUM(deductionMoney)) ,2) totalMoney,settlementDate,isSure,isSettlement
+		FROM(
+		SELECT DISTINCT wsd.AGREEMENT_ID as agreementId,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,bp.`NAME` as projectName,sum(if(TYPE = 1,MONEY,0)) as leaseMoney,
+		     sum(if(TYPE = 2,MONEY,0)) as loseMoney,0 deductionMoney,wsd.SETTLEMENT_TIME as settlementDate, wsd.IS_SURE as isSure, wsd.IS_SETTLEMENT as isSettlement
+		from wf_settlement_details wsd
+		    LEFT JOIN wf_lease_agreement wla ON wsd.AGREEMENT_ID  = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			  where  wsd.IS_SETTLEMENT = 0   AND left(wsd.SETTLEMENT_TIME,10) between #{param.startTime} and #{param.endTime} 
+		GROUP BY wsd.AGREEMENT_ID
+		UNION
+		SELECT DISTINCT wsdd.AGREEMENT_ID as agreementId,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,bp.`NAME` as projectName,0 leaseMoney,0 loseMoney,
+		       SUM(wsdd.DEDUCTION_MONEY) as deductionMoney,'' as settlementDate, 1 as isSure, 0 as isSettlement
+		FROM wf_settlement_deduction wsdd
+		    LEFT JOIN wf_lease_agreement wla ON wsdd.AGREEMENT_ID  = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		    ) a
+	    where 1 = 1 
+	 	<if test="param.keyWord !='' and param.keyWord !=null"> 
+	     	and (
+			    agreementCode like concat('%',#{param.keyWord},'%') or
+			    leaseName	  like concat('%',#{param.keyWord},'%') or
+			    projectName   like concat('%',#{param.keyWord},'%')
+	      	)
+	 	</if>  
+	 	GROUP BY agreementId
+	 	HAVING  ROUND((SUM(leaseMoney) + SUM(loseMoney) - SUM(deductionMoney)) ,2) > 0
+ 	</select>
+ 
+ 
+</mapper>

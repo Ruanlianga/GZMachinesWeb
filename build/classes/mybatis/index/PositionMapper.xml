@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.index.dao.PositionDao" >
+
+    <resultMap id="position" type="com.bonus.index.beans.PositionBean"></resultMap>
+      <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+	<select id="findNoPage" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+		select bpd.ID as id,bpd.GPS_CODE as code, bpd.LON  as lon,bpd.LAT as lat,bpd.UPLOAD_CYCLE as uploadCycle,bb.BIND_STATUS as status
+		from bm_position_device  bpd
+        left join bm_binding bb on bb.GPS_CODE  = bpd.GPS_CODE
+		where bpd.IS_ACTIVE = 1
+	 <if test="param.keyWord != null and param.keyWord != ''">
+     	and bpd.GPS_CODE like CONCAT('%',#{param.keyWord},'%') or 
+		    bb.BIND_STATUS like CONCAT('%',#{param.keyWord},'%') or 
+		    bpd.LON like CONCAT('%',#{param.keyWord},'%') or 
+		    bpd.LAT like CONCAT('%',#{param.keyWord},'%') or 
+		    bpd.UPLOAD_CYCLE like CONCAT('%',#{param.keyWord},'%')
+	</if>
+	</select>
+	
+	<select id="findBindPosition" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+  		select bb.ID as id,bd.DEVICE_CODE as deviceCode,bd.BATCH_STATUS status,
+  		bp.GPS_CODE as code,drt.LON as lon,drt.LAT as lat,drt.UP_TIME AS upTime,
+  		drt.ELECT_QUANTITY AS electQuantity,drt.`STATUS` as gpsStatus,
+  		drt.POS_TYPE as posType,drt.COLLECT_TIME as collectTime,
+  		drt.EXPIRE_FLAG as expireFlag,bmdt.`NAME` as typeName,b.useUnit,b.proName,b.useTime
+		from mm_machines bd
+		LEFT JOIN gps_binding bb ON bd.DEVICE_CODE = bb.DEVICE_CODE
+        LEFT JOIN mm_type bdt on  bdt.id = bd.TYPE
+        LEFT JOIN mm_type bmdt on bmdt.ID = bdt.PARENT_ID
+		LEFT JOIN gps_position_device bp ON bb.GPS_CODE = bp.GPS_CODE
+		LEFT JOIN gps_real_time_data drt ON bp.GPS_CODE = drt.GPS_CODE
+		LEFT JOIN 		( SELECT
+		*
+		FROM
+		(
+			SELECT
+		mm.ID,
+		bu.`NAME` as useUnit,
+		bp.`NAME` as proName ,
+		wir.`TIME` as useTime
+		FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mm ON wir.ma_id = mm.id
+				LEFT JOIN wf_task_record wtr on wir.SUP_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat on wtr.SUP_ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				where  wir.TYPE = 2 and mm.BATCH_STATUS = 6
+				GROUP BY mm.ID,wat.AGREEMENT_ID
+			ORDER BY wir.TIME desc
+		) a group by id) b  on bd.id = b.ID
+		where bb.id in(select max(id) from gps_binding group by DEVICE_CODE) and bd.DEVICE_TYPE=#{deviceType}
+		<if test="keyWord!=null and keyWord!=''">
+			and (
+				bd.DEVICE_CODE like CONCAT('%',#{keyWord},'%') or 
+				bdt.`NAME` like CONCAT('%',#{keyWord},'%') or 
+				bmdt.`NAME` like CONCAT('%',#{keyWord},'%') 
+			)
+		</if>
+	</select>
+	
+	<select id="findDeviceDetail" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+  		select bb.ID as id,bd.DEVICE_CODE as deviceCode,bd.BIND_STATUS status,
+  		bp.GPS_CODE as code,drt.LON as lon,drt.LAT as lat,drt.UP_TIME AS upTime,
+  		drt.ELECT_QUANTITY AS electQuantity,drt.`STATUS` as gpsStatus,
+  		drt.POS_TYPE as posType,drt.COLLECT_TIME as collectTime,
+  		drt.EXPIRE_FLAG as expireFlag,bw.POINTS,bw.`NAME` as fenceName,
+  		aa.TYPE as alarmType,bmdt.`NAME` as typeName,bdt.`NAME` as deviceModel
+		from bm_device bd
+		LEFT JOIN bm_binding bb ON bd.DEVICE_CODE = bb.DEVICE_CODE
+        LEFT JOIN bm_device_type bdt on  bdt.id = bd.TYPE
+        LEFT JOIN bm_device_type bmdt on bmdt.ID = bdt.PARENT_ID
+		LEFT JOIN bm_position_device bp ON bb.GPS_CODE = bp.GPS_CODE
+		LEFT JOIN dm_real_time_data drt ON bp.GPS_CODE = drt.GPS_CODE
+		LEFT JOIN bm_warehouse bw ON bd.WAREHOUSE_ID = bw.id
+		LEFT JOIN (SELECT * FROM am_alarm GROUP BY DEVICE_CODE) aa ON bd.DEVICE_CODE = aa.DEVICE_CODE
+		where bb.id in(select max(id) from bm_binding group by DEVICE_CODE) and   bb.id= #{param.id}
+		 <if test="param.keyWord != null and param.keyWord != ''"> 
+     		and (bp.GPS_CODE like CONCAT('%',#{param.keyWord},'%') or 
+		    bd.DEVICE_CODE like CONCAT('%',#{param.keyWord},'%') or 
+		    drt.LON like CONCAT('%',#{param.keyWord},'%') or 
+		    drt.LAT like CONCAT('%',#{param.keyWord},'%') or 
+		    bmdt.`NAME` like CONCAT('%',#{param.keyWord},'%') or
+		    bdt.`NAME` like CONCAT('%',#{param.keyWord},'%') )
+		</if>
+	
+	</select>
+	
+	<select id="findAll" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+  	SELECT mm.ID as id,mm.GPS_CODE as code 
+		   FROM mm_machines mm 
+	    where mm.GPS_CODE is not null 
+	</select>
+	
+	<select id="find" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+	select ID as id,GPS_CODE as code,GPS_STATUS as status, LON  as lon,LAT as lat,UPLOAD_CYCLE as uploadCycle
+	 from bm_position_device 
+	 where ID =#{id} and IS_ACTIVE = 1
+	 
+	</select>
+ 
+	<update id="delete" parameterType="com.bonus.index.beans.PositionBean">
+        update bm_position_device set IS_ACTIVE = '0'
+        where ID =#{id}
+	</update>
+	
+		<update id="update" parameterType="com.bonus.index.beans.PositionBean">
+       update bm_position_device set GPS_CODE = #{code},GPS_STATUS = #{status},LON = #{lon},LAT = #{lat},
+       UPLOAD_CYCLE = #{uploadCycle}
+       where ID = #{id}
+	</update>
+ 
+	<insert id="insert" parameterType="com.bonus.index.beans.PositionBean"> 
+	   	insert into bm_position_device(GPS_CODE,GPS_STATUS,LON,LAT,UPLOAD_CYCLE,IS_ACTIVE) values
+	   	 (#{code},#{status},#{lon},#{lat},#{uploadCycle},1)
+   </insert>
+   
+   <!-- 替换绑定 -->
+    <select id="gpsCode" parameterType="com.bonus.index.beans.PositionBean" resultType="java.lang.String">
+        select GPS_CODE  as newgpsCode
+        from bm_position_device where GPS_CODE=#{param.newgpsCode}
+     </select>
+	<!-- 绑定gps -->
+     <select id="gpsCodeBind" parameterType="com.bonus.index.beans.PositionBean" resultType="java.lang.String">
+        select GPS_CODE  as gpsCode
+        from bm_position_device where GPS_CODE=#{param.gpsCode}
+     </select>
+     
+     <select id="findInLibDevice" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+  		SELECT bmd.ID,bdy.`NAME` as typeName,bdt.`NAME` as deviceModel,bmd.DEVICE_CODE as deviceCode,
+		bmd.BIND_STATUS status,bp.GPS_CODE as code,drt.LON as lon,drt.LAT as lat,drt.UP_TIME AS upTime,
+		drt.ELECT_QUANTITY AS electQuantity,drt.`STATUS` as gpsStatus,drt.POS_TYPE as posType,
+		drt.COLLECT_TIME as collectTime,drt.EXPIRE_FLAG as expireFlag
+		FROM bm_device bmd,bm_device_type bdt,bm_device_type bdy,bm_binding bb,bm_position_device bp,dm_real_time_data drt
+		WHERE bmd.TYPE = bdt.ID AND bdt.PARENT_ID = bdy.ID AND bmd.DEVICE_CODE = bb.DEVICE_CODE 
+		AND bb.GPS_CODE = bp.GPS_CODE AND bp.GPS_CODE = drt.GPS_CODE
+		AND bmd.DEVICE_STATUS = 1 
+		<if test="param.deviceType != 0 and param.deviceType != '0'">
+			AND bdy.ID = #{param.deviceType}
+		</if>
+	</select>
+   
+   <select id="findOldGpsData" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+  		
+       select DISTINCT bd.DEVICE_CODE as deviceCode,bd.BATCH_STATUS status,
+  		bd.GPS_CODE as code,bb.LON as lon,bb.LAT as lat,bb.UP_TIME AS upTime,
+  		bb.ELECT_QUANTITY AS electQuantity,bb.`STATUS` as gpsStatus,
+  		bb.POS_TYPE as posType,bb.COLLECT_TIME as collectTime,
+  		bb.EXPIRE_FLAG as expireFlag,bmdt.`NAME` as typeName,bdt.`NAME` as deviceModel,
+        b.useUnit,b.proName,b.useTime
+		from mm_machines bd
+		LEFT JOIN gps_history_data bb ON bd.GPS_CODE = bb.GPS_CODE
+    LEFT JOIN mm_type bdt on  bdt.id = bd.TYPE
+    LEFT JOIN mm_type bmdt on bmdt.ID = bdt.PARENT_ID
+
+		LEFT JOIN 		( SELECT
+		*
+		FROM
+		(
+		SELECT
+		mm.ID,
+		bu.`NAME` as useUnit,
+		bp.`NAME` as proName ,
+		bu.`TIME` as useTime
+		FROM mm_machines mm
+		LEFT JOIN ma_type_project_storage ps on mm.ID = ps.machine
+		LEFT JOIN wf_lease_agreement wla ON ps.agreement_id = wla.ID
+		LEFT JOIN bm_unit bu on wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp on wla.PROJECT = bp.ID
+		WHERE mm.BATCH_STATUS = 6
+	
+	    <if test="param.code != null and param.code != ''">
+			and mm.GPS_CODE = #{param.code}
+		</if>
+			
+	
+		GROUP BY mm.ID
+		) a ) b  on bd.id = b.ID 
+		where  1=1 
+		    <if test="param.code != null and param.code != ''">
+			and   bd.GPS_CODE = #{param.code}
+		</if>
+		  and bb.UP_TIME between #{param.startTime} and #{param.endTime}
+		
+		<if test="param.code != null and param.code != ''">
+			AND bd.GPS_CODE = #{param.code}
+		</if>
+		<if test="param.deviceCode != null and param.deviceCode != ''">
+			AND bd.ID = #{param.deviceCode}
+		</if>
+		<if test="param.typeNameId != null and param.typeNameId != ''">
+			AND bmdt.`ID` = #{param.typeNameId}
+		</if>
+		<if test="param.deviceModel != null and param.deviceModel != ''">
+			AND bdt.`ID` = #{param.deviceModel}
+		</if>
+		<if test="param.keyWord!=null and param.keyWord!=''">
+			and (
+				bd.GPS_CODE like CONCAT('%',#{param.keyWord},'%') or 
+				bd.DEVICE_CODE like CONCAT('%',#{param.keyWord},'%') or 
+				bdt.`NAME` like CONCAT('%',#{param.keyWord},'%') or 
+				bmdt.`NAME` like CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+	</select>
+   
+   <select id="getMainTree" parameterType="com.bonus.index.beans.PositionBean" resultMap="ZNode">
+   		SELECT 
+			mt2.ID as id ,
+			0 as pId ,
+			mt2.`NAME` as name,
+			2 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			where GPS_CODE is not null AND DEVICE_TYPE=1
+			GROUP BY mt2.ID 
+		union
+		SELECT 
+			mm.TYPE as id ,
+			mt.PARENT_ID as pId ,
+			mt.`NAME` as name,
+			3 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			where GPS_CODE is not null AND DEVICE_TYPE=1
+			GROUP BY mt.ID 
+		union
+		SELECT 
+			CONCAT(mm.ID,"-",mm.TYPE) as id ,
+			mm.TYPE as pId ,
+			if(drt.ELECT_QUANTITY ="null" or drt.ELECT_QUANTITY is null,CONCAT(mm.DEVICE_CODE,"[电量：暂无]"),CONCAT(mm.DEVICE_CODE,"[电量：",drt.ELECT_QUANTITY,"%]")) as name,
+			4 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN gps_binding bb ON mm.DEVICE_CODE = bb.DEVICE_CODE
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			LEFT JOIN gps_position_device bp ON mm.GPS_CODE = bp.GPS_CODE
+			LEFT JOIN gps_real_time_data drt ON bp.GPS_CODE = drt.GPS_CODE
+			where mm.GPS_CODE is not null AND DEVICE_TYPE=1
+			GROUP BY mm.ID
+   </select>
+   
+   
+   
+   <select id="getMainSpecialTree" parameterType="com.bonus.index.beans.PositionBean" resultMap="ZNode">
+   		SELECT 
+			mt2.ID as id ,
+			0 as pId ,
+			mt2.`NAME` as name,
+			2 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			where GPS_CODE is not null AND DEVICE_TYPE=2
+			GROUP BY mt2.ID 
+		union
+		SELECT 
+			mm.TYPE as id ,
+			mt.PARENT_ID as pId ,
+			mt.`NAME` as name,
+			3 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			where GPS_CODE is not null AND DEVICE_TYPE=2
+			GROUP BY mt.ID 
+		union
+		SELECT 
+			CONCAT(mm.ID,"-",mm.TYPE) as id ,
+			mm.TYPE as pId ,
+			if(drt.ELECT_QUANTITY ="null" or drt.ELECT_QUANTITY is null,CONCAT(mm.DEVICE_CODE,"[电量：暂无]"),CONCAT(mm.DEVICE_CODE,"[电量：",drt.ELECT_QUANTITY,"%]")) as name,
+			4 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN gps_binding bb ON mm.DEVICE_CODE = bb.DEVICE_CODE
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			LEFT JOIN gps_position_device bp ON mm.GPS_CODE = bp.GPS_CODE
+			LEFT JOIN gps_real_time_data drt ON bp.GPS_CODE = drt.GPS_CODE
+			where mm.GPS_CODE is not null AND DEVICE_TYPE=2
+			GROUP BY mm.ID
+   </select>
+   
+   
+     <select id="getTypeName" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+   		SELECT 
+			mt2.ID as id ,
+			mt2.`NAME` as name,
+			2 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			GROUP BY mt2.ID 
+     </select>
+     
+     <select id="getDeviceModel" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+     SELECT 
+			mm.TYPE as id ,
+			mt.`NAME` as name,
+			3 as `LEVEL`
+			from mm_machines mm 
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			GROUP BY mt.ID 
+     </select>
+     
+     <select id="getDeviceCode" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+     SELECT 
+			mm.ID as id ,
+			mm.DEVICE_CODE as name,
+			4 as `LEVEL`
+			from mm_machines mm
+			LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+			LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+			GROUP BY mm.ID
+     </select>
+     
+     <select id="getCode" parameterType="com.bonus.index.beans.PositionBean" resultType="com.bonus.index.beans.PositionBean">
+       		SELECT 
+			mm.GPS_CODE  as id ,
+			mm.GPS_CODE as name
+			from mm_machines mm
+			where mm.GPS_CODE is not NULL
+			GROUP BY mm.ID 
+     </select>
+</mapper>

@@ -1,0 +1,372 @@
+package com.bonus.lease.beans;
+
+import java.util.List;
+
+public class MachineReceiveBean {
+
+	private String taskId;
+	private String leaseCompany; // 租赁单位
+	private String leaseProject; // 工程名称
+	private Integer leaseProjectId; // 工程id
+	private String contractNum; // 协议号
+	private String leasePerson; // 领料人
+	private String phone; // 联系方式
+	private String applyTime; // 创建时间、申请时间
+	private String startTime;
+	private String endTime;
+	private String isSend;//是否已发货，0：未发货，1、已发货
+	private String keyWord;
+	private String machineType;
+	private String machineName;
+	private String machineModel;
+	private String deviceCode;
+	private String leasePrice;
+	private String typeId;
+	private String isCount;
+	private String machineUnit;
+	private String thisOutNum;
+	private String makeOrderPerson;//制单人
+	private String applyNumber;
+	private String agreementCode;
+	private String isFixedAssets; //是否固定资产
+
+
+	public Integer getPlanOutId() {
+		return planOutId;
+	}
+
+	public void setPlanOutId(Integer planOutId) {
+		this.planOutId = planOutId;
+	}
+
+	private Integer planOutId;
+
+	public Byte getIsConfirm() {
+		return isConfirm;
+	}
+
+	public void setIsConfirm(Byte isConfirm) {
+		this.isConfirm = isConfirm;
+	}
+
+
+	public Integer getLeaseProjectId() {
+		return leaseProjectId;
+	}
+
+	public void setLeaseProjectId(Integer leaseProjectId) {
+		this.leaseProjectId = leaseProjectId;
+	}
+
+	// 是否已确认出库
+	private Byte isConfirm;
+	
+	private String id; 
+	private String taskRemark; //任务备注
+	private String remarkMachine; //领料备注
+	private String supId;
+	private String modelId;
+	private String taskId1;
+	private String subcontractors;//分包商
+	private String companyId;
+	private String examineUser;
+	private String approvalUser;
+	private String examineUrl;
+	private String approvalUrl;
+	private String opeatorUrl;
+	
+	private String remark;
+	
+	
+	private String num;//总数
+	private String wsh;//未审核
+	private String shtg;//审核通过
+	private String shbh;//审核驳回
+	private String wpz;//未批准
+	private String pztg;//批准通过
+	private String pzbh;//批准驳回
+	
+	
+	
+	
+	public String getNum() {
+		return num;
+	}
+	public void setNum(String num) {
+		this.num = num;
+	}
+	public String getWsh() {
+		return wsh;
+	}
+	public void setWsh(String wsh) {
+		this.wsh = wsh;
+	}
+	public String getShtg() {
+		return shtg;
+	}
+	public void setShtg(String shtg) {
+		this.shtg = shtg;
+	}
+	public String getShbh() {
+		return shbh;
+	}
+	public void setShbh(String shbh) {
+		this.shbh = shbh;
+	}
+	public String getWpz() {
+		return wpz;
+	}
+	public void setWpz(String wpz) {
+		this.wpz = wpz;
+	}
+	public String getPztg() {
+		return pztg;
+	}
+	public void setPztg(String pztg) {
+		this.pztg = pztg;
+	}
+	public String getPzbh() {
+		return pzbh;
+	}
+	public void setPzbh(String pzbh) {
+		this.pzbh = pzbh;
+	}
+	public String getRemark() {
+		return remark;
+	}
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	public String getCompanyId() {
+		return companyId;
+	}
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
+	}
+	public String getSubcontractors() {
+		return subcontractors;
+	}
+	public void setSubcontractors(String subcontractors) {
+		this.subcontractors = subcontractors;
+	}
+	private List<String> remarkMachines;
+	
+	
+	public String getTaskId1() {
+		return taskId1;
+	}
+	public void setTaskId1(String taskId1) {
+		this.taskId1 = taskId1;
+	}
+	public List<String> getRemarkMachines() {
+		return remarkMachines;
+	}
+	public void setRemarkMachines(List<String> remarkMachines) {
+		this.remarkMachines = remarkMachines;
+	}
+	public String getSupId() {
+		return supId;
+	}
+	public void setSupId(String supId) {
+		this.supId = supId;
+	}
+	public String getModelId() {
+		return modelId;
+	}
+	public void setModelId(String modelId) {
+		this.modelId = modelId;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getTaskRemark() {
+		return taskRemark;
+	}
+	public void setTaskRemark(String taskRemark) {
+		this.taskRemark = taskRemark;
+	}
+	public String getRemarkMachine() {
+		return remarkMachine;
+	}
+	public void setRemarkMachine(String remarkMachine) {
+		this.remarkMachine = remarkMachine;
+	}
+	public String getIsFixedAssets() {
+		return isFixedAssets;
+	}
+	public void setIsFixedAssets(String isFixedAssets) {
+		this.isFixedAssets = isFixedAssets;
+	}
+	public String getTaskId() {
+		return taskId;
+	}
+	public void setTaskId(String taskId) {
+		this.taskId = taskId;
+	}
+	public String getLeaseCompany() {
+		return leaseCompany;
+	}
+	public void setLeaseCompany(String leaseCompany) {
+		this.leaseCompany = leaseCompany;
+	}
+	public String getLeaseProject() {
+		return leaseProject;
+	}
+	public void setLeaseProject(String leaseProject) {
+		this.leaseProject = leaseProject;
+	}
+	public String getContractNum() {
+		return contractNum;
+	}
+	public void setContractNum(String contractNum) {
+		this.contractNum = contractNum;
+	}
+	public String getLeasePerson() {
+		return leasePerson;
+	}
+	public void setLeasePerson(String leasePerson) {
+		this.leasePerson = leasePerson;
+	}
+	public String getPhone() {
+		return phone;
+	}
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+	public String getApplyTime() {
+		return applyTime;
+	}
+	public void setApplyTime(String applyTime) {
+		this.applyTime = applyTime;
+	}
+	public String getStartTime() {
+		return startTime;
+	}
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+	public String getEndTime() {
+		return endTime;
+	}
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+	public String getIsSend() {
+		return isSend;
+	}
+	public void setIsSend(String isSend) {
+		this.isSend = isSend;
+	}
+	public String getKeyWord() {
+		return keyWord;
+	}
+	public void setKeyWord(String keyWord) {
+		this.keyWord = keyWord;
+	}
+	public String getMachineType() {
+		return machineType;
+	}
+	public void setMachineType(String machineType) {
+		this.machineType = machineType;
+	}
+	public String getMachineName() {
+		return machineName;
+	}
+	public void setMachineName(String machineName) {
+		this.machineName = machineName;
+	}
+	public String getMachineModel() {
+		return machineModel;
+	}
+	public void setMachineModel(String machineModel) {
+		this.machineModel = machineModel;
+	}
+	public String getDeviceCode() {
+		return deviceCode;
+	}
+	public void setDeviceCode(String deviceCode) {
+		this.deviceCode = deviceCode;
+	}
+	public String getLeasePrice() {
+		return leasePrice;
+	}
+	public void setLeasePrice(String leasePrice) {
+		this.leasePrice = leasePrice;
+	}
+	public String getTypeId() {
+		return typeId;
+	}
+	public void setTypeId(String typeId) {
+		this.typeId = typeId;
+	}
+	public String getIsCount() {
+		return isCount;
+	}
+	public void setIsCount(String isCount) {
+		this.isCount = isCount;
+	}
+	public String getMachineUnit() {
+		return machineUnit;
+	}
+	public void setMachineUnit(String machineUnit) {
+		this.machineUnit = machineUnit;
+	}
+	public String getThisOutNum() {
+		return thisOutNum;
+	}
+	public void setThisOutNum(String thisOutNum) {
+		this.thisOutNum = thisOutNum;
+	}
+	public String getMakeOrderPerson() {
+		return makeOrderPerson;
+	}
+	public void setMakeOrderPerson(String makeOrderPerson) {
+		this.makeOrderPerson = makeOrderPerson;
+	}
+	public String getApplyNumber() {
+		return applyNumber;
+	}
+	public void setApplyNumber(String applyNumber) {
+		this.applyNumber = applyNumber;
+	}
+	public String getAgreementCode() {
+		return agreementCode;
+	}
+	public void setAgreementCode(String agreementCode) {
+		this.agreementCode = agreementCode;
+	}
+	public String getExamineUser() {
+		return examineUser;
+	}
+	public void setExamineUser(String examineUser) {
+		this.examineUser = examineUser;
+	}
+	public String getApprovalUser() {
+		return approvalUser;
+	}
+	public void setApprovalUser(String approvalUser) {
+		this.approvalUser = approvalUser;
+	}
+	public String getExamineUrl() {
+		return examineUrl;
+	}
+	public void setExamineUrl(String examineUrl) {
+		this.examineUrl = examineUrl;
+	}
+	public String getApprovalUrl() {
+		return approvalUrl;
+	}
+	public void setApprovalUrl(String approvalUrl) {
+		this.approvalUrl = approvalUrl;
+	}
+	public String getOpeatorUrl() {
+		return opeatorUrl;
+	}
+	public void setOpeatorUrl(String opeatorUrl) {
+		this.opeatorUrl = opeatorUrl;
+	}
+	
+}

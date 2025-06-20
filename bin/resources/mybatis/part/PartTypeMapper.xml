@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.parts.dao.PartTypeDao" >
+
+    <select id="findByPage" resultType="com.bonus.parts.beans.PartTypeBean">
+         
+    SELECT    
+  pt.ID as id,
+  pt.parent_id as parentId,
+  pt.NAME as typeName,
+ pt.NUM  as  typeNum,
+ pt.REMARKS as remarks,
+ pt.IS_CONSUMABLES as  isConsumable
+ FROM   pa_type pt  
+ where  IS_ACTIVE =1
+   <if test="param.typeName!='' and param.typeName">
+      and    pt.NAME  like concat('%',#{param.typeName},'%')
+   </if>
+ 
+    </select>
+    <insert id="insert" parameterType="com.bonus.parts.beans.PartTypeBean"> 
+INSERT into pa_type(id,parent_id,NAME,num,is_consumables,remarks,is_active) 
+value(null,#{parentId},#{typeName},#{typeNum},#{isConsumable},#{remarks},1)
+    </insert>
+    
+    <update id="update" parameterType="com.bonus.parts.beans.PartTypeBean">
+   UPDATE  pa_type set  NAME = #{typeName},NUM = #{typeNum} ,IS_CONSUMABLES =#{isConsumable}, REMARKS =#{remarks}   where  id =#{id}      
+    </update>
+    
+    <delete id="delete" parameterType="com.bonus.parts.beans.PartTypeBean">
+        DELETE from pa_type where id=#{id}
+    </delete> 
+</mapper>

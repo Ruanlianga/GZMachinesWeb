@@ -1,0 +1,1402 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.index.dao.IndexHomeDetailsDao" >
+
+    <resultMap id="index" type="com.bonus.index.beans.IndexHomeDetailsBean">
+         
+          
+    </resultMap>
+    
+   
+    
+        <select id="getMaTypeDetails" parameterType="com.bonus.index.beans.IndexHomeDetailsBean" resultMap="index">
+  			
+	SELECT
+		rs.typeId,
+		mat2.`NAME` maType,
+		mat1.`NAME` maName,
+		mat1.UNIT as maUnit,
+		SUM(rs.storageNum)+SUM(rs.inuseNum) +SUM(rs.repairNum) as maTotal,
+		SUM(rs.storageNum) storageNum,
+		SUM(rs.inuseNum) inuseNum,
+		SUM(rs.repairNum) repairNum,
+		SUM(rs.scrapNum) scrapNum,
+		SUM(rs.projectNum) projectNum,
+		SUM(rs.inuseCount) inuseCount,
+		SUM(rs.backCount) backCount,
+		SUM(rs.pyNum) as pyNum,
+		SUM(rs.pkNum)  as pkNum,
+		rs.isCount
+	FROM
+	(
+	SELECT
+					mat1.ID AS typeId,
+					mat1.NUM storageNum,
+					0 inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+					0 backCount,
+		      0 as pyNum,
+					0 as pkNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					mm_type mat1
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					mat1.`LEVEL` = 4 
+					AND mat1.IS_ACTIVE = '1' 
+				GROUP BY
+					mat1.ID
+					UNION
+					
+						SELECT
+					typeId,
+					0 storageNum,
+					sum( leaseNum ) - SUM( backNum ) inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					sum( leaseNum ) inuseCount,
+					SUM( backNum ) backCount,
+					0 as pyNum,
+					0 as pkNum,
+					isCount AS isCount 
+				FROM
+					(
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						SUM( wir.NUM ) AS leaseNum,
+						0 AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+						LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+						LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+						AND wcd.MODEL_ID = wir.MODEL_ID 
+					WHERE
+						wir.TYPE = 2 
+						AND wtr2.IS_ACTIVE = 1 
+						AND wcd.IS_APPROVAL = 1 
+					GROUP BY
+						mt.ID UNION
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						0 AS leaseNum,
+						SUM( wir.NUM ) AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+						LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+					WHERE
+						wir.TYPE = 4 
+						AND wtr.IS_ACTIVE = 1 
+					GROUP BY
+						mt.ID 
+					) a 
+				GROUP BY
+					typeId
+					UNION
+					
+				SELECT
+				  typeId,
+					0 storageNum,
+					0 inuseNum,
+					SUM(repairNum) + SUM(checkNum) + SUM(waitInputNum) as repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+			   	0 backCount,
+					0 as pyNum,
+					0 as pkNum,
+				  isCount
+				FROM
+				(
+		
+					SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					SUM( wrd.REPAIR_NUM ) - SUM( wrd.ALREPAIR_NUM ) - SUM( SCRAP_NUM ) AS repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+				mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_details wrd
+					LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrd.MODEL_ID 
+					UNION
+							SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					SUM( wrc.CHECK_NUM ) - SUM( wrc.ALCHECK_NUM ) AS checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_check wrc
+					LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				GROUP BY
+					wrc.MODEL_ID
+						UNION
+					SELECT DISTINCT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 AS scrapNum,
+					0 loseNum,
+					SUM(
+						IFNULL( PRE_PUT_NUM, 0 )) - sum(
+					IFNULL( AL_PUT_NUM, 0 )) AS waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_put_storage_details wpd
+					LEFT JOIN mm_type mat1 ON wpd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					wpd.IS_SURE = 0 
+				GROUP BY
+					wpd.MODEL_ID 
+					
+					) res 
+					GROUP BY typeId 
+					UNION
+					SELECT
+				mat1.ID AS typeId,
+					0 storageNum,
+					0 inuseNum,
+				  0 as repairNum,
+					SUM( wsd.ALSCRAP_NUM ) AS scrapNum ,
+					0 projectNum,
+					0 inuseCount,
+			   	0 backCount,
+					0 as pyNum,
+					0 as pkNum,
+				mat1.IS_COUNT AS isCount 
+			FROM
+				wf_scrap_details wsd
+				LEFT JOIN mm_type mat1 ON wsd.MODEL_ID = mat1.ID
+				LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+				LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+			WHERE
+				wsd.IS_SURE = 1
+			GROUP BY
+					wsd.MODEL_ID
+					UNION
+					
+					SELECT
+					mps.type AS typeId,
+					0 storageNum,
+					0 inuseNum,
+				  0 as repairNum,
+			    0 AS scrapNum ,
+					COUNT(DISTINCT wla.PROJECT) as projectNum ,
+					0 inuseCount,
+			   	0 backCount,
+					0 as pyNum,
+					0 as pkNum,
+				mat1.IS_COUNT AS isCount 
+					FROM
+					ma_type_project_storage mps
+					LEFT JOIN wf_lease_agreement wla on mps.agreement_id = wla.ID
+					LEFT JOIN mm_type mat1 ON mps.type = mat1.ID
+					WHERE mps.`status` = 1
+					GROUP BY mps.type
+					UNION
+					SELECT
+					typeId,
+					0 storageNum,
+					0 inuseNum,
+				  0 as repairNum,
+			    0 AS scrapNum ,
+				  0 as projectNum ,
+					0 inuseCount,
+			   	0 backCount,
+					SUM(pyNum) as pyNum,
+					SUM(pkNum) as pkNum,
+					isCount
+					FROM
+					(
+					SELECT
+					mli.TYPE_ID as typeId,
+			    mli.IS_PROFIT as type,
+					IF(mli.IS_PROFIT =1,SUM(mli.IN_NUMS),0) as pyNum,
+					IF(mli.IS_PROFIT =0,SUM(mli.IN_NUMS),0) as pkNum,
+						mat1.IS_COUNT AS isCount 
+					FROM
+					ma_lib_inventroy mli
+			     LEFT JOIN mm_type mat1 ON mli.TYPE_ID = mat1.ID
+					 GROUP BY mli.TYPE_ID,mli.IS_PROFIT
+					 ) res 
+					 GROUP BY typeId
+					 ) rs 
+					 LEFT JOIN  mm_type mat1 ON rs.typeId = mat1.ID
+				  	LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					<where>
+						<if test="maName != null and maName != ''">
+							and mat1.`NAME` like concat ('%',#{maName},'%')
+						</if>
+						<if test="maType != null and maType != ''">
+							and mat2.`NAME` like concat ('%',#{maType},'%')
+						</if>
+					</where>
+					GROUP BY rs.typeId
+	</select>
+   
+        
+         <select id="getInStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+  			SELECT
+			"修试后入库" as taskType,
+			wir.NUM as `content`,
+			pu.`NAME` as userName,
+			wir.TIME as currentDate
+			FROM
+			wf_info_record wir 
+			LEFT JOIN wf_put_storage_details wps on wir.SUP_ID = wps.TASK_ID
+			LEFT JOIN pm_user pu on wps.CUSTOMER_SERVICE_REP = pu.ID
+			WHERE wir.TYPE = 3 and wps.IS_SURE = 1
+			and wir.model_id = #{typeId}
+			ORDER BY wir.TIME DESC
+			LIMIT 1
+	</select>
+	
+          <select id="getNewStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+  		SELECT
+				"新购入库" as taskType,
+				wir.NUM as `content`,
+				wnd.CUSTOMER_SERVICE_REP,
+				pu.`NAME` as userName,
+				wir.TIME as currentDate
+				FROM
+				wf_info_record wir
+				LEFT JOIN wf_new_details wnd on wir.SUP_ID = wnd.TASK_ID 
+				LEFT JOIN pm_user pu on wnd.CUSTOMER_SERVICE_REP = pu.ID
+				WHERE wir.TYPE = 5 and  wnd.IS_APPROVAL = 1
+					and wir.model_id = #{typeId}
+				ORDER BY wir.TIME DESC
+				LIMIT 1
+	</select>
+	
+      <select id="getOutStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+  		SELECT
+			"领料出库" as taskType,
+			wir.NUM as `content`,
+			wot.OUT_PERSON,
+			pu.`NAME` as userName,
+			wir.TIME as currentDate
+			FROM
+			wf_info_record wir
+			LEFT JOIN wf_ma_outstock wot on wir.SUP_ID = wot.TASK_ID 
+			LEFT JOIN pm_user pu on wot.OUT_PERSON = pu.ID
+			WHERE wir.TYPE =2 and  wot.IS_APPROVAL = 1
+			and wir.model_id = #{typeId}
+			ORDER BY wir.TIME DESC
+			LIMIT 1
+	</select>
+	
+   
+	
+           <select id="getBackStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+  		SELECT
+			wrd.ID,
+			"退料申请" as taskType,
+			wir.NUM as `content`,
+			wrd.OPERATOR as userName,
+			wir.TIME as currentDate
+			FROM
+			wf_return_material_details wrd
+			LEFT JOIN wf_info_record wir on wir.SUP_ID = wrd.ID 
+			WHERE wrd.IS_APPROVAL = 1 AND wir.TYPE = 4
+				and wir.model_id = #{typeId}
+			ORDER BY wir.TIME DESC
+			LIMIT 1
+	</select>
+	
+             <select id="getScrapStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+  		SELECT
+			"机具报废" as taskType,
+			wsd.SCRAP_NUM as `content`,
+			pu.`NAME` as userName,
+			wsd.SCRAP_TIME as currentDate
+			FROM
+			wf_scrap_details wsd
+			 LEFT JOIN pm_user pu on wsd.SCRAP_PERSON = pu.ID
+			 WHERE wsd.IS_SURE = 1 and wsd.model_id = #{typeId}
+			 ORDER BY wsd.SCRAP_TIME DESC
+			LIMIT 1
+	</select>
+	
+             <select id="getPdStorage" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+			SELECT
+			    wir.INVENTORY_TYPE as taskType,
+				wir.ID,
+				wir.INVENTORY_PERSON AS userName,
+				wir.INVENTORY_NUM as `content`,
+				wir.INVENTORY_TIME currentDate
+				FROM
+				wf_inventory_record wir
+				WHERE wir.INVENTORY_NUM > 0 AND wir.model_id = #{typeId}
+				 ORDER BY wir.INVENTORY_TIME DESC
+				LIMIT 1
+	</select>
+	
+             
+       <select id="getMaUseInfo" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+			SELECT
+      		a.id as id,
+					pu.`NAME` as userName,
+					wmo.OUT_TIME as currentDate,
+			projectName,
+			taskId, 
+			SUM( leaseNum ) - SUM( backNum ) inuseNum
+		FROM
+			(
+			SELECT
+		   MAX(wte.ID ) AS taskId,
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+				wla.`CODE` AS agreementCode,
+				SUM( wir.NUM ) AS leaseNum,
+				"0" AS backNum,
+				wla.ID AS agreementId 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+				LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 2 AND wir.model_id = #{typeId}
+				AND wtr.IS_ACTIVE = 1 
+			GROUP BY
+				wla.ID
+				
+				
+				 UNION
+			SELECT
+			  0 AS taskId,
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+				wla.`CODE` AS agreementCode,
+				"0" AS leaseNum,
+				SUM( wir.NUM ) AS backNum,
+				wla.ID AS agreementId 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+				LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 4 AND wir.model_id = #{typeId}
+				AND wtr.IS_ACTIVE = 1 
+			GROUP BY
+				wla.ID 
+			) a 
+			LEFT JOIN wf_ma_outstock wmo on a.taskId = wmo.TASK_ID
+			LEFT JOIN pm_user pu on wmo.OUT_PERSON = pu.ID
+		GROUP BY
+			a.projectName
+			
+	</select>
+	
+         <select id="getMaOutTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+			SELECT
+     	    wtr2.ID,
+			wtr2.NUMBER AS taskCode,
+			GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wir.num) as content ,
+			wot.OUT_PERSON,
+			pu.`NAME` as userName,
+			LEFT(wir.TIME,10) as currentDate,
+			wir.TIME as currentTime
+			FROM
+			wf_info_record wir
+			LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN wf_task_record wtr on wir.SUP_ID = wtr.ID
+			LEFT JOIN wf_task_record wtr2 on wtr.SUP_ID = wtr2.ID
+			LEFT JOIN wf_ma_outstock wot on wir.SUP_ID = wot.TASK_ID 
+			LEFT JOIN pm_user pu on wot.OUT_PERSON = pu.ID
+			LEFT JOIN wf_agreement_task wat on wtr2.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla on wat.AGREEMENT_ID = wla.ID
+			WHERE wir.TYPE =2 and  wot.IS_APPROVAL = 1
+			
+			<if test="startTime != null and startTime != ''">
+			AND LEFT(wir.TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+	       <if test="projectId != null and projectId  != ''">
+			and wla.project =#{projectId}
+	       </if>
+	GROUP BY  wtr2.ID 
+	 ORDER BY LEFT(wir.TIME,10) DESC
+	</select>
+	
+         
+          <select id="getMaBackTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+			SELECT
+     		 wtr.ID,
+			wtr.NUMBER AS taskCode,
+			GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wir.num) as content ,
+      		wrd.OPERATOR as userName,
+			LEFT(wir.TIME,10) as currentDate,
+			wir.TIME as currentTime
+			FROM
+			wf_info_record wir
+			LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN wf_return_material_details wrd on wir.SUP_ID = wrd.ID 
+			LEFT JOIN wf_task_record wtr on wrd.TASK_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat on wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla on wat.AGREEMENT_ID = wla.ID
+			WHERE wir.TYPE =4 
+			<if test="startTime != null and startTime != ''">
+			AND LEFT(wir.TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+	         <if test="projectId != null and projectId  != ''">
+			and wla.project =#{projectId}
+	       </if>
+	GROUP BY  wtr.ID
+	 ORDER BY LEFT(wir.TIME,10) DESC
+	</select>
+       
+          
+      <select id="getMaScrapTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+		SELECT
+			 wsd.TASK_ID as id ,
+			 wtr.NUMBER as taskCode,
+			 pu.`NAME` as userName,
+			 GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wsd.SCRAP_NUM) as content ,
+		    LEFT(wsd.SCRAP_TIME,10) as currentDate,
+			wsd.SCRAP_TIME as currentTime
+		
+			FROM
+			wf_scrap_details wsd
+			LEFT JOIN mm_type mt on wsd.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			 LEFT JOIN wf_task_record wtr on wsd.TASK_ID = wtr.ID
+			 LEFT JOIN pm_user pu on wsd.SCRAP_PERSON = pu.ID
+			 WHERE wsd.IS_SURE = 1 
+			 <if test="startTime != null and startTime != ''">
+			AND  LEFT(wsd.SCRAP_TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+			 GROUP BY  wsd.TASK_ID
+			 ORDER BY wsd.SCRAP_TIME DESC
+	</select>
+	
+       <select id="getMaPdTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+		SELECT
+		        wir.ID,
+			    wir.INVENTORY_TYPE as taskType,
+				wir.INVENTORY_PERSON AS userName,
+				GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wir.INVENTORY_NUM) as content ,
+				   LEFT(wir.INVENTORY_TIME,10) as currentDate,
+			wir.INVENTORY_TIME as currentTime
+				FROM
+				wf_inventory_record wir
+				LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			    LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+				WHERE wir.INVENTORY_NUM > 0 
+					 <if test="startTime != null and startTime != ''">
+			AND  LEFT(wir.INVENTORY_TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+				GROUP BY 	wir.ID
+				 ORDER BY wir.INVENTORY_TIME DESC
+			
+	
+	</select>
+	
+       
+          <select id="getMaNewTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+		SELECT
+				wnd.TASK_ID AS id,
+				wnd.CUSTOMER_SERVICE_REP,
+				GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wir.NUM) as content ,
+				pu.`NAME` as userName,
+				LEFT(wir.TIME,10) as currentDate,
+				wir.TIME as currentTime
+				FROM
+				wf_info_record wir
+				LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			    LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+				LEFT JOIN wf_new_details wnd on wir.SUP_ID = wnd.TASK_ID 
+				LEFT JOIN pm_user pu on wnd.CUSTOMER_SERVICE_REP = pu.ID
+				WHERE wir.TYPE = 5 and  wnd.IS_APPROVAL = 1
+				 <if test="startTime != null and startTime != ''">
+			AND  LEFT(wir.TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+				GROUP BY wnd.TASK_ID 
+				ORDER BY wir.TIME DESC
+			
+	
+	</select>
+	
+           <select id="getMaInTask" parameterType="com.bonus.index.beans.IndexHomeTaskBean" resultType="com.bonus.index.beans.IndexHomeTaskBean">
+			SELECT
+			 wps.TASK_ID as id ,
+			 IFNULL(wtr.NUMBER,"退料退回") as taskCode,
+			 pu.`NAME` as userName,
+			 GROUP_CONCAT(mt2.`NAME`,"-",mt.`NAME`,":",wir.NUM) as content ,
+			 	LEFT(wir.TIME,10) as currentDate,
+			wir.TIME as currentTime
+			FROM
+			wf_info_record wir 
+			LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			 LEFT JOIN wf_task_record wtr on wir.SUP_ID = wtr.ID
+			LEFT JOIN wf_put_storage_details wps on wir.SUP_ID = wps.TASK_ID
+			LEFT JOIN pm_user pu on wps.CUSTOMER_SERVICE_REP = pu.ID
+			WHERE wir.TYPE = 3 and wps.IS_SURE = 1
+			 <if test="startTime != null and startTime != ''">
+			AND  LEFT(wir.TIME,10) BETWEEN #{startTime} and #{endTime}
+	       </if>
+	        GROUP BY wps.TASK_ID 
+			ORDER BY wir.TIME DESC
+	</select>
+	
+          <select id="getStorageWarn" parameterType="com.bonus.index.beans.IndexStorageWarnBean" resultType="com.bonus.index.beans.IndexStorageWarnBean">
+           SELECT
+				 mt.ID as id,
+				 mt2.`NAME` maType,
+				 mt.`NAME`  as maName,
+				 mt.UNIT as maUnit,
+				 mt.is_COUNT AS isCount,
+				 mt.NUM as storageNum
+			FROM
+				mm_type mt
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			WHERE mt.`LEVEL` =4  and mt.IS_ACTIVE = 1
+			and mt.NUM = 0
+			<if test="maType != null and maType != ''">
+				and mt2.`NAME` like concat('%', #{maType}, '%')
+			</if>
+			<if test="maName != null and maName != ''">
+				and mt.`NAME` like concat('%', #{maName}, '%')
+			</if>
+	</select>
+	
+          
+          <select id="getCheckWarn" parameterType="com.bonus.index.beans.IndexCheckWarnBean" resultType="com.bonus.index.beans.IndexCheckWarnBean">
+			
+	SELECT
+					mm.ID,
+					mt2.`NAME` as maType,
+					mt.`NAME` as maName,
+					mt.UNIT as maUnit,
+					mt.is_COUNT AS isCount,
+					mm.DEVICE_CODE as maCode,
+					mm.BATCH_STATUS as maStatus,
+					mm.THIS_CHECK_TIME as thisCheckTime,
+					mm.NEXT_CHECK_TIME as nextCheckTime,
+			         vs.agreementCode,
+			        vs.projectName,
+				    vs.companyName,
+					to_days(ifnull(mm.NEXT_CHECK_TIME,now())) - to_days(now()) AS days
+					FROM
+					mm_machines mm 
+					LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+					LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+
+	                LEFT JOIN v_mtp_status vs on mm.ID = vs.maId 
+					WHERE 30>	to_days(ifnull(mm.NEXT_CHECK_TIME,now())) - to_days(now())
+
+	
+	</select>
+	
+              <select id="getInUseWarn" parameterType="com.bonus.index.beans.IndexInuseWarnBean" resultType="com.bonus.index.beans.IndexInuseWarnBean">
+				 SELECT
+					mt2.`NAME` as maType,
+					mt.`NAME` as maName,
+					mt.UNIT as maUnit,
+					COUNT( DISTINCT mm.ID) as inuseNum,
+					MIN(mtp.start_date) as outTime,
+					mt.IS_COUNT as isCount,
+					to_days(now())  -to_days(mtp.start_date)  as days ,
+					wla.`CODE` as agreementCode,
+				 	bc.`NAME` as projectName,
+					bp.`NAME` as companyName
+					FROM
+					ma_type_project_storage mtp 
+					LEFT JOIN mm_machines mm on mtp.machine = mm.ID
+					LEFT JOIN mm_type mt on mm.TYPE = mt.ID
+					LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+				  	LEFT JOIN wf_lease_agreement wla on mtp.agreement_id = wla.ID
+					LEFT JOIN bm_project bp on wla.PROJECT = bp.ID
+					LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+					WHERE mm.BATCH_STATUS=6 and  mtp.`status` =1
+				 	<if test="maType != null and maType != ''">
+						and mt2.`NAME` like concat('%', #{maType}, '%')
+					</if>
+				  	<if test="maName != null and maName != ''">
+						and mt.`NAME` like concat('%', #{maName}, '%')
+					</if>
+					GROUP BY mm.TYPE
+					HAVING days > 180
+	</select>
+       
+	<select id="getTotalChangeWarn" parameterType="com.bonus.index.beans.IndexTotalWarnBean" resultType="com.bonus.index.beans.IndexTotalWarnBean">
+		SELECT
+			mt.ID,
+			mt2.`NAME` as maType,
+			mt.`NAME` as maName,
+			mt.UNIT as maUnit,
+			mt.is_count as isCount,
+			t1.TIME as time,
+			t1.content
+		FROM ma_total_change t1
+		LEFT JOIN mm_type mt on mt.ID = t1.type_id
+		LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+		WHERE NOT EXISTS (
+		  SELECT 1
+		  FROM ma_total_change t2
+		  WHERE t2.type_id = t1.type_id AND t2.time > t1.time
+		)
+		<if test="maType != null and maType != ''">
+			and mt2.`NAME` like concat('%', #{maType}, '%')
+		</if>
+		<if test="maName != null and maName != ''">
+				and mt.`NAME` like concat('%', #{maName}, '%')
+		</if>
+	</select>
+	
+         <select id="getTotalInfo" parameterType="com.bonus.index.beans.IndexTotalWarnBean" resultType="com.bonus.index.beans.IndexTotalWarnBean">
+				SELECT
+					typeId,
+					SUM(rs.storageNum) AS storageNum,
+					SUM(rs.repairNum) AS repairNum,
+					SUM(rs.inuseNum) AS inuseNum,
+					SUM(rs.storageNum) + SUM(rs.repairNum) + SUM(rs.inuseNum) as total 
+					FROM
+(
+
+	SELECT
+					mat1.ID AS typeId,
+					mat1.NUM storageNum,
+					0 inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+					0 backCount,
+		      0 as pyNum,
+					0 as pkNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					mm_type mat1
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					mat1.`LEVEL` = 4 and mat1.ID= #{typeId}
+					AND mat1.IS_ACTIVE = '1' 
+				GROUP BY
+					mat1.ID
+					UNION
+					
+						SELECT
+					typeId,
+					0 storageNum,
+					sum( leaseNum ) - SUM( backNum ) inuseNum,
+					0 repairNum,
+					0 scrapNum,
+					0 projectNum,
+					sum( leaseNum ) inuseCount,
+					SUM( backNum ) backCount,
+					0 as pyNum,
+					0 as pkNum,
+					isCount AS isCount 
+				FROM
+					(
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						SUM( wir.NUM ) AS leaseNum,
+						0 AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+						LEFT JOIN wf_task_record wtr2 ON wtr.SUP_ID = wtr2.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID
+						LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID 
+						AND wcd.MODEL_ID = wir.MODEL_ID 
+					WHERE
+						wir.TYPE = 2 
+						AND wtr2.IS_ACTIVE = 1 
+						AND wcd.IS_APPROVAL = 1 
+						and mt.ID= #{typeId}
+					GROUP BY
+						mt.ID UNION
+					SELECT
+						mmt1.`NAME` AS pMachineName,
+						mmt.`NAME` AS machineName,
+						mt.`NAME` AS machineModel,
+						mt.ID AS typeId,
+						mt.BUY_PRICE AS buyPrice,
+						mt.UNIT,
+						0 AS leaseNum,
+						SUM( wir.NUM ) AS backNum,
+						mt.IS_COUNT AS isCount 
+					FROM
+						wf_info_record wir
+						LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+						LEFT JOIN wf_task_record wtr ON wrd.TASK_ID = wtr.ID
+						LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+						LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+						LEFT JOIN mm_type mmt1 ON mmt.PARENT_ID = mmt1.ID 
+					WHERE
+						wir.TYPE = 4 and mt.ID= #{typeId}
+						AND wtr.IS_ACTIVE = 1 
+					GROUP BY
+						mt.ID 
+					) a 
+				GROUP BY
+					typeId
+					UNION
+					
+				SELECT
+				  typeId,
+					0 storageNum,
+					0 inuseNum,
+					SUM(repairNum) + SUM(checkNum) + SUM(waitInputNum) as repairNum,
+					0 scrapNum,
+					0 projectNum,
+					0 inuseCount,
+			   	0 backCount,
+					0 as pyNum,
+					0 as pkNum,
+				  isCount
+				FROM
+				(
+		
+					SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					SUM( wrd.REPAIR_NUM ) - SUM( wrd.ALREPAIR_NUM ) - SUM( SCRAP_NUM ) AS repairNum,
+					0 checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+				mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_details wrd
+					LEFT JOIN mm_type mat1 ON wrd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+					where  mat1.ID= #{typeId}
+				GROUP BY
+					wrd.MODEL_ID 
+					UNION
+							SELECT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					SUM( wrc.CHECK_NUM ) - SUM( wrc.ALCHECK_NUM ) AS checkNum,
+					0 scrapNum,
+					0 loseNum,
+					0 waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_repair_check wrc
+					LEFT JOIN mm_type mat1 ON wrc.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+						where  mat1.ID= #{typeId}
+				GROUP BY
+					wrc.MODEL_ID
+						UNION
+					SELECT DISTINCT
+					mat1.ID AS typeId,
+					0 storageNum,
+					0 leaseNum,
+					0 repairNum,
+					0 checkNum,
+					0 AS scrapNum,
+					0 loseNum,
+					SUM(
+						IFNULL( PRE_PUT_NUM, 0 )) - sum(
+					IFNULL( AL_PUT_NUM, 0 )) AS waitInputNum,
+					mat1.IS_COUNT AS isCount 
+				FROM
+					wf_put_storage_details wpd
+					LEFT JOIN mm_type mat1 ON wpd.MODEL_ID = mat1.ID
+					LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+					LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID 
+				WHERE
+					wpd.IS_SURE = 0 and  mat1.ID= #{typeId}
+				GROUP BY
+					wpd.MODEL_ID 
+					
+					) res 
+					GROUP BY typeId 
+			) rs 
+					GROUP BY typeId 
+	</select>
+
+	<select id="getProjectDiff" parameterType="com.bonus.index.beans.IndexProjectBean" resultType="com.bonus.index.beans.IndexProjectBean">
+			SELECT
+            id as projectId,
+			projectName,
+			companyId,
+			companyName,
+			SUM( leaseNum ) AS useCount,
+			SUM( backNum ) AS returnCount,
+			SUM( leaseNum ) - SUM( backNum ) diffCount ,
+			firstTime,
+			lastTime,
+			max(backTime) as backTime
+		FROM
+			(
+			SELECT
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+			   	bc.ID as companyId,
+				bc.`NAME` as companyName,
+				wla.`CODE` AS agreementCode,
+				SUM( wir.NUM ) AS leaseNum,
+				"0" AS backNum,
+				wla.ID AS agreementId ,
+				min(wir.time) as firstTime,
+				max(wir.time) as lastTime,
+				wir.time as backTime
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+				LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+				LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 2 
+				AND wtr.IS_ACTIVE = 1 
+				 <if test="projectId != null and projectId != ''">
+				and wla.PROJECT = #{projectId}
+	       </if>
+			GROUP BY
+				wla.ID UNION 
+			SELECT
+				wla.PROJECT as id,
+				bp.`NAME` AS projectName,
+			   	bc.ID as companyId,
+				bc.`NAME` as companyName,
+				wla.`CODE` AS agreementCode,
+				"0" AS leaseNum,
+				SUM( wir.NUM ) AS backNum,
+				wla.ID AS agreementId ,
+					"" as firstTime,
+			     "" as lastTime,
+					max(wir.time) as backTime
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+				LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+				LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID 
+			WHERE
+				wir.TYPE = 4 
+				AND wtr.IS_ACTIVE = 1 
+					 <if test="projectId != null and projectId != ''">
+				and wla.PROJECT = #{projectId}
+	       </if>
+		
+			GROUP BY
+				wla.ID 
+			) a
+		<where>
+			<if test="companyId != null and companyId != ''">
+				and companyId = #{companyId}
+			</if>
+			<if test="projectName != null and projectName != ''">
+				and projectName like concat('%',#{projectName},'%')
+			</if>
+		</where>
+		GROUP BY
+			a.projectName
+			order by diffCount desc 
+	</select>
+	
+           <select id="getProjectMaDiff" parameterType="com.bonus.index.beans.IndexProjectBean" resultType="com.bonus.index.beans.IndexProjectBean">
+			SELECT
+				id as projectId,
+				typeId,
+				maType,
+				maName,
+				maUnit,
+				isCount,
+				projectName,
+				companyName,
+				SUM( leaseNum ) AS useCount,
+				SUM( backNum ) AS returnCount,
+				SUM( leaseNum ) - SUM( backNum ) diffCount ,
+				firstTime,
+				lastTime,
+				max(backTime) as backTime
+			FROM
+			(
+			SELECT
+				wla.PROJECT as id,
+			    wir.model_id as typeId,
+			    mat2.`NAME` as maType,
+				mat1.`NAME` as maName,
+				mat1.UNIT as maUnit,
+				mat1.is_count as isCount,
+				bp.`NAME` AS projectName,
+				bc.`NAME` as companyName,
+				wla.`CODE` AS agreementCode,
+				SUM( wir.NUM ) AS leaseNum,
+				"0" AS backNum,
+				wla.ID AS agreementId ,
+				min(wir.time) as firstTime,
+				max(wir.time) as lastTime,
+				wir.time as backTime
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+				LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+				LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID 
+				LEFT JOIN mm_type mat1 ON wir.MODEL_ID = mat1.ID
+			    LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+			WHERE
+				wir.TYPE = 2 
+				AND wtr.IS_ACTIVE = 1 
+				 <if test="projectId != null and projectId != ''">
+				and wla.PROJECT = #{projectId}
+	       </if>
+			GROUP BY
+				wla.ID,wir.model_id
+				 UNION 
+			SELECT
+				wla.PROJECT as id,
+				wir.model_id as typeId,
+				  mat2.`NAME` as maType,
+				mat1.`NAME` as maName,
+				mat1.UNIT as maUnit,
+				mat1.is_count as isCount,
+				bp.`NAME` AS projectName,
+						bc.`NAME` as companyName,
+				wla.`CODE` AS agreementCode,
+				"0" AS leaseNum,
+				SUM( wir.NUM ) AS backNum,
+				wla.ID AS agreementId ,
+					"" as firstTime,
+			     "" as lastTime,
+					max(wir.time) as backTime
+			FROM
+				wf_task_record wtr
+				LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+				LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+				LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID 
+				LEFT JOIN mm_type mat1 ON wir.MODEL_ID = mat1.ID
+			    LEFT JOIN mm_type mat2 ON mat2.ID = mat1.PARENT_ID
+			WHERE
+				wir.TYPE = 4 
+				AND wtr.IS_ACTIVE = 1 
+					 <if test="projectId != null and projectId != ''">
+				and wla.PROJECT = #{projectId}
+	       </if>
+		
+			GROUP BY
+				wla.ID ,wir.model_id
+			) a
+	   <if test="keyword != null and keyword != ''">
+		   where
+		   maName like concat('%', #{keyword}, '%') or
+		   maType like concat('%', #{keyword}, '%')
+	   </if>
+		GROUP BY
+			a.typeId
+			order by diffCount desc 
+		
+			
+		
+	</select>
+	
+           
+            <select id="getProjectCompany" parameterType="com.bonus.index.beans.IndexProjectBean" resultType="com.bonus.index.beans.IndexProjectBean">
+  	
+			
+			SELECT
+		bc.ID as companyId,
+		bc.`NAME` as companyName 
+		FROM
+		bm_company bc 
+		WHERE bc.IS_ACTIVE =1
+		
+			
+		
+	</select>
+	
+           
+             <select id="getToOutList" parameterType="com.bonus.index.beans.IndexTodoWarnBean" resultType="com.bonus.index.beans.IndexTodoWarnBean">
+  	
+		SELECT
+			wtr.DEFINITION_ID,
+			wd.`NAME` as taskType,
+			wtr.NUMBER as taskCode,
+			pu.`NAME` as userName,
+			wtr.OPERATION_TIME as time,
+			"/backstage/out/isApproval" as linkUrl
+			
+			FROM
+			wf_collar_details wcd 
+			LEFT JOIN wf_task_record wtr on wcd.TASK_ID = wtr.ID
+			LEFT JOIN pm_user pu on wtr.OPERATION_USER = pu.ID
+			LEFT JOIN wf_task_definition wd on wtr.DEFINITION_ID = wd.ID
+			WHERE wcd.IS_APPROVAL = 0 and wcd.IS_EXAMINE =1
+			
+		GROUP BY  wtr.ID
+	</select>
+	
+          <select id="getToBackList" parameterType="com.bonus.index.beans.IndexTodoWarnBean" resultType="com.bonus.index.beans.IndexTodoWarnBean">
+  	
+		SELECT
+				wtr.DEFINITION_ID,
+				wd.`NAME` as taskType,
+				wtr.NUMBER as taskCode,
+				pu.`NAME` as userName,
+				wtr.OPERATION_TIME  as time,
+				"/backstage/audit/list" as linkUrl
+			FROM
+				wf_return_material_details rm
+				LEFT JOIN wf_task_record wtr ON rm.TASK_ID = wtr.ID
+				LEFT JOIN wf_task_definition wd ON wtr.DEFINITION_ID = wd.ID
+				LEFT JOIN pm_user pu ON wtr.OPERATION_USER = pu.ID 
+			WHERE
+				rm.IS_APPROVAL = 0 
+			GROUP BY
+				wtr.ID
+	</select>
+
+          <select id="getToNewList" parameterType="com.bonus.index.beans.IndexTodoWarnBean" resultType="com.bonus.index.beans.IndexTodoWarnBean">
+  	
+				SELECT
+			     wtr.DEFINITION_ID,
+				wd.`NAME`  as taskType,
+				wtr.NUMBER as taskCode,
+				pu.`NAME` as userName,
+				wtr.OPERATION_TIME  as time,
+				"/backstage/new/isApproval" as linkUrl
+				FROM
+				wf_new_details wnd
+				LEFT JOIN wf_task_record wtr ON wnd.TASK_ID = wtr.ID
+				LEFT JOIN wf_task_definition wd ON wtr.DEFINITION_ID = wd.ID
+				LEFT JOIN pm_user pu ON wtr.OPERATION_USER = pu.ID 
+				WHERE wnd.IS_APPROVAL = 0
+				GROUP BY 	wtr.ID
+	</select>
+	
+          
+             <select id="getCalendarOut" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+			SELECT
+			     	    wtr2.ID,
+						wtr2.NUMBER AS taskCode,
+						mt2.`NAME` as maType,
+						mt.`NAME` as maName,
+						wir.num,
+						wir.`CODE` as maCode,
+						wot.OUT_PERSON,
+						pu.`NAME` as userName,
+						wir.TIME as currentTime,
+						bp.`NAME` as projectName,
+						bc.`NAME` as companyName 
+						FROM
+						wf_info_record wir
+						LEFT JOIN mm_type mt on wir.model_id = mt.ID
+						LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+						LEFT JOIN wf_task_record wtr on wir.SUP_ID = wtr.ID
+						LEFT JOIN wf_task_record wtr2 on wtr.SUP_ID = wtr2.ID
+						LEFT JOIN wf_ma_outstock wot on wir.SUP_ID = wot.TASK_ID 
+						LEFT JOIN pm_user pu on wot.OUT_PERSON = pu.ID
+						LEFT JOIN wf_agreement_task wat on wtr2.ID = wat.TASK_ID
+						LEFT JOIN wf_lease_agreement wla on wat.AGREEMENT_ID = wla.ID
+						LEFT JOIN bm_project bp on wla.PROJECT = bp.ID
+						LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+						WHERE wir.TYPE =2 and  wot.IS_APPROVAL = 1
+			
+						AND LEFT(wir.TIME,10) = #{currentTime}
+				     
+				GROUP BY  wtr2.ID ,wir.model_id,wir.ma_id 
+	 
+	</select>
+	
+             <select id="getCalendarBack" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+				SELECT
+            wtr.ID,
+			wtr.NUMBER AS taskCode,
+			mt2.`NAME` as maType,
+			mt.`NAME` as maName,
+			wir.num,
+			wir.`CODE` as maCode,
+            wrd.OPERATOR as userName,
+			wir.TIME as currentTime,
+			bp.`NAME` as projectName,
+			bc.`NAME` as companyName 
+			FROM
+			wf_info_record wir
+			LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN wf_return_material_details wrd on wir.SUP_ID = wrd.ID 
+			LEFT JOIN wf_task_record wtr on wrd.TASK_ID = wtr.ID
+			LEFT JOIN wf_agreement_task wat on wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla on wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_project bp on wla.PROJECT = bp.ID
+			LEFT JOIN bm_company bc on bp.COMPANY_ID = bc.ID
+			WHERE wir.TYPE =4 
+		and LEFT(wir.TIME,10) = #{currentTime}
+		GROUP BY  wtr.ID ,wir.model_id,wir.ma_id 
+	 
+	</select>
+	
+	
+             <select id="getCalendarRepair" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+			SELECT
+			wir.ID,
+			mt2.`NAME` as maType,
+			mt.`NAME` as  maName,
+			wir.`CODE` as maCode,
+			wir.TIME as currentTime,
+			mm.REMARK as codeRemark,
+			ROUND(wir.NUM) as num,
+			wir.REPAIR_URL as fileUrl,
+			wir.REPAIR_PERSON_NAME as userName,
+			rf.file_url as fileUrl,
+			wir.REMARK
+			FROM
+			wf_info_record wir
+			
+			LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_machines mm on mm.DEVICE_CODE = wir.`CODE`
+			LEFT JOIN repair_file rf on wir.id = rf.info_id
+			
+			WHERE wir.TYPE = 6
+            and left(wir.TIME,10) =#{currentTime}
+	
+	 
+	</select>
+	
+             <select id="getCalendarScrap" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+			SELECT
+						wir.ID,
+						    mtt.`NAME` AS maType,
+							mt.`NAME` AS maName,
+							mam.DEVICE_CODE AS maCode,
+					        wir.TIME AS currentTime,
+					        ROUND(wir.NUM) as num,
+							wir.SCRAP_URL as fileUrl,
+							pu.`NAME` as userName,
+							wir.SCRAP_REASON AS remark
+					FROM wf_info_record wir
+			LEFT JOIN wf_task_record sup1 ON sup1.ID = wir.SUP_ID
+			LEFT JOIN wf_task_record sup2 ON sup2.ID = sup1.SUP_ID
+			LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+			LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+			LEFT JOIN mm_machines mam ON  wir.`CODE` = mam.DEVICE_CODE and  wir.MODEL_ID = mam.TYPE
+			LEFT JOIN pm_user pu on sup2.OPERATION_USER = pu.ID
+			WHERE left(wir.TIME,10) =#{currentTime} and wir.RM_STATUS = 14
+	
+	 
+	</select>
+	
+             <select id="getCalendarRepairInput" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+					SELECT
+			            wtr.ID,
+						wtr.NUMBER AS taskCode,
+						mt2.`NAME` as maType,
+						mt.`NAME` as maName,
+						wir.num,
+						IFNULL(wir.`CODE`,"-") as maCode,
+			            pu.`NAME` as userName,
+						wir.TIME as currentTime
+						FROM
+						wf_info_record wir
+						LEFT JOIN mm_type mt on wir.model_id = mt.ID
+						LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+						LEFT JOIN wf_put_storage_details wpd on wir.SUP_ID = wpd.TASK_ID 
+						LEFT JOIN wf_task_record wtr on wpd.TASK_ID = wtr.ID
+					  LEFT JOIN pm_user pu on wpd.CUSTOMER_SERVICE_REP = pu.ID
+						WHERE wir.TYPE =3
+					and LEFT(wir.TIME,10) = #{currentTime}
+					GROUP BY  wtr.ID ,wir.model_id,wir.`CODE`
+	
+	 
+	</select>
+	
+             <select id="getCalendarNewInput" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+		SELECT
+			mt2.`NAME` as maType,
+			mt.`NAME` as maName,
+			wir.num,
+		    wnd.ACTUAL_PRICE as price,
+			wnd.CHECK_URL as fileUrl,
+            pu.`NAME` as userName,
+			wir.TIME as currentTime,
+			wfa.LAUNCH_TIME as startTime,
+			wfa.FINISH_TIME as endTime ,
+			mv.`NAME` as remark
+			FROM
+			wf_info_record wir
+			LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN wf_new_details wnd on wir.SUP_ID = wnd.TASK_ID 
+			LEFT JOIN wf_task_appoint wfa on wnd.TASK_ID = wfa.TASK_ID
+		  LEFT JOIN mm_vender mv on wnd.MA_VENDER = mv.ID
+		  LEFT JOIN pm_user pu on wnd.CUSTOMER_SERVICE_REP = pu.ID
+			WHERE wir.TYPE =5
+		and LEFT(wir.TIME,10) = #{currentTime}
+	
+	 
+	</select>
+	
+             <select id="getCalendarPd" parameterType="com.bonus.index.beans.IndexHomeCalendarBean" resultType="com.bonus.index.beans.IndexHomeCalendarBean">
+	
+	       
+				SELECT
+		        wir.ID,
+			    mt2.`NAME` as maType,
+		     	mt.`NAME` as maName,
+				GROUP_CONCAT(wir.INVENTORY_TYPE,":",wir.INVENTORY_NUM)	 AS num ,
+				wir.INVENTORY_PERSON AS userName,
+		     	wir.INVENTORY_TIME as currentTime,
+		    	wir.REMARK as remark 
+				FROM
+				wf_inventory_record wir
+				LEFT JOIN mm_type mt on wir.model_id = mt.ID
+			    LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+				WHERE wir.INVENTORY_NUM > 0 
+					
+			AND  LEFT(wir.INVENTORY_TIME,10) = #{currentTime}
+			GROUP BY  wir.ID
+
+	</select>
+
+    <select id="getPlanDetailsAboutExpireList" resultType="com.bonus.index.beans.IndexInuseWarnBean">
+		SELECT
+			'车辆需求计划' as type,
+			cpd.id,
+			bp.`NAME` as projectName,
+			cpd.model_id modelId,
+			cpd.need_num needNum,
+			cpd.need_day needDay,
+			cpd.back_date backDate,
+			cpd.remark,
+			cmti.type maType,
+			cmti.`NAME` maName,
+			cmti.model maModel,
+			cmti.unit maUnit
+		FROM
+			car_plan_details cpd
+				LEFT JOIN car_plan_apply cpa ON cpd.apply_id = cpa.id
+				LEFT JOIN bm_project bp ON cpa.pro_id = bp.ID
+				LEFT JOIN car_ma_type_info cmti ON cpd.model_id = cmti.id
+		WHERE bp.`NAME` IS NOT NULL
+		<if test="projectName != null and projectName != ''">
+			and bp.`NAME` like concat('%', #{projectName}, '%')
+		</if>
+		<if test="maName != null and maName != ''">
+			and cmti.`NAME` like concat('%', #{maName}, '%')
+		</if>
+
+		UNION ALL
+
+		SELECT
+			'安全工器具计划' as type,
+			spd.id,
+			bp.`NAME` as projectName,
+			spd.model_id AS modelId,
+			spd.need_num AS needNum,
+			spd.need_day AS needDay,
+			spd.back_date AS backDate,
+			spd.remark,
+			spd.type maType,
+			spd.`name` maName,
+			spd.model maModel,
+			spd.unit maUnit
+		FROM st_plan_details spd
+				 LEFT JOIN st_plan_apply spa ON spd.apply_id = spa.id
+				 LEFT JOIN bm_project bp ON spa.project_id = bp.ID
+		WHERE bp.`NAME` IS NOT NULL
+		<if test="projectName != null and projectName != ''">
+			and bp.`NAME` like concat('%', #{projectName}, '%')
+		</if>
+		<if test="maName != null and maName != ''">
+			and spd.`name` like concat('%', #{maName}, '%')
+		</if>
+
+		UNION ALL
+
+		SELECT
+			'机具需求计划' as type,
+			tpd.id,
+			pro.`NAME` as projectName,
+			tpd.model_id moduleId,
+			tpd.need_num needNum,
+			tpd.need_day needDay,
+			tpd.back_date backDate,
+			tpd.remark,
+			tpd.type maType,
+			tpd.`NAME` maName,
+			tpd.module maModel,
+			tpd.unit maUnit
+		FROM
+			t_plan_details tpd
+				LEFT JOIN t_plan_apply tpa on tpa.id=tpd.apply_id
+				LEFT JOIN bm_project pro on tpa.project_id=pro.ID
+		WHERE pro.`NAME` is not null
+		<if test="maName != null and maName != ''">
+			and tpd.`NAME` like concat('%', #{maName}, '%')
+		</if>
+	</select>
+</mapper>

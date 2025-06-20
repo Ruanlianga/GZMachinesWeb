@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.AgreementDao" >
+    <resultMap id="agreement" type="com.bonus.lease.beans.AgreementBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+		SELECT wla.ID as id,wla.`CODE`,wla.CONTRACT_NUMBER as contractNumber,wla.SIGN_DATE as signDate,
+		bu.`NAME` as leaseCompany,bp.`NAME` as projectName,
+		wla.START_TIME as startTime,wla.LEASE_TERM as leaseTerm,wla.URL as agreePicName,
+		wla.ADVANCE_CHARGE as advanceCharge,wla.REMARK,wla.IS_BALANCE as isBalance,
+		wla.AUTHORIZING_PERSON as authorizingPerson,wla.AUTHORIZING_PHONE as authorizingPhone,wla.URL_PATH as urlPath
+		FROM wf_lease_agreement wla
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		WHERE wla.START_TIME BETWEEN #{param.startTime} and #{param.endTime}
+		<if test="param.companyId != null and param.companyId !='' and  param.companyId != '1' and  param.companyId != 1">
+			AND wla.COMPANY_ID = #{param.companyId}
+		</if>
+		<if test="param.isBalance != null and param.isBalance !=''">
+			AND wla.IS_BALANCE LIKE CONCAT('%',#{param.isBalance},'%')
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.LEASE_TERM LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.REMARK LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.AUTHORIZING_PERSON LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wla.AUTHORIZING_PHONE LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+		order by wla.SIGN_DATE desc
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+        SELECT wla.ID,wla.`CODE`,wla.SIGN_DATE as signDate,
+        wla.CONTRACT_NUMBER as contractNumber,
+		bu.`NAME` as leaseCompany,bp.`NAME` as projectName,
+		wla.START_TIME as startTime,wla.LEASE_TERM as leaseTerm,wla.URL as agreePicName,
+		wla.ADVANCE_CHARGE as advanceCharge,wla.REMARK,
+		wla.AUTHORIZING_PERSON as authorizingPerson,wla.AUTHORIZING_PHONE as authorizingPhone
+		FROM wf_lease_agreement wla
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		where wla.ID = #{id}
+    </select>
+    
+ 	<select id="getAgreementCode" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+     SELECT a.ID,a.`CODE`
+		FROM wf_lease_agreement a
+		WHERE a.LEASE_COMPANY = #{companyId} AND a.PROJECT = #{projectId}
+	    limit 1
+    </select>
+    
+    <select id="getAgreementCodes" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+     SELECT a.ID,a.`CODE`
+		FROM wf_lease_agreement a
+		WHERE a.LEASE_COMPANY = #{companyId} AND a.PROJECT = #{projectId}
+	    limit 1
+    </select>
+    
+     <select id="findAgreement" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+        SELECT IS_SURE as isSure
+		FROM wf_lease_agreement 
+		where id=#{id}
+    </select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.lease.beans.AgreementBean">
+ 		insert into wf_lease_agreement
+ 		(CODE,SIGN_DATE,LEASE_COMPANY,PROJECT,START_TIME,LEASE_TERM,ADVANCE_CHARGE,
+ 		AUTHORIZING_PERSON,AUTHORIZING_PHONE,REMARK,CREATOR,CONTRACT_NUMBER,IS_BALANCE,URL,URL_PATH,COMPANY_ID,IS_SURE,IS_ACTIVE)
+ 		values 
+ 		(#{code},#{signDate},#{leaseCompany},#{projectName},#{startTime},#{leaseTerm},#{advanceCharge},
+ 		#{authorizingPerson},#{authorizingPhone},#{remark},#{creator},#{contractNumber},#{isBalance},#{agreePicName},#{urlPath},#{companyId},0,1)
+ 	</insert>
+ 	
+ 	<select id="getCount" parameterType="com.bonus.lease.beans.AgreementBean" resultType="java.lang.String">
+ 		SELECT COUNT(ID) 
+		FROM wf_lease_agreement 
+		WHERE SIGN_DATE LIKE CONCAT((select DATE(CURDATE())),'%')
+ 	</select>
+ 	
+ 	<delete id="delete" parameterType="com.bonus.lease.beans.AgreementBean">
+ 		delete from wf_lease_agreement where id = #{id}
+ 	</delete>
+ 	
+ 	<update id="update" parameterType="com.bonus.lease.beans.AgreementBean">
+ 		update wf_lease_agreement
+        <set>
+            <if test="startTime != null">
+               START_TIME = #{startTime},
+            </if>
+             <if test="leaseTerm !=null">
+              LEASE_TERM = #{leaseTerm},
+            </if>
+             <if test="contractNumber !=null">
+              CONTRACT_NUMBER = #{contractNumber},
+            </if>
+             <if test="advanceCharge != null">
+              ADVANCE_CHARGE = #{advanceCharge},
+            </if>
+             <if test="authorizingPerson != null">
+              AUTHORIZING_PERSON = #{authorizingPerson},
+            </if>
+            <if test="authorizingPhone != null">
+              AUTHORIZING_PHONE = #{authorizingPhone},
+            </if>
+             <if test="agreePicName != null">
+              URL = #{agreePicName},
+            </if>
+            <if test="remark != null">
+              remark = #{remark},
+            </if>
+        </set>
+ 		where id = #{id}
+ 	</update>
+ 	
+ 	
+ 	
+ 	 <update id="updateBean" parameterType="com.bonus.lease.beans.AgreementBean">
+		UPDATE `wf_lease_agreement` SET  `IS_SURE`='1',
+		SETTLEMENT_TIME = #{settlementDate}
+		where id=#{id}
+ 	</update>
+ 	
+    <delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wf_lease_agreement WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findCode" parameterType="com.bonus.lease.beans.AgreementBean" resultType="java.lang.String">
+ 		SELECT COUNT(wla.ID)
+		FROM wf_lease_agreement wla
+		WHERE wla.SIGN_DATE LIKE CONCAT("%",#{createTime},"%")
+ 	</select>
+
+	<select id="checkAgreement" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+        SELECT b.ID,b.LEASE_COMPANY as leaseCompany,b.PROJECT as projectName
+		FROM wf_lease_agreement b
+		WHERE b.LEASE_COMPANY = #{leaseCompany} AND b.PROJECT = #{projectName}
+    </select>
+    
+    <select id="expAgreement" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+		SELECT wla.ID,wla.`CODE`,wla.CONTRACT_NUMBER as contractNumber,wla.SIGN_DATE as signDate,
+		bu.`NAME` as leaseCompany,bp.`NAME` as projectName,
+		wla.START_TIME as startTime,wla.LEASE_TERM as leaseTerm,wla.URL as agreePicName,
+		wla.ADVANCE_CHARGE as advanceCharge,wla.REMARK,wla.IS_BALANCE as isBalance,
+		wla.AUTHORIZING_PERSON as authorizingPerson,wla.AUTHORIZING_PHONE as authorizingPhone
+		FROM wf_lease_agreement wla
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		WHERE wla.START_TIME BETWEEN #{startTime} and #{endTime}
+		order by wla.SIGN_DATE desc
+ 	</select>
+ 	
+ 	<select id="findAgreeCode" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+ 		SELECT a.ID,a.`CODE`
+		FROM wf_lease_agreement a
+		WHERE a.LEASE_COMPANY = #{leaseCompany} AND a.PROJECT = #{projectName}
+ 	</select>
+ 	
+ 	<select id="findAgreementCode" parameterType="com.bonus.lease.beans.AgreementBean" resultType="java.lang.String">
+ 		SELECT a.`CODE`
+		FROM wf_lease_agreement a
+		WHERE a.LEASE_COMPANY = #{leaseCompany} AND a.PROJECT = #{projectName}
+ 	</select>
+ 	
+ 	<select id="findAgreeCodeId" parameterType="com.bonus.lease.beans.AgreementBean" resultType="com.bonus.lease.beans.AgreementBean">
+ 		SELECT id
+		FROM wf_lease_agreement a
+		WHERE a.code = #{code}
+ 	</select>
+ 	
+ 	<update id="updateIdByTaskId">
+ 		update wf_agreement_task
+ 		set AGREEMENT_ID = #{id}
+		WHERE TASK_ID = #{taskId}
+ 	</update>
+ 	
+ 	<delete id="deleteByTaskId">
+ 		delete from wf_agreement_task
+		WHERE TASK_ID = #{taskId}
+ 	</delete>
+ 	
+ 	<select id="findByCompany" parameterType="com.bonus.lease.beans.AgreementBean" resultMap="agreement">
+        SELECT wla.ID,wla.`CODE`,wla.SIGN_DATE as signDate,
+        wla.CONTRACT_NUMBER as contractNumber,
+		bu.`NAME` as leaseCompany,bp.`NAME` as projectName,
+		wla.START_TIME as startTime,wla.LEASE_TERM as leaseTerm,wla.URL as agreePicName,
+		wla.ADVANCE_CHARGE as advanceCharge,wla.REMARK,
+		wla.AUTHORIZING_PERSON as authorizingPerson,wla.AUTHORIZING_PHONE as authorizingPhone
+		FROM wf_lease_agreement wla
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		WHERE 1 = 1
+		<if test="leaseCompany != null and leaseCompany !=''">
+			AND wla.LEASE_COMPANY = #{leaseCompany}
+		</if>
+		<if test="projectName != null and projectName !=''">
+			AND wla.PROJECT = #{projectName}
+		</if>	
+    </select>
+    
+    <select id="findIdByTaskId" parameterType="java.lang.String" resultMap="agreement">
+        SELECT 	distinct wat.AGREEMENT_ID as id
+		FROM wf_agreement_task wat
+		WHERE wat.TASK_ID = #{taskId}
+    </select>
+    
+    <update id="updUrlAndUrlPath" parameterType="com.bonus.lease.beans.AgreementBean">
+	    UPDATE wf_lease_agreement wla
+		SET 
+		  wla.URL=#{url},
+		  wla.URL_PATH=#{urlPath}  
+		WHERE id=#{id}
+ 	</update>
+    
+ 	
+</mapper>

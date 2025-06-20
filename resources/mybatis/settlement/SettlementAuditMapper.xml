@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.settlement.dao.SettlementAuditDao" >
+    <resultMap id="settlementAudit" type="com.bonus.settlement.beans.SettlementAuditBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.settlement.beans.SettlementAuditBean" resultMap="settlementAudit">
+	 SELECT DISTINCT wsd.AGREEMENT_ID as agreementId,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,bp.`NAME` as projectName,ROUND(SUM(wsd.MONEY),2) as batchMoney,
+	    wsd.IS_SURE as isSure,wsd.IS_SETTLEMENT as isSettlement,wsd.TYPE as type,wsd.BATCH as batch,wsd.SETTLEMENT_TIME as settlementDate,ROUND(wsdd.DEDUCTION_MONEY,2) AS deductionMoney,wsdd.REMARK AS remark
+	    from wf_settlement_details wsd
+	    LEFT JOIN wf_lease_agreement wla ON wsd.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN wf_settlement_deduction wsdd ON wsd.AGREEMENT_ID = wsdd.AGREEMENT_ID AND wsd.BATCH = wsdd.BATCH
+	   where  wsd.IS_SURE = 1
+	 	<if test="param.agreementCode != null and param.agreementCode != ''">
+			and  wla.`CODE` like concat('%',#{param.agreementCode},'%')
+		</if>
+	 	<if test="param.keyWord !='' and param.keyWord !=null"> 
+	     	and (
+			    wla.`CODE` like concat('%',#{param.keyWord},'%') or
+			    bu.`NAME` 	like concat('%',#{param.keyWord},'%') or
+			    bp.`NAME` 	like concat('%',#{param.keyWord},'%')
+	      	)
+	 	</if>  
+	 	GROUP BY wsd.AGREEMENT_ID,wsd.BATCH 
+ 	</select>
+ 
+ 	<update id="settlementAudit" parameterType="com.bonus.settlement.beans.SettlementAuditBean" >
+		update wf_settlement_details set IS_SETTLEMENT = 0,SETTLEMENT_TIME = #{settlementDate}
+       	where AGREEMENT_ID = #{agreementId} AND BATCH =  #{batch}
+	</update>
+</mapper>

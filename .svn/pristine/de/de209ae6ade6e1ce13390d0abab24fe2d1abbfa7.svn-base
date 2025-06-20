@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineVersionDao" >
+    <resultMap id="machine" type="com.bonus.ma.beans.MachineVersionBean"></resultMap>
+    
+ 	
+    <select id="getDeviceTypeList" parameterType="com.bonus.ma.beans.MachineVersionBean" resultMap="machine">
+		SELECT
+		type_id as typeId,
+		type as type 
+		from
+		mm_device_type
+        
+ 	</select>
+ 	
+    <select id="getDeviceType" parameterType="java.lang.String" resultType="string">
+	SELECT
+		mt3.PARENT_ID as typeId 
+		FROM
+		mm_type mt 
+		LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+		LEFT JOIN mm_type mt3 on mt2.PARENT_ID = mt3.ID
+		WHERE mt.ID = #{typeId}
+        
+ 	</select>
+ 	
+</mapper>

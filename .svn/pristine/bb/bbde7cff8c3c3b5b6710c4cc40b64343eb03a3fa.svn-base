@@ -1,0 +1,1029 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineTypeDao">
+
+	<resultMap id="machineType" type="com.bonus.ma.beans.MachineTypeBean"></resultMap>
+
+	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+
+	<select id="getRoleBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,PARENT_ID
+		as pId FROM mm_type WHERE IS_ACTIVE = '1'
+	</select>
+
+	<insert id="insertBean" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		insert into
+		bm_area_type(name) values (#{name})
+	</insert>
+
+	<select id="getMainTree" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultMap="ZNode">
+		select * from (
+		select DISTINCT mat.ID as id,mat.`NAME` as
+		name,IF(mat.`NAME` =
+		'线路施工类',1,IF(mat.`NAME` = '变电工器具',2,IF(mat.`NAME`
+		=
+		'附件配件及工具型材料',3,4))) as sx,mat.PARENT_ID as pId,mat.TIME as
+		time,mat.LEVEL
+		from mm_type mat
+		WHERE mat.PARENT_ID = 0 and IS_ACTIVE =
+		'1'
+		UNION
+		select DISTINCT mat2.ID as id,mat2.`NAME` as name,'4' as
+		sx,mat2.PARENT_ID
+		as pId,mat2.TIME as time,mat2.LEVEL
+		from mm_type mat
+		LEFT JOIN mm_type mat2 on mat2.PARENT_ID = mat.ID
+		WHERE mat.PARENT_ID =
+		0 and mat2.ID is not null
+		and mat.IS_ACTIVE = '1' and mat2.IS_ACTIVE =
+		'1'
+		) a order by sx,time desc
+	</select>
+
+	<select id="maTypeTree" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultMap="ZNode">
+		SELECT *
+		FROM (
+		SELECT
+		mta.ID,
+		mta.PARENT_ID AS pId,
+		CONCAT( mta.`NAME`, '
+		', CASE mta.`IS_LABEL` WHEN '1' THEN '(自有)' WHEN '2'
+		THEN '(外租)' ELSE
+		'' END ) AS `name`,
+
+		mta.`LEVEL` AS sx,
+		mta.SORT_NUM,
+		IFNULL(mor.ORG_ID,'11') as ORG_ID,
+		mta.IS_COUNT AS isCount
+		FROM
+		mm_type
+		mta
+		LEFT JOIN mm_type mtb on mtb.PARENT_ID = mta.ID
+		LEFT JOIN mm_type
+		mtc on mtc.PARENT_ID = mtb.ID
+		LEFT JOIN mm_type mtd on mtd.PARENT_ID =
+		mtc.ID
+		LEFT JOIN ma_org_relation mor ON mor.TYPE_ID = mtd.ID
+		WHERE
+		mta.`LEVEL` = 1
+		AND mta.PARENT_ID = 0
+		<if test=" param.typeName != null and param.typeName != ''">
+			and mta.`NAME` LIKE CONCAT('%',#{param.typeName},'%')
+		</if>
+		GROUP BY mta.ID
+
+		UNION
+		SELECT
+		mtb.ID,
+		mtb.PARENT_ID AS pId,
+		CONCAT(
+		mtb.`NAME`, ' ', CASE mtb.`IS_LABEL` WHEN '1' THEN '(自有)' WHEN '2'
+		THEN '(外租)' ELSE '' END ) AS `name`,
+
+		mtb.`LEVEL` AS sx,
+		mtb.SORT_NUM,
+		IFNULL(mor.ORG_ID,'11') as ORG_ID,
+		mtb.IS_COUNT AS isCount
+		FROM
+		mm_type
+		mtb
+		LEFT JOIN mm_type mtc on mtc.PARENT_ID = mtb.ID
+		LEFT JOIN mm_type
+		mtd on mtd.PARENT_ID = mtc.ID
+		LEFT JOIN ma_org_relation mor ON
+		mor.TYPE_ID = mtd.ID
+
+		WHERE
+		mtb.`LEVEL` = 2
+
+		AND mtb.IS_ACTIVE = 1
+		<if test=" param.name != null and param.name != ''">
+			and mtb.`NAME` LIKE CONCAT('%',#{param.name},'%')
+		</if>
+
+		<if test=" param.typeName != null and param.typeName != ''">
+			and mtb.PARENT_ID in (
+			SELECT id FROM mm_type mta
+			WHERE
+			mta.`NAME` LIKE CONCAT('%',#{param.typeName},'%')
+			)
+		</if>
+
+		UNION
+		SELECT
+		mtc.ID,
+		mtc.PARENT_ID AS pId,
+		CONCAT( mtc.`NAME`, ' ', CASE
+		mtc.`IS_LABEL` WHEN '1' THEN '(自有)' WHEN '2'
+		THEN '(外租)' ELSE '' END )
+		AS `name`,
+
+		mtc.`LEVEL` AS sx,
+		mtc.SORT_NUM,
+		IFNULL(mor.ORG_ID,'11') as
+		ORG_ID,
+		mtc.IS_COUNT AS isCount
+		FROM
+		mm_type mtc
+		LEFT JOIN mm_type mtd on
+		mtd.PARENT_ID = mtc.ID
+		LEFT JOIN ma_org_relation mor ON mor.TYPE_ID =
+		mtd.ID
+		WHERE
+		mtc.`LEVEL` = 3
+		AND mtc.IS_ACTIVE = 1
+		<if test=" param.model != null and param.model != ''">
+			and mtc.`NAME` LIKE CONCAT('%',#{param.model},'%')
+		</if>
+
+		<if test=" param.typeName != null and param.typeName != ''">
+			and mtc.PARENT_ID in (
+			SELECT id FROM mm_type mtb WHERE
+			mtb.`LEVEL` = 2 AND mtb.PARENT_ID in (SELECT id FROM mm_type mta
+			WHERE mta.`LEVEL` = 1 and mta.`NAME` LIKE CONCAT(
+			'%',#{param.typeName},'%' ))
+			)
+		</if>
+
+		<if test=" param.name != null and param.name != ''">
+			and mtc.PARENT_ID in (
+			SELECT id FROM mm_type mtb WHERE
+			mtb.`LEVEL` = 2 AND mtb.`NAME` LIKE CONCAT('%',#{param.name},'%')
+			)
+		</if>
+
+		) a
+		<if
+			test="param.companyId != 1 and param.companyId != '1' and param.companyId != null and param.companyId != ''">
+			and a.ORG_ID = #{param.companyId}
+		</if>
+		ORDER BY a.SORT_NUM ASC
+	</select>
+
+	<select id="maModelTree" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultMap="ZNode">
+		SELECT *
+		FROM (
+		SELECT distinct
+		mat1.ID,mat1.`NAME`,CONCAT('lx',mat1.PARENT_ID) as
+		pId,mat1.IS_COUNT as
+		isCount,mor.ORG_ID
+		FROM mm_type mat1
+		LEFT JOIN mm_type mat2 on mat2.ID =
+		mat1.PARENT_ID
+		LEFT JOIN ma_org_relation mor on mat1.ID = mor.TYPE_ID
+		WHERE mat2.`LEVEL` = 3 and mat1.IS_ACTIVE = 1 and mat2.IS_ACTIVE = 1
+		<if test="parentId != null and parentId != ''">
+			and mat2.Id = #{parentId}
+		</if>
+		UNION
+		SELECT distinct CONCAT('lx',mat2.ID) as ID,mat2.`NAME`,'0' as
+		pId,mat2.IS_COUNT as isCount,mor.ORG_ID
+		FROM mm_type mat1
+		LEFT JOIN
+		mm_type mat2 on mat2.ID = mat1.PARENT_ID
+		LEFT JOIN ma_org_relation mor
+		on mat1.ID = mor.TYPE_ID
+		WHERE mat2.`LEVEL` = 3 and mat1.IS_ACTIVE = 1
+		and mat2.IS_ACTIVE = 1
+		<if test="parentId != null and parentId != ''">
+			and mat2.Id = #{parentId}
+		</if>
+		) res
+		WHERE res.`NAME` LIKE CONCAT('%',#{name},'%')
+		<if test="isCount != null">
+			AND res.isCount = #{isCount}
+		</if>
+		<if test='companyId != "1"'>
+			and res.ORG_ID = #{companyId}
+		</if>
+	</select>
+
+	<insert id="treeInsert" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		INSERT into mm_type
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				ID,
+			</if>
+			<if test="name !=null">
+				NAME,
+			</if>
+			<if test="parentId !=null">
+				PARENT_ID,
+			</if>
+			LEVEL,
+			TIME,IS_ACTIVE,
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				#{id},
+			</if>
+			<if test="name !=null">
+				#{name},
+			</if>
+			<if test="parentId !=null">
+				#{parentId},
+			</if>
+			#{level},
+			NOW(),1,
+		</trim>
+	</insert>
+
+	<update id="treeUpdate" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		UPDATE mm_type
+		<set>
+			<if test="name != null">
+				NAME = #{name},
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<update id="treeDelete" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type set
+		IS_ACTIVE = '0' where id=#{id}
+	</update>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+
+		select distinct mat.ID as id,mat.`NAME` as name,mat.IS_ACTIVE as
+		isActive, mat.IS_LABEL as label
+		from mm_type mat
+		<if test="param.level == 1 or param.level == '1'">
+			left join mm_type mat2 on mat2.id = mat.PARENT_ID
+		</if>
+		<if test="param.level == 0  or param.level == '0'">
+			left join mm_type mat2 on mat2.id = mat.PARENT_ID
+			left join
+			mm_type mat3 on mat3.id = mat2.PARENT_ID
+			left join mm_type mat4 on
+			mat.id = mat4.PARENT_ID
+			LEFT JOIN ma_org_relation mor on mat4.ID =
+			mor.TYPE_ID
+		</if>
+		where mat.IS_ACTIVE = '1'
+		<if test="param.level == 2  or param.level == '2' ">
+			and mat.PARENT_ID = #{param.parentId}
+		</if>
+		<if test="param.level == 3  or param.level == '3' ">
+			and mat.ID = #{param.parentId}
+		</if>
+		<if test="param.level == 1  or param.level == '1'">
+
+			and mat2.PARENT_ID = #{param.parentId}
+			and mat2.IS_ACTIVE =
+			'1'
+		</if>
+		<if test="param.level == 0  or param.level == '0'">
+			and mat3.PARENT_ID = #{param.parentId}
+			and mat2.IS_ACTIVE =
+			'1'
+			and mat3.IS_ACTIVE = '1'
+			and mor.ORG_ID = #{param.companyId}
+		</if>
+		<if test="param.keyWord != null  and param.keyWord != ''">
+			and mat.`NAME` like CONCAT('%',#{param.keyWord},'%')
+		</if>
+
+	</select>
+
+	<select id="findAllByLevel" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		select distinct mat.ID as id,mat.`NAME` as name
+		from mm_type mat
+		where
+		mat.level = #{level}
+		<if test="parentId != 0 and parentId != null">
+			and mat.parent_id = #{parentId}
+		</if>
+	</select>
+
+
+	<update id="updateStorageNums" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update
+		mm_type
+		<set>
+			<if test="nums !=null and nums !=''">
+				NUM =(ifnull(NUM,0)) + #{nums}
+			</if>
+		</set>
+		where
+		id= #{id}
+	</update>
+
+	<update id="updateStorageNum" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update
+		mm_type
+		<set>
+			<if test="nums !=null and nums !=''">
+				NUM =(ifnull(NUM,0)) - #{nums}
+			</if>
+		</set>
+		where
+		id= #{id}
+	</update>
+
+	<insert id="insert" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		INSERT into mm_type
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				ID,
+			</if>
+			<if test="name !=null">
+				NAME,
+			</if>
+			<if test="parentId !=null">
+				PARENT_ID,
+			</if>
+			<if test="weight !=null">
+				WEIGHT,
+			</if>
+			<if test="unit !=null">
+				UNIT,
+			</if>
+			<if test="ratedLoad !=null">
+				RATED_LOAD,
+			</if>
+			<if test="testLoad !=null">
+				TEST_LOAD,
+			</if>
+			<if test="holdingTime !=null">
+				HOLDING_TIME,
+			</if>
+			<if test="leasePrice !=null">
+				LEASE_PRICE,
+			</if>
+			<if test="payPrice !=null">
+				PAY_PRICE,
+			</if>
+			<if test="buyPrice !=null">
+				BUY_PRICE,
+			</if>
+			<if test="isTest !=null">
+				IS_TEST,
+			</if>
+			<if test="level !=null">
+				LEVEL,
+			</if>
+			<if test="isCount !=null">
+				IS_COUNT,
+			</if>
+			<if test="sampingRatio != null">
+				SAMPING_RATIO,
+			</if>
+			<if test="warnNum != null">
+				WARN_NUM,
+			</if>
+			<if test="nums != null">
+				NUM,
+			</if>
+			<if test="rfidPower != null">
+				RFID_POWER,
+			</if>
+			<if test="label != null">
+				IS_LABEL,
+			</if>
+			TIME,IS_ACTIVE,
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				#{id},
+			</if>
+			<if test="name !=null">
+				#{name},
+			</if>
+			<if test="parentId !=null">
+				#{parentId},
+			</if>
+			<if test="weight !=null">
+				#{weight},
+			</if>
+			<if test="unit !=null">
+				#{unit},
+			</if>
+			<if test="ratedLoad !=null">
+				#{ratedLoad},
+			</if>
+			<if test="testLoad !=null">
+				#{testLoad},
+			</if>
+			<if test="holdingTime !=null">
+				#{holdingTime},
+			</if>
+			<if test="leasePrice !=null">
+				#{leasePrice},
+			</if>
+			<if test="payPrice !=null">
+				#{payPrice},
+			</if>
+			<if test="buyPrice !=null">
+				#{buyPrice},
+			</if>
+			<if test="isTest !=null">
+				#{isTest},
+			</if>
+			<if test="level !=null">
+				#{level},
+			</if>
+			<if test="isCount != null">
+				#{isCount},
+			</if>
+			<if test="sampingRatio != null">
+				#{sampingRatio},
+			</if>
+			<if test="warnNum != null">
+				#{warnNum},
+			</if>
+			<if test="nums != null">
+				#{nums},
+			</if>
+			<if test="rfidPower != null">
+				#{rfidPower},
+			</if>
+			<if test="label != null">
+				#{label},
+			</if>
+			NOW(),1,
+		</trim>
+	</insert>
+
+
+	<insert id="insertOrgRelation" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		INSERT into ma_org_relation
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				TYPE_ID,
+			</if>
+			<if test="companyId !=null">
+				ORG_ID,
+			</if>
+
+			<if test="weight !=null">
+				WEIGHT,
+			</if>
+
+			<if test="ratedLoad !=null">
+				RATED_LOAD,
+			</if>
+			<if test="testLoad !=null">
+				TEST_LOAD,
+			</if>
+			<if test="holdingTime !=null">
+				HOLDING_TIME,
+			</if>
+			<if test="leasePrice !=null">
+				LEASE_PRICE,
+			</if>
+			<if test="payPrice !=null">
+				PAY_PRICE,
+			</if>
+			<if test="buyPrice !=null">
+				BUY_PRICE,
+			</if>
+			<if test="isTest !=null">
+				IS_TEST,
+			</if>
+
+			<if test="isCount !=null">
+				IS_COUNT,
+			</if>
+			<if test="sampingRatio != null">
+				SAMPING_RATIO,
+			</if>
+			<if test="warnNum != null">
+				WARN_NUM,
+			</if>
+			<if test="nums != null">
+				NUM,
+			</if>
+			TIME,IS_ACTIVE,
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="id !=null">
+				#{id},
+			</if>
+			<if test="companyId !=null">
+				#{companyId},
+			</if>
+			<if test="weight !=null">
+				#{weight},
+			</if>
+
+			<if test="ratedLoad !=null">
+				#{ratedLoad},
+			</if>
+			<if test="testLoad !=null">
+				#{testLoad},
+			</if>
+			<if test="holdingTime !=null">
+				#{holdingTime},
+			</if>
+			<if test="leasePrice !=null">
+				#{leasePrice},
+			</if>
+			<if test="payPrice !=null">
+				#{payPrice},
+			</if>
+			<if test="buyPrice !=null">
+				#{buyPrice},
+			</if>
+			<if test="isTest !=null">
+				#{isTest},
+			</if>
+
+			<if test="isCount != null">
+				#{isCount},
+			</if>
+			<if test="sampingRatio != null">
+				#{sampingRatio},
+			</if>
+			<if test="warnNum != null">
+				#{warnNum},
+			</if>
+			<if test="nums != null">
+				#{nums},
+			</if>
+			NOW(),1,
+		</trim>
+	</insert>
+
+	<select id="find" resultType="com.bonus.ma.beans.MachineTypeBean"
+		parameterType="com.bonus.ma.beans.MachineTypeBean">
+		select mat.ID as id,mat.PARENT_ID as parentId,mat.`NAME`
+		as
+		name,mat.LEASE_PRICE as leasePrice,
+		mat.LEVEL as level,IS_COUNT as
+		isCount,ROUND(mat.NUM) as nums,mat.UNIT,
+		mat.WARN_VALUE as
+		warnValue,mat.IS_LABEL as label
+		from mm_type mat
+		where mat.ID = #{id}
+	</select>
+
+	<select id="findWarnValue" resultType="com.bonus.ma.beans.MachineTypeBean"
+		parameterType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT
+		mmt.NAME as name,
+		WARN_VALUE as warnValue
+		FROM
+		mm_type mmt
+		where level=3
+	</select>
+
+
+	<select id="findByModelId" resultType="com.bonus.ma.beans.MachineTypeBean"
+		parameterType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT mt.IS_COUNT AS isCount
+		FROM mm_type mt
+		WHERE mt.ID
+		= #{maModelId}
+	</select>
+
+	<select id="findById" resultType="com.bonus.ma.beans.MachineTypeBean">
+		select distinct mat.ID as
+		id,ROUND(mat.BUY_PRICE) as
+		buyPrice,mat.LEASE_PRICE as
+		leasePrice,ROUND(mat.PAY_PRICE) as
+		payPrice,ROUND(mat.NUM) as nums,
+		mat.IS_TEST as isTest,mat2.NAME as parentName,mat.NAME
+		from mm_type mat
+		left join
+		mm_type mat2 on mat2.id = mat.parent_id
+		where mat.ID=#{id}
+	</select>
+
+	<select id="findChilds" resultType="com.bonus.ma.beans.MachineTypeBean"
+		parameterType="com.bonus.ma.beans.MachineTypeBean">
+		select distinct mat.ID as id,mat.PARENT_ID as
+		parentId,mat2.`NAME` AS
+		parentName,mat.`NAME` as name,ROUND(mat.num) as
+		nums,mat.LEVEL as
+		level,mat.IS_COUNT
+		as isCount,mat.LEASE_PRICE as
+		leasePrice,mat.UNIT,mat.FILE_URL as
+		fileUrl
+		from mm_type mat
+		LEFT JOIN
+		mm_type mat2 on mat2.ID =
+		mat.PARENT_ID
+		where mat.PARENT_ID=#{id} and
+		mat.IS_ACTIVE = '1'
+	</select>
+
+	<update id="update" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type
+		<set>
+			<if test="name != null">
+				NAME = #{name},
+			</if>
+			<if test="warnValue != null">
+				WARN_VALUE = #{warnValue},
+			</if>
+			<if test="nums != null">
+				NUM = #{nums},
+			</if>
+			<if test="label != null">
+				IS_LABEL = #{label},
+			</if>
+			ID =#{id}
+		</set>
+		where ID =#{id}
+	</update>
+
+	<update id="updateWarnValue" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type
+		<set>
+			<if test="warnValue != null">
+				WARN_VALUE = #{warnValue}
+			</if>
+		</set>
+		where LEVEL=3
+	</update>
+
+
+	<update id="delete" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type set IS_ACTIVE =
+		'0'
+		where ID =#{id}
+	</update>
+	<update id="deleteOrgRelation" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update
+		ma_org_relation set IS_ACTIVE = '0'
+		where TYPE_ID =#{id} AND ORG_ID =
+		#{companyId}
+	</update>
+
+	<update id="deleteBatch" parameterType="java.util.List">
+		update bm_area_type set IS_ACTIVE = '0' WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</update>
+
+	<select id="findFirstName" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultMap="machineType">
+		SELECT ID,PARENT_ID as parentId,`NAME`
+		FROM mm_type WHERE
+		PARENT_ID = #{parentId} and IS_ACTIVE = '1'
+	</select>
+
+	<select id="findLastId" resultType="com.bonus.ma.beans.MachineTypeBean">
+		select *
+		from mm_type
+		order by
+		ID DESC
+		limit 1
+	</select>
+
+	<!-- <select id="findStoreDetails" parameterType="com.bonus.ma.beans.MachineTypeBean" 
+		resultType="com.bonus.ma.beans.MachineTypeBean"> SELECT DISTINCT mkt.USER_ID 
+		as keeperId,mtb.`NAME` as parentName,mta.`NAME` as name,mta.PARENT_ID as 
+		parentId,mta.NUM as nums FROM ma_keeper_type mkt LEFT JOIN mm_type mta ON 
+		mkt.TYPE_ID = mta.ID LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID WHERE 
+		mkt.USER_ID = #{keeperId} and mtb.ID = #{parentId} </select> -->
+
+	<select id="findDetails" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT
+		DISTINCT
+		mat.ID AS id,
+		mr.ORG_ID AS companyId,
+		po.`NAME` AS
+		companyName,
+		mat.`NAME`,
+		mat2.`NAME` AS parentName,
+		mat.UNIT AS unit,
+		mat.WEIGHT AS weight,
+		mat.RATED_LOAD AS ratedLoad,
+		mat.TEST_LOAD AS
+		testLoad,
+		mat.HOLDING_TIME AS holdingTime,
+		mat.LEASE_PRICE AS
+		leasePrice,
+		ROUND(CONVERT ( ( mat.PAY_PRICE ), DECIMAL ( 10, 2 ) )) AS
+		payPrice,
+		ROUND(mat.BUY_PRICE) AS buyPrice,
+		mat.IS_COUNT AS isCount,
+		mat.FILE_URL AS fileUrl,
+		ROUND(mat.NUM) AS nums,
+		mat.SAMPING_RATIO AS
+		sampingRatio,
+		mat.WARN_NUM AS warnNum
+		FROM
+		mm_type mat
+		LEFT JOIN
+		ma_org_relation mr ON mat.ID = mr.TYPE_ID
+		LEFT JOIN pm_organization po
+		ON mr.ORG_ID = po.ID
+		LEFT JOIN mm_type mat2 ON mat2.ID = mat.PARENT_ID
+		LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID
+		LEFT JOIN mm_type
+		mat4 ON mat4.ID = mat3.PARENT_ID
+		WHERE
+		mat4.PARENT_ID = 0
+		AND
+		mat.IS_ACTIVE = '1'
+		AND mat2.IS_ACTIVE = '1'
+		AND mat3.IS_ACTIVE = '1'
+		AND mat4.IS_ACTIVE = '1'
+		and mat.PARENT_ID = #{param.parentId}
+
+		<if test="param.companyId != 1 and param.companyId != '1'">
+			and mr.ORG_ID = #{param.companyId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+			mat.`NAME` like CONCAT('%',#{param.keyWord},'%') or
+			mat.WEIGHT like CONCAT('%',#{param.keyWord},'%') or
+			mat.LEASE_PRICE
+			like CONCAT('%',#{param.keyWord},'%') or
+			mat.PAY_PRICE like
+			CONCAT('%',#{param.keyWord},'%') or
+			mat.BUY_PRICE like
+			CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		GROUP BY mat.ID,mr.ORG_ID
+	</select>
+
+	<select id="findModel" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT DISTINCT
+		mat.ID AS id,
+		mat.`NAME`,
+		mat.WEIGHT AS weight,
+		mat.RATED_LOAD AS ratedLoad,
+		mat.TEST_LOAD AS testLoad,
+		mat.HOLDING_TIME AS holdingTime,
+		mat.UNIT AS unit,
+		mat.LEASE_PRICE AS
+		leasePrice,
+		ROUND(CONVERT ( ( mr.PAY_PRICE ), DECIMAL ( 10, 2 ) )) AS
+		payPrice,
+		ROUND(mat.BUY_PRICE) AS buyPrice,
+		mat.IS_TEST AS isTest,
+		mat2.`NAME` AS parentName,
+		mat.IS_COUNT AS isCount,
+		ROUND(mat.num) AS
+		nums,
+		mat.SAMPING_RATIO AS sampingRatio,
+		mat.WARN_NUM AS warnNum,
+		mat.RFID_POWER as rfidPower
+		FROM
+		mm_type mat
+		LEFT JOIN ma_org_relation mr
+		ON mat.ID = mr.TYPE_ID
+		LEFT JOIN mm_type mat2 ON mat2.ID =
+		mat.PARENT_ID
+		LEFT JOIN mm_type mat3 ON mat3.ID = mat2.PARENT_ID
+		LEFT
+		JOIN mm_type mat4 ON mat4.ID = mat3.PARENT_ID
+		WHERE
+		mat.ID = #{id}
+		<if test="companyId != 1 and companyId != '1'">
+			and mr.ORG_ID = #{companyId}
+		</if>
+
+
+		AND mat.IS_ACTIVE = '1'
+		AND mat2.IS_ACTIVE = '1'
+		AND mat3.IS_ACTIVE =
+		'1'
+		AND mat4.IS_ACTIVE = '1'
+		GROUP BY
+		mat.ID
+	</select>
+
+	<select id="findHouseNums" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		select DISTINCT mat.ID as id,mat.`NAME`,mat.WEIGHT as
+		weight,
+		mat.RATED_LOAD as ratedLoad,mat.TEST_LOAD as testLoad,
+		mat.HOLDING_TIME as holdingTime,mat.UNIT as unit,
+		mat.LEASE_PRICE as
+		leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+		ROUND(mat.BUY_PRICE) as
+		buyPrice,mat.IS_TEST as isTest,mat2.`NAME` as parentName,
+		mat.IS_COUNT
+		as isCount,
+		ROUND(mat.num) as nums,mat.SAMPING_RATIO as sampingRatio
+		from mm_type mat
+		LEFT JOIN mm_type mat2 on mat2.ID = mat.PARENT_ID
+		LEFT
+		JOIN mm_type mat3 on
+		mat3.ID = mat2.PARENT_ID
+		LEFT JOIN mm_type mat4 on
+		mat4.ID =
+		mat3.PARENT_ID
+
+		where mat.ID = #{id}
+	</select>
+
+	<update id="updateModel" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type
+		set `NAME`
+		= #{name},
+		WEIGHT = #{weight},
+		UNIT = #{unit},
+		IS_COUNT = #{isCount},
+		RFID_POWER=#{rfidPower}
+
+		where id = #{id}
+	</update>
+
+	<update id="updateOrgModel" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update ma_org_relation
+		set
+		WEIGHT = #{weight},
+		RATED_LOAD = #{ratedLoad},
+		TEST_LOAD = #{testLoad},
+		HOLDING_TIME = #{holdingTime},
+		LEASE_PRICE =
+		#{leasePrice},
+		PAY_PRICE =
+		#{payPrice},
+		BUY_PRICE = #{buyPrice},
+		IS_COUNT
+		= #{isCount},
+		NUM =
+		#{nums}
+
+		where type_id = #{id}
+		<if test="companyId != 1 and companyId != '1'">
+			and org_id = #{companyId}
+		</if>
+	</update>
+
+	<select id="findMaTypeMsg" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT DISTINCT mat4.`NAME` as firstName,mat3.`NAME` as
+		secondName,mat2.`NAME` as parentName,
+		mat1.`NAME` as name,mat1.WEIGHT
+		as weight,mat1.NUM as nums,mat1.RATED_LOAD as
+		ratedLoad,
+		mat1.TEST_LOAD
+		as testLoad,mat1.HOLDING_TIME as holdingTime,mat1.UNIT as unit,
+		mat1.LEASE_PRICE as leasePrice,ROUND(mat1.PAY_PRICE) as
+		payPrice,ROUND(mat1.BUY_PRICE) as buyPrice,
+		IF(mat1.IS_TEST=1,'是','否')
+		as isTest
+		FROM mm_type mat1
+		LEFT JOIN mm_type mat2 on mat2.ID =
+		mat1.PARENT_ID
+		LEFT JOIN mm_type mat3 on mat3.ID = mat2.PARENT_ID
+		LEFT
+		JOIN mm_type mat4 on mat4.ID = mat3.PARENT_ID
+
+		WHERE mat4.`NAME` is not
+		NULL
+		and mat1.IS_ACTIVE = '1' and mat2.IS_ACTIVE =
+		'1'
+		and mat3.IS_ACTIVE
+		= '1' and mat4.IS_ACTIVE = '1'
+		<if test="keyWord != null || keyWord != '' || keyWord !=','">
+			and mat2.`NAME` like concat('%',#{keyWord},'%')
+		</if>
+		<!-- <if test="parentId != null || parentId != null "> and mat2.PARENT_ID 
+			= #{parentId} </if> -->
+		GROUP BY mat1.ID
+		ORDER BY
+		mat4.`NAME`,mat3.`NAME`,mat2.`NAME`,mat1.`NAME`
+	</select>
+
+
+	<select id="findNums" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultMap="machineType">
+		SELECT ROUND(mat.NUM) as num FROM mm_type mat
+		WHERE ID
+		=#{model}
+	</select>
+
+	<update id="updateNums" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update mm_type
+		set NUM =
+		#{nums}
+		where id = #{id}
+	</update>
+
+	<select id="findWarnModel" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT DISTINCT mat.ID as id,mat.`NAME`,mat.WEIGHT as weight,
+		mat.RATED_LOAD as ratedLoad,mat.TEST_LOAD as testLoad,
+		mat.HOLDING_TIME as holdingTime,mat.UNIT as unit,
+		mat.LEASE_PRICE as
+		leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+		ROUND(mat.BUY_PRICE) as
+		buyPrice,mat.IS_TEST as isTest,mat2.`NAME` as parentName,
+		mat.IS_COUNT
+		as isCount,ROUND(mat.num) as nums,mat.SAMPING_RATIO as
+		sampingRatio,mat.WARN_NUM as warnNum,
+		mat3.`NAME` as
+		secondName,mat4.`NAME` as firstName
+		FROM mm_type mat
+		LEFT JOIN mm_type
+		mat2 on mat2.ID = mat.PARENT_ID
+		LEFT JOIN mm_type mat3 on mat3.ID =
+		mat2.PARENT_ID
+		LEFT JOIN mm_type mat4 on mat4.ID = mat3.PARENT_ID
+
+		WHERE
+		mat.WARN_NUM >= mat.NUM
+		and mat.IS_ACTIVE = '1' and mat2.IS_ACTIVE =
+		'1'
+		and mat3.IS_ACTIVE = '1' and mat4.IS_ACTIVE = '1'
+		<if test="param.keyWord != null || param.keyWord != ''">
+			and (
+			mat.`NAME` like concat('%',#{param.keyWord},'%')
+			OR
+			mat2.`NAME` like concat('%',#{param.keyWord},'%')
+			OR mat3.`NAME` like
+			concat('%',#{param.keyWord},'%')
+			OR mat4.`NAME` like
+			concat('%',#{param.keyWord},'%')
+			OR mat.num like
+			concat('%',#{param.keyWord},'%')
+
+			)
+		</if>
+		GROUP BY mat.ID
+	</select>
+
+	<select id="findTopClass" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT d.`NAME` as firstName,c.`NAME` as
+		secondName,b.`NAME` as parentName,a.`NAME` as `NAME`,ROUND(a.num) as
+		nums
+		FROM mm_type a,mm_type b,mm_type c,mm_type d
+		WHERE a.PARENT_ID =
+		b.ID
+		AND b.PARENT_ID = c.ID
+		AND c.PARENT_ID = d.ID
+		AND
+		a.ID = #{id}
+	</select>
+
+	<select id="findTestData" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT
+		t.id,
+		t.type as firstName,
+		t.model as secondName,
+		t.dev
+		as name
+		from test_copy_copy t
+	</select>
+
+	<select id="findZulinTest" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT
+		t.id,
+		t.ZL_NUMBER as firstName
+		from zulin t
+	</select>
+
+	<select id="getIdByThreeName" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		resultType="com.bonus.ma.beans.MachineTypeBean">
+		SELECT type.ID AS model
+		from mm_type type
+		LEFT JOIN mm_type
+		type2 on type.PARENT_ID = type2.ID
+		LEFT JOIN mm_type type3 on
+		type2.PARENT_ID = type3.ID
+		WHERE type.`NAME` = #{name} and type2.`NAME`
+		= #{secondName} and
+		type3.`NAME` = #{firstName}
+		limit 1
+	</select>
+
+	<update id="updateTestDataById" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		update
+		test_copy_copy
+		set modelId = #{model}
+		where id = #{id}
+	</update>
+
+	<insert id="insetOne" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		insert into zulin_one_copy1
+		(supId,NUM)
+		values (#{id},#{firstName})
+	</insert>
+
+	<insert id="insetTwo" parameterType="com.bonus.ma.beans.MachineTypeBean"
+		useGeneratedKeys="true" keyProperty="id">
+		insert into zulin_one_copy1
+		(supId,NUM)
+		values (#{id},#{firstName})
+	</insert>
+
+	<insert id="insetThree" parameterType="com.bonus.ma.beans.MachineTypeBean">
+		insert into
+		zulin_one_copy1
+		(supId,NUM)
+		values (#{id},#{firstName})
+	</insert>
+</mapper>

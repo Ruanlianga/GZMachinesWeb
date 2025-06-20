@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.plan.dao.PlanApplicationDao" >
+    <select id="findByPage" parameterType="com.bonus.plan.beans.PlanApplyBean" resultType="com.bonus.plan.beans.PlanApplyBean">
+   		SELECT
+			plan.id,
+			plan.CODE,pro.name proName ,
+			plan.project_id projectId,
+			plan.project_part projectPart,
+			plan.project_content projectContent,
+			plan.need_time needTime,
+			plan.creator,
+			plan.create_time createTime,
+			plan.remark,
+			plan.STATUS,
+			plan.updater,
+			plan.status_type statusType 
+		FROM
+			t_plan_apply plan
+			left join bm_project pro on plan.project_id=pro.ID
+		<where>
+			<if test="param.keyWord !=null and param.keyWord !=''">	
+					and (
+					   pro.name  like concat('%',#{param.keyWord},'%')  or 
+					   plan.creator  like concat('%',#{param.keyWord},'%')  or 
+					   plan.CODE  like concat('%',#{param.keyWord},'%')  or 
+					   plan.need_time  like concat('%',#{param.keyWord},'%')  or 
+					   plan.project_part  like concat('%',#{param.keyWord},'%') or
+					   plan.project_content  like concat('%',#{param.keyWord},'%') or
+					   plan.remark  like concat('%',#{param.keyWord},'%')
+					)
+					
+			</if>
+				<if test="param.auditStatus !=null and param.auditStatus !=''">	
+					and plan.STATUS=#{param.auditStatus}
+				</if>
+		</where>
+		order by  plan.update_time  DESC
+ 	</select>
+ 	
+ 	<select id="getDevTreeList"   parameterType="com.bonus.plan.beans.PlanDevBean" resultType="com.bonus.plan.beans.PlanDevBean">
+				SELECT mt.ID id ,mt.PARENT_ID pId,mt.`LEVEL` level,mt.UNIT unit,mt.NUM num ,mt.`NAME`  name ,mt1.`NAME` pName ,
+						mt2.`NAME` ppName 
+					from mm_type  mt 
+					LEFT JOIN mm_type mt1 on mt.PARENT_ID=mt1.id and mt.`LEVEL`=4 and mt1.`LEVEL`=3 and mt1.IS_ACTIVE=1
+					LEFT JOIN mm_type mt2 on mt1.PARENT_ID=mt2.id and mt1.`LEVEL`=3  and mt2.IS_ACTIVE=1
+					WHERE mt.IS_ACTIVE=1 
+						ORDER BY mt.`NAME` desc 
+ 	</select>
+ 	<select id="getTodayPlanNum"  resultType="java.lang.Integer" parameterType="com.bonus.plan.beans.PlanApplyBean">
+ 		select count(1)
+			from  t_plan_apply
+			where   DATE_FORMAT(create_time, '%Y-%m-%d')=CURRENT_DATE
+ 	</select>
+ 	
+ 	
+ 	
+ 	
+ 	<!-- 插入数据 -->
+ 	<insert id="insertData"   parameterType="com.bonus.plan.beans.PlanApplyBean" useGeneratedKeys="true"  keyProperty="id">
+ 			insert into  t_plan_apply(
+				code,project_id,	project_part,project_content,
+				need_time,	creator,create_time,remark,updater,
+				status,update_time,status_type
+ 			)values(
+ 				#{code},#{projectId},#{projectPart},#{projectContent},
+ 				#{needTime},#{creator},now(),#{remark},#{updater},
+ 				1,now(),2
+ 			)
+ 	</insert>
+ 	
+ 	
+ 	 <!--修改计划 -->
+ 	<update id="updatePlan"   parameterType="com.bonus.plan.beans.PlanApplyBean" >
+ 			update  t_plan_apply 
+ 				set project_id=#{projectId},project_part=#{projectPart},project_content=#{projectContent}
+ 					need_time=#{needTime},updater=#{updater},update_time=now()
+ 				where id=#{id}
+ 	</update>
+ 	
+ 	<!-- 删除数据 -->
+ 	<delete id="deleteDetails"  parameterType="com.bonus.plan.beans.PlanApplyBean">
+ 			DELETE FROM t_plan_details WHERE apply_id=#{id};
+ 	</delete>
+ 	 	<!-- 修改计划-并提交 -->
+ 	<update id="updatePlanAndSub"   parameterType="com.bonus.plan.beans.PlanApplyBean" >
+ 			update  t_plan_apply 
+ 				set project_id=#{projectId},project_part=#{projectPart},project_content=#{projectContent}
+ 					need_time=#{needTime},updater=#{updater},update_time=now(),status=1,status_type=2
+ 				where id=#{id}
+ 	</update>
+ 	
+	 	<!-- 插入数据详情 -->
+			<insert id="insertDetail">
+				insert  INTO t_plan_details(
+					apply_id,model_id,need_num,
+					need_day,remark,type,
+					name,module,unit
+				) VALUES
+			<foreach collection="list" item="item" separator=",">
+				(
+					#{param.id},#{item.moduleId},#{item.needNum},
+					#{item.times},#{item.remarks},#{item.type},
+					#{item.typeName},#{item.module},#{item.unit}
+				)
+		</foreach>
+	</insert>
+	<!-- 依据id 查询详情 -->
+	<select id="getPlanDetailsbyId" parameterType="com.bonus.plan.beans.PlanApplyBean" resultType="com.bonus.plan.beans.PlanApplyBean">
+			SELECT
+				plan.id,
+				plan.CODE code ,pro.name proName ,
+				plan.project_id projectId,
+				plan.project_part projectPart,
+				plan.project_content projectContent,
+				plan.need_time needTime,
+				plan.creator,
+				plan.create_time createTime,
+				plan.remark,
+				plan.STATUS,
+				plan.updater,
+				plan.status_type statusType 
+		FROM
+			t_plan_apply plan
+			left join bm_project pro on plan.project_id=pro.ID
+			where  plan.id=#{id}
+	</select>
+	<!-- 审核记录差寻-->
+	<select id="getAuditList" parameterType="com.bonus.plan.beans.PlanApplyBean" resultType="com.bonus.plan.beans.AuditBean">
+		select tpr.id,
+			tpr.apply_id applyId,
+			tpr.auditor auditor,
+			tpr.audit_time auditTime,
+			tpr.audit_status auditStatus,
+			tpr.audit_remark auditRemarks,
+			tpr.updater updater,
+			tpr.update_time  updateTime,
+			tpr.audit_type auditType,
+			tpr.audit_name auditUser,
+			tpa.create_time statrtTime , 
+			FLOOR(TIME_TO_SEC(TIMEDIFF(tpr.audit_time, 	tpa.create_time)) / 60/60) AS hours,
+				ROUND(MOD(TIME_TO_SEC(TIMEDIFF(tpr.audit_time, 	tpa.create_time)), 3600) / 60) AS minutes,
+			pu.TELPHONE phone 
+			FROM t_plan_record tpr
+			left join pm_user pu on tpr.auditor=pu.id 
+			LEFT JOIN t_plan_apply tpa on tpr.apply_id=tpa.id 
+			where apply_id=#{id}
+				ORDER BY tpr.audit_time DESC  
+	</select>
+	<!-- 查询 内容集合-->
+	<select id="getDetailsList" parameterType="com.bonus.plan.beans.PlanApplyBean" resultType="com.bonus.plan.beans.PlanDataDetailBean">
+		select	id,apply_id  applyId,model_id moduleId,
+				need_num needNum,need_day times,
+				remark,type,name typeName,
+				module,unit
+				from t_plan_details
+		where apply_id=#{id}
+			ORDER BY id asc  
+	</select>
+		<!-- 查询 工程集合-->
+	<select id="getProList" parameterType="com.bonus.plan.beans.PlanDevBean" resultType="com.bonus.plan.beans.PlanProBean">
+		select id,name
+			from bm_project
+				where IS_ACTIVE=1
+				ORDER BY TIME desc 
+	</select>
+</mapper>

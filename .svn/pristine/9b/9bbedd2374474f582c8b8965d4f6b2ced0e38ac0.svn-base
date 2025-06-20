@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.ReturnMaterialAccDao" >
+    <resultMap id="returnMaterialAcc" type="com.bonus.rm.beans.ReturnMaterialAccBean"></resultMap>
+    
+    
+    <select id="findByPage" parameterType="com.bonus.rm.beans.ReturnMaterialAccBean" resultMap="returnMaterialAcc">
+        
+        SELECT
+					wtr.id,
+					pmo.NAME AS companyName,
+					wtr.OPERATION_TIME AS returnMaterialTime,
+					bu.`NAME` AS unitName,
+					wtr.CHECKER_ID AS checkerId,
+					bp.`NAME` AS workName,
+					wtr.LEASE_PERSON AS userName,
+					wtr.PHONE,
+					wtr.NUMBER,
+					pu.`NAME` AS checker,
+					wla.ID AS agreementId,
+					wla.`CODE` AS agreementCode,
+					wtr.IS_FINISH AS isFinish,
+					wtr.REMARK,
+					bs.NAME AS subcontractors ,
+			         acc.num ,
+					 acc.wsh,
+					 acc.shtg,
+					 acc.shbh,
+					 acc.wpz,
+					 acc.pztg,
+					 acc.pzbh
+				FROM
+					wf_task_record wtr
+					LEFT JOIN
+					(
+				    SELECT
+							res.taskId,
+							SUM(res.wsh) as wsh,
+							SUM(res.shtg) as shtg,
+							SUM(res.shbh) as shbh,
+							SUM(res.wpz) as wpz,
+							SUM(res.pztg) as pztg,
+							SUM(res.pzbh) as pzbh,
+							COUNT(res.taskId) as num 
+							FROM
+							(
+							SELECT
+										wmd.TASK_ID as taskId,
+										IF(wmd.IS_EXAMINE =0,1,0) AS  'wsh',
+										IF(wmd.IS_EXAMINE =1,1,0) AS  'shtg',
+										IF(wmd.IS_EXAMINE =2,1,0) AS  'shbh',
+										IF(wmd.IS_APPROVAL =0,1,0) AS  'wpz',
+										IF(wmd.IS_APPROVAL =1,1,0) AS  'pztg',
+										IF(wmd.IS_APPROVAL =2,1,0) AS  'pzbh'
+												
+							FROM
+							wf_return_material_details wmd  
+							LEFT JOIN wf_task_record wtr on wmd.TASK_ID = wtr.ID
+							WHERE wtr.IS_FINISH = 1
+							   AND wtr.DEFINITION_ID = 8 
+							   AND wtr.OPERATION_TIME >= CONCAT(#{param.startTime},' 00:00:00') 
+						       and CONCAT(#{param.endTime},' 23:59:59') >= wtr.OPERATION_TIME 
+					) res
+							GROUP BY res.taskId 
+					) acc on wtr.ID = acc.taskId
+					
+					LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+					LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+					LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+					LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+					LEFT JOIN pm_user pu ON wtr.CHECKER_ID = pu.ID
+					LEFT JOIN bm_subcontractors bs ON wtr.SUBCONTRACTORS_ID = bs.ID
+					LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID 
+				WHERE
+					wtr.IS_ACTIVE = 1 
+					AND wtr.IS_FINISH = 1
+					AND wtr.PROCESS_ID = 3 
+					AND wtr.DEFINITION_ID = 8 
+		AND wtr.OPERATION_TIME >= CONCAT(#{param.startTime},' 00:00:00') 
+		and CONCAT(#{param.endTime},' 23:59:59') >= wtr.OPERATION_TIME 
+		<if test="param.orgId != 1 and param.orgId != '1'">
+				and wtr.org_id=#{param.orgId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				pmo.name like concat('%',#{param.keyWord},'%') OR
+				bu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				bp.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wtr.LEASE_PERSON like concat('%',#{param.keyWord},'%') OR
+				wtr.NUMBER like concat('%',#{param.keyWord},'%') OR
+				pu.`NAME` like concat('%',#{param.keyWord},'%') OR
+				wla.`CODE` like concat('%',#{param.keyWord},'%') OR
+				wtr.REMARK like concat('%',#{param.keyWord},'%') 
+			)
+		</if>
+		
+ 	</select>
+ 
+    <select id="findByPageTwo" parameterType="com.bonus.rm.beans.ReturnMaterialAccBean" resultMap="returnMaterialAcc">
+      
+        
+        SELECT
+			wmd.TASK_ID as taskId,
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mt.UNIT as deviceUnit,
+			mm.DEVICE_CODE as deviceCode,
+			mm.REMARK as codeRemark,
+			wir.NUM as returnNum ,
+			wmd.IS_EXAMINE as isExamine,
+			wmd.IS_APPROVAL as isApproval,
+			wmd.AUDIT_REMARK as auditRemark,
+			wmd.APPROVAL_REMARK as approvalRemark 
+			FROM
+			wf_return_material_details wmd
+			LEFT JOIN wf_info_record wir on wmd.ID = wir.SUP_ID
+			LEFT JOIN mm_type mt on wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_machines mm on wir.MA_ID = mm.ID
+        
+        
+        	WHERE 
+				wmd.TASK_ID = #{param.taskId}  and  wir.TYPE in(4,10)
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				mt2.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mt.`NAME`  like concat('%',#{param.keyWord},'%') OR
+				mm.DEVICE_CODE like concat('%',#{param.keyWord},'%') OR
+				mm.REMARK like concat('%',#{param.keyWord},'%') OR
+				wmd.APPROVAL_REMARK like concat('%',#{param.keyWord},'%') OR
+				wmd.AUDIT_REMARK like concat('%',#{param.keyWord},'%') 
+			)
+		</if>
+		
+ 	</select>
+ 
+
+	
+</mapper>

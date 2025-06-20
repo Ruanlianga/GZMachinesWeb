@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.warningManage.dao.CheckWarningDao">
+	<resultMap type="com.bonus.warningManage.beans.CheckWarningBean" id="checkWarning"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.warningManage.beans.CheckWarningBean" resultMap="checkWarning">
+	SELECT t.agreementCode as agreementCode,t.orgId as orgId,t.unitName as unitName,t.proName as proName,t.id as id,
+				t.batchStatus as batchStatus,t.maName as maName,t.maType as maType,t.deviceCode as deviceCode,
+				t.thisCheckTime as thisCheckTime,t.nextCheckTime as nextCheckTime,t.level as level
+	FROM (
+			SELECT  
+				 wla.`CODE` as agreementCode,
+				rel.ORG_ID as orgId,
+						 bu.`NAME` as unitName,
+						 bp.`NAME` as proName,
+						 mm.ID as id,
+					 mm.BATCH_STATUS as batchStatus,
+				 mt2.`NAME` as maName,
+				 mt1.`NAME` as maType,
+				 mm.DEVICE_CODE as deviceCode,
+				 mm.THIS_CHECK_TIME as thisCheckTime,
+				 mm.NEXT_CHECK_TIME as nextCheckTime,
+						 IF (str_to_date(mm.NEXT_CHECK_TIME,"%Y-%m-%d") &lt; now(),"red",
+					 IF (str_to_date(mm.NEXT_CHECK_TIME,"%Y-%m-%d") &lt; DATE_ADD(now(), INTERVAL 2 MONTH),"#e0e010","black")) AS level
+				FROM mm_machines mm
+				LEFT JOIN ma_type_project_storage mtps ON mm.id = mtps.machine
+				LEFT JOIN mm_type mt1 ON mt1.ID = mm.type
+				LEFT JOIN mm_type mt2 ON mt1.PARENT_ID = mt2.ID
+					LEFT JOIN wf_lease_agreement wla on mtps.agreement_id = wla.id 
+						LEFT JOIN bm_unit bu on wla.LEASE_COMPANY = bu.id 
+				LEFT JOIN bm_project bp on wla.PROJECT = bp.id
+				LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mt1.ID
+				
+			 where  TO_DAYS(if(ISNULL(mm.NEXT_CHECK_TIME) or LENGTH(trim(mm.NEXT_CHECK_TIME))> 1,NOW( ),mm.NEXT_CHECK_TIME))- TO_DAYS(NOW( )) &lt; 60 
+					<if test="param.keyWord != null and param.keyWord != ''">
+						AND(wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+						  OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						  OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						  OR mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						  OR mt1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						  OR mm.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%')
+						)
+					</if>
+				 GROUP BY mm.id 
+				<if test='param.orgId !=null and param.orgId!=""'>
+					and  rel.ORG_ID=#{param.orgId}
+				</if>
+	) t
+	WHERE 1=1
+		<if test="param.unitName != null and param.unitName != ''">
+			and t.unitName LIKE CONCAT('%',#{param.unitName},'%')
+		</if>
+		<if test="param.projectName != null and param.projectName != ''">
+			and t.proName LIKE CONCAT('%',#{param.projectName},'%')
+		</if>
+		<if test="param.maName != null and param.maName != ''">
+			and t.maName LIKE CONCAT('%',#{param.maName},'%')
+		</if>
+		<if test="param.maType != null and param.maType != ''">
+			and t.maType LIKE CONCAT('%',#{param.maType},'%')
+		</if>
+		<if test="param.scope != null and param.scope != ''">
+			<if test="param.scope == '1'">
+				and t.batchStatus != 5
+			</if>
+			<if test="param.scope == '2'">
+				and t.batchStatus = 5
+			</if>
+		</if>
+	</select>
+
+</mapper>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.parts.dao.PartDao" >
+    <select id="findByPage" resultType="com.bonus.parts.beans.PartBean">
+							SELECT 
+							pa.id as id,
+							pa.PARTS_NUM as partNum,
+							pa.VENDER_ID as venderId,
+							pv.NAME as factory,
+							pa.MODEL as model,
+							pa.price as price,
+							pa.TYPE_ID  as typeId,
+							pt.NAME as typeName,
+							pa.OUT_TIME as outTime,
+							pt.IS_CONSUMABLES as isConsumables,
+							pa.NUM as num,
+							pa.REMARKS as remarks
+							 FROM  pa_parts pa
+							LEFT JOIN pa_type pt on pt.id =pa.TYPE_ID
+							LEFT JOIN  pa_vender pv on pv.ID =pa.VENDER_ID
+							where  pa.IS_ACTIVE =1
+   <if test="param.typeName!='' and param.typeName">
+      and    pv.NAME  like concat('%',#{param.typeName},'%')
+   </if>
+    </select>
+    <insert id="insert" parameterType="com.bonus.parts.beans.PartBean"> 
+INSERT into pa_parts(id,price,parts_num,vender_id,model,type_id,out_time,is_consumables,num,remarks,is_active)
+VALUE(null,#{price},#{partNum},#{factory},#{model},#{typeName},#{outTime},#{isConsumables},#{num},#{remarks},1)
+    </insert>
+    
+    <update id="update" parameterType="com.bonus.parts.beans.PartBean">
+					 UPDATE 
+					pa_parts
+					SET
+					PARTS_NUM =#{partNum},
+					VENDER_ID =#{factory},
+					 MODEL =#{model},
+					price=#{price} ,
+					 TYPE_ID =#{typeName},
+					OUT_TIME =#{outTime},
+					IS_CONSUMABLES=#{isConsumables},
+					NUM=#{num},
+					REMARKS =#{remarks}
+					where id=#{id}
+    </update>
+    
+    <delete id="delete" parameterType="com.bonus.parts.beans.PartBean">
+        DELETE from pa_parts where id=#{id}
+    </delete> 
+    
+    <select id="find"   resultType="com.bonus.parts.beans.PartBean">
+          SELECT id  as venderId, NAME as factory FROM  pa_vender 
+    </select>
+    
+        <select id="findone"   resultType="com.bonus.parts.beans.PartBean">
+							SELECT    
+							 id as typeId,
+							NAME as typeName
+							FROM pa_type
+    </select>
+    
+    
+    
+    
+    
+</mapper>

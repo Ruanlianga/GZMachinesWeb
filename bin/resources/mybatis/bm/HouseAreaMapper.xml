@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.HouseAreaDao" >
+    <resultMap id="houseArea" type="com.bonus.bm.beans.HouseAreaBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.bm.beans.HouseAreaBean" resultMap="houseArea">
+		SELECT ba.id,ba.LENGTH,ba.WIDTH,ba.AREA,ba.LON,
+		ba.LAT,bw.`NAME` as houseName,ma.name as areaType,
+		(select  my.name  from MA_TYPE my  where my.id=ma.PARENT_ID) as stand
+		FROM bm_area ba
+		LEFT JOIN ma_type ma ON ma.id = ba.ma_type
+		LEFT JOIN bm_warehouse bw ON ba.HOUSE_ID = bw.ID
+		WHERE 1 = 1 
+		<if test="param.keyWord!= null">
+			AND (
+			ba.LENGTH LIKE CONCAT('%',#{param.keyWord},'%')
+			OR ba.WIDTH LIKE CONCAT('%',#{param.keyWord},'%')
+			OR ba.AREA LIKE CONCAT('%',#{param.keyWord},'%')
+			OR ba.LON LIKE CONCAT('%',#{param.keyWord},'%')
+			OR ba.LAT LIKE CONCAT('%',#{param.keyWord},'%')
+	<!-- 		OR bat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') -->
+			OR bw.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.bm.beans.HouseAreaBean" resultMap="houseArea">
+ 	    SELECT ba.id,ba.LENGTH,ba.WIDTH,ba.AREA,ba.LON,
+		ba.LAT,ma.`NAME` as areaType,bw.`NAME` as houseName,
+		ba.ma_type as  orgId
+		
+		FROM bm_area ba
+			LEFT JOIN ma_type ma ON ma.id = ba.ma_type
+	     
+<!-- 		LEFT JOIN bm_area_type bat ON ba.AREA_TYPE = bat.ID -->
+		LEFT JOIN bm_warehouse bw ON ba.HOUSE_ID = bw.ID
+		WHERE ba.ID = #{id}
+ 	</select> 
+ 	
+	<insert id="insertBean" parameterType="com.bonus.bm.beans.HouseAreaBean">
+		insert into bm_area(length,width,area,lon,lat,ma_type,house_id,is_active) 
+		values (#{length},#{width},#{area},#{lon},#{lat},#{orgId},#{houseName},1)
+	</insert> 
+	
+  <update id="update" parameterType="com.bonus.bm.beans.HouseAreaBean">
+		update bm_area set 
+		length = #{length},
+		width = #{width},
+		area = #{area},
+		lon = #{lon},
+		lat = #{lat},
+		ma_type = #{orgId},
+		house_id = #{houseName}
+		where ID = #{id}
+	</update> 
+	
+	<delete id="delete" parameterType="com.bonus.bm.beans.HouseAreaBean">
+		delete from bm_area
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+</mapper>

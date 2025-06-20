@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newSettlement.dao.ProjectFinishInfoDao">
+	<resultMap id="baseMap" type="com.bonus.newSettlement.beans.ProjectFinishInfoBean">
+		<id column="ID" property="id" />
+		<result column="code" property="code" />
+		<result column="orgId" property="orgId" />
+		<result column="projectId" property="projectId" />
+		<result column="projectName" property="projectName" />
+		<result column="unitId" property="unitId" />
+		<result column="unitName" property="unitName" />
+		<result column="createTime" property="createTime" />
+		<result column="creatorName" property="creator" />
+		<result column="updaterName" property="updater.name" />
+		<result column="updaterId" property="updater.id" />
+		<result column="status" property="status" />
+		<result column="sltMan" property="sltMan" />
+		<result column="sltDate" property="sltDate" />
+		<result column="sltManPhone" property="sltManPhone" />
+		<result column="remarks" property="remarks" />
+		<result column="fileUrl" property="fileUrl" />
+		<result column="file_url" property="fileUrl" />
+		<result column="file_name" property="fileName" />
+		<result column="file_old_name" property="fileOldName" />
+		<result column="oldFileUrl" property="oldFileUrl" />
+	    <collection property="mas" ofType="com.bonus.newSettlement.beans.ProjectFinishDetailsBean">
+	    	<id column="dId" property="id" />
+			<result column="deviceName" property="deviceName" />
+			<result column="deviceModel" property="deviceModel" />
+			<result column="unitName" property="deviceUnit" />
+			<result column="deviceCode" property="deviceCode" />
+			<result column="isCount" property="isCount"/>
+			<result column="num" property="num" />
+			<result column="price" property="price" />
+			<result column="startDate" property="startDate" />
+			<result column="endDate" property="endDate" />
+			<result column="dayLen" property="dayLen" />
+			<result column="backDate" property="backDate" />
+			<result column="remarks" property="remarks" />
+	    </collection>
+	</resultMap>
+	
+
+
+	<select id="findByPage" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean" resultMap="baseMap">
+	SELECT 
+			psi.id,
+			psi.`code`,
+			company.name as unitName,
+			project.`NAME` as projectName,
+		    psi.create_time AS createTime,
+		    pu.name AS creatorName,
+			psi.slt_man AS sltMan,
+			psi.slt_date AS sltDate,
+			psi.slt_man_phone AS sltManPhone
+		FROM
+			project_finish_info psi
+		LEFT JOIN wf_lease_agreement agreement on psi.agreement = agreement.id 
+		LEFT JOIN bm_unit company on agreement.LEASE_COMPANY = company.id 
+		LEFT JOIN bm_project project on agreement.PROJECT = project.id 
+		LEFT JOIN pm_organization pmo ON pmo.id = psi.ORG_ID
+		LEFT JOIN pm_user pu on pu.id =   psi.creator
+		WHERE
+			1 = 1
+		<if test="param.orgId != 1 and param.orgId != '1'">
+			and psi.org_id=#{param.orgId}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND (
+			   psi.`code` LIKE CONCAT('%',#{param.keyWord},'%')
+				or company.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				or project.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				or psi.slt_man LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+	</select>
+	
+		<update id="updateAgreement" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean">
+	   UPDATE wf_lease_agreement set is_finish = 1 where id = #{agreementId}
+	
+	</update>
+	
+	<insert id="insertBean" keyProperty="id" useGeneratedKeys="true" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean" >
+		INSERT INTO project_finish_info
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+		
+		    <if test="orgId != null">
+				org_id,
+			</if>
+			<if test="code != null">
+				code,
+			</if>
+			<if test="agreementId != null">
+				agreement,
+			</if>
+			
+			<if test="creator != null">
+				creator,
+			</if>
+			<if test="createTime != null and createTime != '' ">
+				create_time,
+			</if>
+			<if test="updater != null">
+				updater,
+			</if>
+			<if test="updateTime != null and updateTime != '' ">
+				update_time,
+			</if>
+			<if test="status != null">
+				status,
+			</if>
+			<if test="sltMan != null and sltMan != ''">
+				slt_man,
+			</if>
+			<if test="sltDate != null and sltDate != '' ">
+				slt_date,
+			</if>
+			<if test="sltManPhone != null and sltManPhone != ''">
+				slt_man_phone,
+			</if>
+			<if test="remarks != null and remarks != ''">
+				remarks,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+		    <if test="orgId != null">
+				#{orgId},
+			</if>
+			<if test="code != null">
+				#{code},
+			</if>
+			<if test="agreementId != null">
+				#{agreementId},
+			</if>
+			
+			<if test="creator != null">
+				#{creator},
+			</if>
+			<if test="createTime != null and createTime != '' ">
+				#{createTime},
+			</if>
+			<if test="updater != null">
+				#{updater},
+			</if>
+			<if test="updateTime != null and updateTime != '' ">
+				#{updateTime},
+			</if>
+			<if test="status != null">
+				#{status},
+			</if>
+			<if test="sltMan != null and sltMan != ''">
+				#{sltMan},
+			</if>
+			<if test="sltDate != null and sltDate != '' ">
+				#{sltDate},
+			</if>
+			<if test="sltManPhone != null and sltManPhone != ''">
+				#{sltManPhone},
+			</if>
+			<if test="remarks != null and remarks != ''">
+				#{remarks},
+			</if>
+		</trim>
+	</insert>
+	
+	
+		<insert id="insertDetails" parameterType="com.bonus.newSettlement.beans.ProjectFinishDetailsBean" >
+		INSERT INTO project_finish_details
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="sltInfo != null">
+				slt_info,
+			</if>
+		
+			<if test="typeId != null">
+				type,
+			</if>
+			
+			<if test="machineId != null">
+				machine,
+			</if>
+			
+			<if test="num != null">
+				num,
+			</if>
+			<if test="price != null">
+				price,
+			</if>
+			
+			<if test="startDate != null and startDate != '' ">
+				start_date,
+			</if>
+			<if test="endDate != null and endDate != '' ">
+				end_date,
+			</if>
+			<if test="dayLen != null">
+				day_len,
+			</if>
+		
+			
+			<if test="backDate != null and backDate != '' ">
+				back_date,
+			</if>
+			<if test="remarks != null and remarks != ''">
+				remarks,
+			</if>
+			<if test="fileUrl != null and fileUrl != ''">
+				file_url,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="sltInfo != null">
+				#{sltInfo},
+			</if>
+			
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			
+			<if test="machineId != null">
+				#{machineId},
+			</if>
+			
+			<if test="num != null">
+				#{num},
+			</if>
+			<if test="price != null">
+				#{price},
+			</if>
+		
+			<if test="startDate != null and startDate != '' ">
+				#{startDate},
+			</if>
+			<if test="endDate != null and endDate != '' ">
+				#{endDate},
+			</if>
+			<if test="dayLen != null">
+				#{dayLen},
+			</if>
+		
+			<if test="backDate != null and backDate != '' ">
+				#{backDate},
+			</if>
+			<if test="remarks != null and remarks != ''">
+				#{remarks},
+			</if>
+			<if test="fileUrl != null and fileUrl != ''">
+				#{fileUrl},
+			</if>
+		</trim>
+	</insert>
+	
+	
+	<select id="findSettlementInfoById" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean" resultMap="baseMap">
+		SELECT 
+	    	pfi.id,
+			bu.`NAME` AS unitName,
+			bp.`name` projectName,
+			pfi.`code`,
+			pfd.id as dId ,
+			mt2.`NAME`as deviceName,
+			mt.`NAME` as deviceModel,
+			mt.UNIT as deviceUnit,
+			mm.DEVICE_CODE as deviceCode,
+			pfd.num,
+			pfd.remarks,
+			pfd.start_date as startDate,
+			pfd.back_date as backDate
+	
+		FROM
+			project_finish_info pfi
+		LEFT JOIN wf_lease_agreement agreement on pfi.agreement = agreement.id 
+		LEFT JOIN bm_project bp ON bp.id = agreement.project
+		LEFT JOIN bm_unit bu ON bu.ID = agreement.LEASE_COMPANY
+		LEFT JOIN project_finish_details pfd on pfi.id = pfd.slt_info
+		LEFT JOIN mm_type mt on pfd.type = mt.id 
+		LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.id 
+		LEFT JOIN mm_machines mm on pfd.machine = mm.id 
+		WHERE psi.id in
+		<foreach collection="chks" item="chks" index="index" open="(" close=")" separator=",">
+         #{chks}
+       </foreach>
+	</select> 
+	
+	<insert id="insertFile" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean">
+        insert into project_finish_file
+        <set>
+         	
+             <if test="code !=null">
+                code=#{code},
+            </if>
+            <if test="fileUrl !=null">
+                file_url=#{fileUrl},
+            </if>
+             <if test="fileName !=null">
+                file_name=#{fileName},
+            </if>
+             <if test="fileOldName !=null">
+                file_old_name=#{fileOldName},
+            </if>
+             <if test="uploadUser !=null">
+                upload_user=#{uploadUser},
+            </if>
+            <if test="uploadTime !=null">
+                upload_time=#{uploadTime},
+            </if>
+        </set>
+	</insert>
+	
+	<select id="getProFinishFiles" parameterType="com.bonus.newSettlement.beans.ProjectFinishInfoBean" resultMap="baseMap">
+		select id,file_url,file_name,file_old_name
+		from project_finish_file
+		WHERE 1 = 1
+		<if test="code != null and code != ''">
+			and code = #{code}
+		</if>
+	</select>
+	
+</mapper>

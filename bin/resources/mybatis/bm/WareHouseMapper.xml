@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.WareHouseDao" >
+    <resultMap id="house" type="com.bonus.bm.beans.WareHouseBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.bm.beans.WareHouseBean" resultMap="house">
+		SELECT bw.ID,bw.NUM,bw.`NAME`,pu.`NAME` as resPerson,bw.PHONE
+		FROM bm_warehouse bw 
+		LEFT JOIN pm_user pu ON bw.PERSON_ID = pu.ID
+		WHERE bw.IS_ACTIVE = 1
+		<if test="param.keyWord!= null">
+			AND (
+			bw.NUM LIKE CONCAT('%',#{param.keyWord},'%')
+			OR bw.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR bw.PHONE LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.bm.beans.WareHouseBean" resultMap="house">
+ 	    SELECT bw.ID,bw.NUM,bw.`NAME`,pu.`NAME` as resPerson,bw.PHONE
+		FROM bm_warehouse bw 
+		LEFT JOIN pm_user pu ON bw.PERSON_ID = pu.ID
+		WHERE bw.IS_ACTIVE = 1
+		and bw.ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.bm.beans.WareHouseBean">
+		insert into bm_warehouse(num,name,person_id,phone,is_active) 
+		values (#{num},#{name},#{resPerson},#{phone},1)
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.bm.beans.WareHouseBean">
+		update bm_warehouse set 
+		num = #{num},
+		NAME = #{name},
+		PERSON_ID = #{resPerson},
+		PHONE = #{phone}
+		where ID = #{id}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.bm.beans.WareHouseBean">
+		delete from bm_warehouse
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_warehouse WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<select id="findHouse" parameterType="com.bonus.bm.beans.WareHouseBean" resultMap="house">
+		SELECT ID,NAME FROM bm_warehouse
+		WHERE IS_ACTIVE = 1
+ 	</select>
+ 	
+</mapper>

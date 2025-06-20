@@ -1,0 +1,24 @@
+package com.bonus.bm.service;
+
+import java.util.List;
+
+import com.bonus.bm.beans.ProjectManageBean;
+import com.bonus.sys.BaseService;
+import com.bonus.sys.beans.ZNode;
+
+public interface ProjectManageService extends BaseService<ProjectManageBean> {
+
+	List<ProjectManageBean> getVolLever();
+
+	List<ProjectManageBean> getProjectType();
+
+	List<ZNode> findWorkTree();
+
+	List<ProjectManageBean> getProjectName(ProjectManageBean o);
+
+	List<ZNode> projectTree(ProjectManageBean o);
+
+	List<ZNode> projectTreeByUnitId(ProjectManageBean o);
+
+	ProjectManageBean findByName(String name);
+}

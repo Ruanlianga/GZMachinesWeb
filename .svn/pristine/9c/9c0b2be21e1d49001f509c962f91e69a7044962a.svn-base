@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.wf.dao.ProcessRecordDao" >
+    <resultMap id="processRecord" type="com.bonus.wf.beans.ProcessRecordBean"></resultMap>
+    
+    <select id="findAll" parameterType="com.bonus.wf.beans.ProcessRecordBean" resultMap="processRecord">
+		SELECT wpr.ID,wpr.PROCESS_ID as processId,wpd.`NAME` as processName,
+		wpr.OPERATION_TIME as operationTime,wpr.OPERATION_USER as operationUserId,
+		pu.`NAME` as operationUserName,wpr.REMARK
+		FROM wf_process_record wpr,wf_process_definition wpd,pm_user pu
+		WHERE wpr.PROCESS_ID = wpd.ID
+		AND wpr.OPERATION_USER = pu.ID AND wpr.IS_ACTIVE = 1
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.wf.beans.ProcessRecordBean" resultMap="processRecord">
+        SELECT wpr.ID,wpr.PROCESS_ID as processId,wpd.`NAME` as processName,
+		wpr.OPERATION_TIME as operationTime,wpr.OPERATION_USER as operationUserId,
+		pu.`NAME` as operationUserName,wpr.REMARK
+		FROM wf_process_record wpr,wf_process_definition wpd,pm_user pu
+		WHERE wpr.PROCESS_ID = wpd.ID
+		AND wpr.OPERATION_USER = pu.ID AND wpr.IS_ACTIVE = 1
+		where wpr.ID = #{id}
+    </select>
+    
+    <insert id="insert">
+    	insert into wf_process_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="processId != null">
+				PROCESS_ID,
+			</if>
+			<if test="operationUserId != null">
+				OPERATION_USER,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="processId != null">
+				#{processId},
+			</if>
+			<if test="operationUserId != null">
+				#{operationUserId},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			1,
+		</trim>
+    </insert>
+ 	
+ 	<delete id="delete" parameterType="com.bonus.wf.beans.ProcessRecordBean">
+ 		delete from wf_process_record where id = #{id}
+ 	</delete>
+ 	
+ 	<update id="update" parameterType="com.bonus.wf.beans.ProcessRecordBean">
+ 		update wf_process_record
+        <set>
+            <if test="processId != null">
+               PROCESS_ID = #{processId},
+            </if>
+             <if test="operationUserId !=null">
+              OPERATION_USER = #{operationUserId},
+            </if>
+             <if test="operationTime !=null">
+              OPERATION_TIME = #{operationTime},
+            </if>
+             <if test="remark != null">
+              REMARK = #{remark},
+            </if>
+        </set>
+ 		where id = #{id}
+ 	</update>
+ 	
+    <delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wf_process_record WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+</mapper>

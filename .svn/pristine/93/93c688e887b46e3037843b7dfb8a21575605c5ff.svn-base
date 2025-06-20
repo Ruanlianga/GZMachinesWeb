@@ -1,0 +1,126 @@
+package com.bonus.index.beans;
+
+import java.util.List;
+
+public class PartSixBean {
+	
+	
+	private String id;
+	
+	
+	private String leaseNum;
+	
+	private String backNum;
+	
+	private String checkNum;
+
+	private String scrapNum;
+	
+	private String newNum;
+	
+	private String bdNum;
+	
+	private String inputNum;
+	
+	private String date;
+	
+	private List<PartSixBean> list;
+	
+	private String type;
+	
+	
+	
+	
+	public String getInputNum() {
+		return inputNum;
+	}
+
+	public void setInputNum(String inputNum) {
+		this.inputNum = inputNum;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getNewNum() {
+		return newNum;
+	}
+
+	public void setNewNum(String newNum) {
+		this.newNum = newNum;
+	}
+
+	public String getLeaseNum() {
+		return leaseNum;
+	}
+
+	public void setLeaseNum(String leaseNum) {
+		this.leaseNum = leaseNum;
+	}
+
+	public String getBackNum() {
+		return backNum;
+	}
+
+	public void setBackNum(String backNum) {
+		this.backNum = backNum;
+	}
+
+	public String getScrapNum() {
+		return scrapNum;
+	}
+
+	public void setScrapNum(String scrapNum) {
+		this.scrapNum = scrapNum;
+	}
+
+	public String getBdNum() {
+		return bdNum;
+	}
+
+	public void setBdNum(String bdNum) {
+		this.bdNum = bdNum;
+	}
+
+	public String getCheckNum() {
+		return checkNum;
+	}
+
+	public void setCheckNum(String checkNum) {
+		this.checkNum = checkNum;
+	}
+
+	public String getDate() {
+		return date;
+	}
+
+	public void setDate(String date) {
+		this.date = date;
+	}
+
+	public List<PartSixBean> getList() {
+		return list;
+	}
+
+	public void setList(List<PartSixBean> list) {
+		this.list = list;
+	}
+
+	
+	
+	
+	
+}

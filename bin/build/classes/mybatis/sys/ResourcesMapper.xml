@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sys.dao.ResourcesDao">
+	<resultMap id="BaseResultMap" type="com.bonus.sys.beans.ResourcesBean">
+		<id column="ID" property="id" jdbcType="INTEGER" />
+		<result column="NAME" property="name" jdbcType="VARCHAR" />
+		<result column="PARENT_ID" property="parentId" jdbcType="VARCHAR" />
+		<result column="PARENT_NAME" property="parentName" jdbcType="VARCHAR" />
+		<result column="LAYER" property="layer" jdbcType="VARCHAR" />
+		<result column="URL" property="url" jdbcType="VARCHAR" />
+		<result column="ICON" property="icon" jdbcType="VARCHAR" />
+		<result column="TYPE" property="type" jdbcType="VARCHAR" />
+		<result column="SORT" property="sort" jdbcType="INTEGER" />
+		<result column="BTN_ID" property="btnId" jdbcType="VARCHAR" />
+		<result column="BTN_FUN" property="btnFun" jdbcType="VARCHAR" />
+		<result column="TARGET" property="target" jdbcType="VARCHAR" />
+		<result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+		<result column="IS_ACTIVE" property="isValid" jdbcType="CHAR" />
+	</resultMap>
+
+	<resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+	
+	<resultMap id="baseAndson" type="com.bonus.sys.beans.ResourcesBean">
+   		<id column="ID" jdbcType="VARCHAR" property="id"/>
+     	<collection property="nodes" column="id" ofType="baseAndson" select="getSon"/> 
+    </resultMap>
+    
+    <select id="getSon"  parameterType="String" resultMap="baseAndson" >
+	  SELECT jbr.* FROM pm_resources jbr 
+	  WHERE jbr.PARENT_ID=#{id}      
+	  ORDER BY jbr.PARENT_ID,jbr.type,jbr.sort
+    </select>
+    
+    <select id="findAndson"  resultMap="baseAndson" parameterType="com.bonus.sys.beans.ResourcesBean">
+       SELECT t.* FROM pm_resources t 
+       WHERE t.id=#{id}
+       ORDER BY t.PARENT_ID,t.type,t.sort
+    </select> 
+    
+    <select id="childCount"  resultType="int" parameterType="com.bonus.sys.beans.ResourcesBean">
+       SELECT count(*) FROM pm_resources t WHERE t.PARENT_ID=#{parentId}
+    </select>
+    <select id="childBatchCount"  resultType="int" parameterType="com.bonus.sys.beans.ResourcesBean">
+       SELECT count(*) FROM pm_resources t WHERE t.PARENT_ID IN(
+		<foreach item="o" collection="list" open="" separator="," close="" >
+			#{o.id}
+		</foreach>
+		)
+    </select>
+    
+    <update id="updateBatchLayer" parameterType="Map">  
+        UPDATE pm_resources SET   
+            layer=#{layer} 
+        WHERE id IN(  
+      	<foreach item="o" collection="list" open="" separator="," close="" >
+			#{o}
+		</foreach>
+		) 
+	</update>
+
+	<select id="getResources" resultMap="ZNode" parameterType="java.util.Map">
+		SELECT ID,`NAME`,PARENT_ID as pId,if(rr.role_id > 0,"true","false") as checked FROM pm_resources r
+		left join pm_role_resources rr on r.id = rr.res_id and rr.role_id=#{roleId}
+		 WHERE IS_ACTIVE = '1'
+	</select>
+	
+	<select id="listResources" resultMap="ZNode" parameterType="com.bonus.sys.beans.ResourcesBean">    		
+	   SELECT t.id as id,
+	   		  t.name as name,
+	   		  t.PARENT_ID as pId 
+	   FROM pm_resources t WHERE t.type=1 AND t.layer=#{layer}
+       ORDER BY t.PARENT_ID,t.sort
+    </select>
+	
+	<delete id="deleteRoleResouces" parameterType="java.util.Map">
+		delete from pm_role_resources
+		where role_id = #{roleId}
+	</delete>
+	
+	<insert id="insertRoleResouce" parameterType="java.util.Map">
+    	insert into pm_role_resources (RES_ID,ROLE_ID) values (#{resId},#{roleId})
+    </insert>
+    
+    <select id="find"  resultMap="BaseResultMap" parameterType="com.bonus.sys.beans.ResourcesBean">
+       SELECT t.*,jbr.name as PARENT_NAME FROM pm_resources t 
+       LEFT JOIN pm_resources jbr 
+       ON jbr.id=t.PARENT_ID
+       WHERE t.IS_ACTIVE ='1' 
+       <if test="name != null and name!='' ">
+        	AND t.name=#{name}
+       </if>
+       <if test="parentId != null and parentId!='' ">
+        	AND t.PARENT_ID=#{parentId}
+       </if>
+       <if test="layer != null">
+        	AND t.LAYER=#{layer}
+       </if>
+       <if test="id != null and id!='' ">
+        	AND t.id=#{id}
+       </if>
+       ORDER BY t.PARENT_ID,t.type,t.sort
+    </select> 
+
+	<!-- 菜单树 -->
+	<select id="findMenuTree" resultMap="BaseResultMap"
+		parameterType="java.util.Map">
+		SELECT res.* from pm_user u,pm_user_role ur,pm_role_resources rr,pm_resources res
+		WHERE u.ID = ur.USER_ID and u.IS_ACTIVE='1'
+		AND ur.ROLE_ID=rr.ROLE_ID AND rr.RES_ID=res.ID AND res.IS_ACTIVE='1'
+		AND res.TYPE=1 AND res.LAYER=#{layer} AND u.ID=#{userId}
+		ORDER BY res.PARENT_ID,res.SORT
+	</select>
+
+	<select id="resAuthorized" resultMap="BaseResultMap"
+		parameterType="java.util.Map">
+		SELECT res.* from pm_user u,pm_user_role ur,pm_role
+		r,pm_role_resources rr,pm_resources res
+		WHERE u.ID = ur.USER_ID and
+		u.IS_ACTIVE='1'
+		AND ur.ROLE_ID=r.ID and r.IS_ACTIVE='1'
+		AND
+		rr.RES_ID=res.ID AND res.IS_ACTIVE='1'
+		AND res.TYPE=#{type} AND
+		u.ID=#{userId}
+		ORDER BY res.PARENT_ID,res.SORT
+	</select>
+
+	<select id="selectByPrimaryKey" resultMap="BaseResultMap"
+		parameterType="java.lang.Integer">
+		select
+		ID,NAME,PARENT_ID,LAYER,URL,ICON,TYPE,SORT,BTN_ID,BTN_FUN,TARGET,IS_ACTIVE
+		from pm_resources
+		where ID = #{id,jdbcType=INTEGER}
+	</select>
+
+	<delete id="deleteByPrimaryKey" parameterType="com.bonus.sys.beans.ResourcesBean">
+		delete from
+		pm_resources
+		where ID = #{id,jdbcType=INTEGER}
+	</delete>
+	<insert id="insert" parameterType="com.bonus.sys.beans.ResourcesBean">
+		insert into pm_resources (NAME, PARENT_ID,
+		LAYER, URL, ICON, TYPE,
+		SORT, BTN_ID, BTN_FUN,
+		TARGET, DESCRIPTION,IS_ACTIVE)
+		values
+		(#{name,jdbcType=VARCHAR},
+		#{parentId,jdbcType=VARCHAR},
+		#{layer,jdbcType=VARCHAR},
+		#{url,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR},
+		#{type,jdbcType=VARCHAR},
+		#{sort,jdbcType=INTEGER},
+		#{btnId,jdbcType=VARCHAR}, #{btnFun,jdbcType=VARCHAR},
+		#{target,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, #{isValid,jdbcType=CHAR})
+		<selectKey resultType="int" keyProperty="id">
+			SELECT
+			last_insert_id() as ID;
+		</selectKey>
+	</insert>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+	DELETE FROM pm_resources 
+	WHERE id in(
+		<foreach item="o" collection="list" open="" separator="," close="" >
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<insert id="insertSelective" parameterType="com.bonus.sys.beans.ResourcesBean">
+		insert into pm_resources
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				ID,
+			</if>
+			<if test="name != null">
+				NAME,
+			</if>
+			<if test="parentId != null">
+				PARENT_ID,
+			</if>
+			<if test="layer != null">
+				LAYER,
+			</if>
+			<if test="url != null">
+				URL,
+			</if>
+			<if test="icon != null">
+				ICON,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="sort != null">
+				SORT,
+			</if>
+			<if test="btnId != null">
+				BTN_ID,
+			</if>
+			<if test="btnFun != null">
+				BTN_FUN,
+			</if>
+			<if test="target != null">
+				TARGET,
+			</if>
+			<if test="isValid != null">
+				IS_ACTIVE,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id,jdbcType=INTEGER},
+			</if>
+			<if test="name != null">
+				#{name,jdbcType=VARCHAR},
+			</if>
+			<if test="parentId != null">
+				#{parentId,jdbcType=VARCHAR},
+			</if>
+			<if test="layer != null">
+				#{layer,jdbcType=VARCHAR},
+			</if>
+			<if test="url != null">
+				#{url,jdbcType=VARCHAR},
+			</if>
+			<if test="icon != null">
+				#{icon,jdbcType=VARCHAR},
+			</if>
+			<if test="type != null">
+				#{type,jdbcType=VARCHAR},
+			</if>
+			<if test="sort != null">
+				#{sort,jdbcType=INTEGER},
+			</if>
+			<if test="btnId != null">
+				#{btnId,jdbcType=VARCHAR},
+			</if>
+			<if test="btnFun != null">
+				#{btnFun,jdbcType=VARCHAR},
+			</if>
+			<if test="target != null">
+				#{target,jdbcType=VARCHAR},
+			</if>
+			<if test="isValid != null">
+				#{isValid,jdbcType=CHAR},
+			</if>
+		</trim>
+	</insert>
+	<update id="updateByPrimaryKeySelective" parameterType="com.bonus.sys.beans.ResourcesBean">
+		update pm_resources
+		<set>
+			<if test="name != null">
+				NAME = #{name,jdbcType=VARCHAR},
+			</if>
+			<if test="parentId != null">
+				PARENT_ID = #{parentId,jdbcType=VARCHAR},
+			</if>
+			<if test="layer != null">
+				LAYER = #{layer,jdbcType=VARCHAR},
+			</if>
+			<if test="url != null">
+				URL = #{url,jdbcType=VARCHAR},
+			</if>
+			<if test="icon != null">
+				ICON = #{icon,jdbcType=VARCHAR},
+			</if>
+			<if test="type != null">
+				TYPE = #{type,jdbcType=VARCHAR},
+			</if>
+			<if test="sort != null">
+				SORT = #{sort,jdbcType=INTEGER},
+			</if>
+			<if test="btnId != null">
+				BTN_ID = #{btnId,jdbcType=VARCHAR},
+			</if>
+			<if test="btnFun != null">
+				BTN_FUN = #{btnFun,jdbcType=VARCHAR},
+			</if>
+			<if test="target != null">
+				TARGET = #{target,jdbcType=VARCHAR},
+			</if>
+			<if test="description != null">
+				DESCRIPTION = #{description,jdbcType=VARCHAR},
+			</if>
+			<if test="isValid != null">
+				IS_ACTIVE = #{isValid,jdbcType=CHAR},
+			</if>
+		</set>
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+	<update id="updateByPrimaryKey" parameterType="com.bonus.sys.beans.ResourcesBean">
+		update
+		pm_resources
+		set NAME = #{name,jdbcType=VARCHAR},
+		PARENT_ID =
+		#{parentId,jdbcType=VARCHAR},
+		LAYER = #{layer,jdbcType=VARCHAR},
+		URL =
+		#{url,jdbcType=VARCHAR},
+		ICON = #{icon,jdbcType=VARCHAR},
+		TYPE =
+		#{type,jdbcType=VARCHAR},
+		SORT = #{sort,jdbcType=INTEGER},
+		BTN_ID =
+		#{btnId,jdbcType=VARCHAR},
+		BTN_FUN = #{btnFun,jdbcType=VARCHAR},
+		TARGET
+		= #{target,jdbcType=VARCHAR},
+		IS_ACTIVE = #{isValid,jdbcType=CHAR}
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+</mapper>

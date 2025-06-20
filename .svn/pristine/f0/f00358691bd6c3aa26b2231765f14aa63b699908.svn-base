@@ -1,0 +1,113 @@
+package com.bonus.app.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.bonus.ma.beans.QRCodeBean;
+import com.bonus.ma.service.QRCodeService;
+import com.bonus.newInput.beans.NewInputQrcodeBean;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseController;
+import com.bonus.sys.GlobalConst;
+
+
+@Controller
+@RequestMapping("/backstage/app/machineBinding/")
+public class AppMachineBindingController extends BaseController<Object> {
+
+
+	@Autowired
+	private QRCodeService qrservice;
+
+		/**
+		 * 二维码机具信息
+		 * @param o
+		 * @return
+		 * @throws Exception
+		 */
+		@RequestMapping(value = "findQRCodeInfo", method = RequestMethod.POST)
+		@ResponseBody
+		public Object findQRCodeInfo(QRCodeBean o) throws Exception {
+			AjaxRes ar = getAjaxRes();
+			try {
+				List<QRCodeBean> result = qrservice.findQRCodeInfo(o);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", result);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+			return ar;
+		}
+		/**
+		 * 绑定机具列表
+		 * @param o
+		 * @return
+		 */
+		@RequestMapping(value = "findAll", method = RequestMethod.POST)
+		@ResponseBody
+		public AjaxRes findAll(QRCodeBean o) {
+			AjaxRes ar = getAjaxRes();
+			try {
+				List<QRCodeBean> result = qrservice.findAll(o);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", result);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+			return ar;
+		}
+		/**
+		 * 绑定机具列表详情
+		 * @param o
+		 * @return
+		 */
+		@RequestMapping(value = "findAllDetails", method = RequestMethod.POST)
+		@ResponseBody
+		public AjaxRes findAllDetails(QRCodeBean o) {
+			AjaxRes ar = getAjaxRes();
+			try {
+				List<QRCodeBean> result = qrservice.findAllDetails(o);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", result);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+			return ar;
+		}
+		
+		
+		/**
+		 * 根据taskid查询信息
+		 * @param o
+		 * @return
+		 */
+		@RequestMapping(value = "findQrcodeByTaskIdApp", method = RequestMethod.POST)
+		@ResponseBody
+		public AjaxRes findQrcodeByTaskIdApp(NewInputQrcodeBean o) {
+			AjaxRes ar = getAjaxRes();
+			try {
+				List<NewInputQrcodeBean> result = qrservice.findQrcodeByTaskIdApp(o);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", result);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+			return ar;
+		}
+		
+}

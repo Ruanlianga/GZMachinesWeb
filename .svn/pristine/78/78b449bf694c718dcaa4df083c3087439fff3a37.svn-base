@@ -1,0 +1,273 @@
+package com.bonus.ma.service;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.core.DateTimeHelper;
+import com.bonus.ma.beans.MachineTypeBean;
+import com.bonus.ma.dao.MachineTypeDao;
+import com.bonus.sys.BaseServiceImp;
+import com.bonus.sys.Page;
+import com.bonus.sys.beans.ZNode;
+import com.oreilly.servlet.MultipartRequest;
+import com.oreilly.servlet.multipart.DefaultFileRenamePolicy;
+
+@Service("machineType")
+public class MachineTypeServiceImp extends BaseServiceImp<MachineTypeBean> implements MachineTypeService{
+
+	@Autowired 
+	private MachineTypeDao dao;
+	
+	@Override
+	public List<ZNode> getMainTree(MachineTypeBean o) {
+		return dao.getMainTree(o);
+	}
+
+	@Override
+	public void treeInsert(MachineTypeBean o) {
+		dao.treeInsert(o);
+	}
+
+	@Override
+	public int treeUpdate(MachineTypeBean o) {
+		return dao.treeUpdate(o);
+	}
+
+	@Override
+	public int treeDelete(MachineTypeBean o) {
+		return dao.treeDelete(o);
+	}
+
+	@Override
+	public List<ZNode> getRoleBeans() {
+		return dao.getRoleBeans();
+	}
+	
+	@Override
+	public List<MachineTypeBean> findFirstName(MachineTypeBean o) {
+		List<MachineTypeBean> list = dao.findFirstName(o);
+		return list;
+	}
+
+	@Override
+	public MachineTypeBean findLastId() {
+		return dao.findLastId();
+	}
+
+	@Override
+	public Page<MachineTypeBean> findDetails(MachineTypeBean o, Page<MachineTypeBean> page) {
+		page.setResults(dao.findDetails(o,page));
+		return page;
+	}
+	
+	@Override
+	public List<MachineTypeBean> findStoreDetails(MachineTypeBean o) {
+		List<MachineTypeBean> list = dao.findStoreDetails(o);
+		return list;
+	}
+
+	@Override
+	public List<MachineTypeBean> findStore(MachineTypeBean o) {
+		List<MachineTypeBean> list = dao.findStore(o);
+		return list;
+	}
+	@Override
+	public List<MachineTypeBean> findModel(MachineTypeBean o) {
+		return dao.findModel(o);
+	}
+
+	@Override
+	public void updateModel(MachineTypeBean o) {
+		dao.updateModel(o);
+	}
+
+	@Override
+	public List<MachineTypeBean> findMaTypeMsg(MachineTypeBean o) {
+		return dao.findMaTypeMsg(o);
+	}
+
+	@Override
+	public List<MachineTypeBean> findChilds(MachineTypeBean o) {
+		return dao.findChilds(o);
+	}
+
+	@Override
+	public List<ZNode> maTypeTree(MachineTypeBean o) {
+		return dao.maTypeTree(o);
+	}
+
+	@Override
+	public List<ZNode> maModelTree(MachineTypeBean o) {
+		return dao.maModelTree(o);
+	}
+	
+	@Override
+	public Object uploadFile(HttpServletRequest request,MachineTypeBean o) {
+		// 文件上传采用cos组件上传，可更换为commons-fileupload上传，文件上传后，保存在upload文件夹
+		// 获取文件上传路径
+		String saveDirectory = request.getSession().getServletContext().getRealPath("/maTypeFile");
+		File file = new File(saveDirectory);
+		if (!file.exists()) {
+			file.mkdirs();
+		}
+		// 打印上传路径信息
+		System.out.println("文件保存路径=" + saveDirectory);
+		// 每个文件最大50m
+		int maxPostSize = 200 * 1024 * 1024;
+		// 采用cos缺省的命名策略，重名后加1,2,3...如果不加dfp重名将覆盖
+		// DefaultFileRenamePolicy dfp = new DefaultFileRenamePolicy();
+		// response的编码为"UTF-8",同时采用缺省的文件名冲突解决策略,实现上传,如果不加dfp重名将覆盖
+		// MultipartRequest multi = new MultipartRequest(request, saveDirectory,
+		// maxPostSize,"UTF-8",dfp);
+		MultipartRequest multi = null;
+		DefaultFileRenamePolicy dfp = new DefaultFileRenamePolicy();
+//		long tiem =(new java.util.Date()).getTime();
+		try {
+			multi = new MultipartRequest(request, saveDirectory, maxPostSize, "UTF-8",dfp);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		// 输出反馈信息
+		Enumeration<?> files = multi.getFileNames();
+		while (files.hasMoreElements()) {
+			String name = (String) files.nextElement();
+			File f = multi.getFile(name);
+			if (f != null) {
+				String id = multi.getParameter("id");
+				o.setId(id);
+				String fileUrl = multi.getFilesystemName(name);
+				String newName = DateTimeHelper.getNowTimeFomart();
+				int begin = fileUrl.indexOf(".");
+				int last = fileUrl.length();
+				String suffix = fileUrl.substring(begin,last);
+				//更换文件名称
+				if (!fileUrl.equals(newName)) {// 新的文件名和以前文件名不同时,才有必要进行重命名
+					File oldfile = new File(saveDirectory + "/" + fileUrl);
+					File newfile = new File(saveDirectory + "/" + newName + suffix);
+					if (!oldfile.exists()) {
+						logger.error("需要重命名的文件不存在");
+					}
+					if (newfile.exists()) {// 若在该目录下已经有一个文件和新文件名相同，则不允许重命名
+						logger.error(newName + "已经存在！");
+					} else {
+						oldfile.renameTo(newfile);
+						o.setFileUrl(newName+suffix);
+						dao.update(o);
+					}
+				} else {
+					logger.error("新文件名和旧文件名相同...");
+				}
+			}
+			return null;
+		}
+		return null;
+	}
+
+	@Override
+	public MachineTypeBean findById(String id) {
+		return dao.findById(id);
+	}
+
+	@Override
+	public List<MachineTypeBean> findNums(MachineTypeBean o) {
+		return dao.findNums(o);
+	}
+	@Override
+	public List<MachineTypeBean> findHouseNums(MachineTypeBean o) {
+		return dao.findHouseNums(o);
+	}
+	@Override
+	public void updateNums(MachineTypeBean o) {
+		 dao.updateNums(o);
+	}
+
+	@Override
+	public Page<MachineTypeBean> findWarnModel(MachineTypeBean o,Page<MachineTypeBean> page) {
+		page.setResults(dao.findWarnModel(o, page));
+		return page;
+	}
+
+	@Override
+	public MachineTypeBean findTopClass(MachineTypeBean o) {
+		return dao.findTopClass(o);
+	}
+
+	@Override
+	public void addBuyTime(MachineTypeBean o) {
+		dao.addBuyTime(o);
+		
+	}
+
+	@Override
+	public List<MachineTypeBean> findTestData() {
+		return dao.findTestData();
+	}
+
+	@Override
+	public MachineTypeBean getIdByThreeName(MachineTypeBean ma) {
+		return dao.getIdByThreeName(ma);
+	}
+
+	@Override
+	public void updateTestDataById(MachineTypeBean type) {
+		dao.updateTestDataById(type);
+		
+	}
+
+	@Override
+	public List<MachineTypeBean> findZulinTest() {
+		
+		return dao.findZulinTest();
+	}
+
+	@Override
+	public void insetOne(MachineTypeBean type) {
+		// TODO Auto-generated method stub
+		dao.insetOne(type);
+	}
+
+	@Override
+	public void insetTwo(MachineTypeBean type1) {
+		// TODO Auto-generated method stub
+		dao.insetTwo(type1);
+	}
+
+	@Override
+	public void insetThree(MachineTypeBean o) {
+		// TODO Auto-generated method stub
+		dao.insetThree(o);
+	}
+
+	@Override
+	public void insertOrgRelation(MachineTypeBean o) {
+		// TODO Auto-generated method stub
+		dao.insertOrgRelation(o);
+	}
+
+	@Override
+	public void updateOrgModel(MachineTypeBean o) {
+		// TODO Auto-generated method stub
+		dao.updateOrgModel(o);
+	}
+
+	@Override
+	public void deleteOrgRelation(MachineTypeBean o) {
+		// TODO Auto-generated method stub
+		dao.deleteOrgRelation(o);
+	}
+
+	@Override
+	public void updateWarnValue(MachineTypeBean o) {
+		// TODO Auto-generated method stub
+		dao.updateWarnValue(o);
+	}
+
+
+}

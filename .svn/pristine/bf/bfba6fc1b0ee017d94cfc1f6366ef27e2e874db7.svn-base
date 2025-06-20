@@ -1,0 +1,216 @@
+package com.bonus.index.beans;
+
+public class IndexHomeCalendarBean {
+	
+	private String id ;
+	
+	private String taskType;
+	
+	private String taskCode;
+	
+	private String typeId;
+	    
+    private String maType;
+    
+    private String maName;
+    
+    private String maCode;
+    
+    private String codeRemark;
+    
+    private String fileUrl;
+    
+    private String num;
+
+    private String userName;
+    
+    private String projectName;
+    
+    private String companyName;
+    
+    private String currentDate;
+    
+    private String currentTime;
+    
+    private String startTime;
+    
+    private String endTime;
+    
+    private String remark;
+    
+    private String price;
+    
+    /**
+     * 工程ID
+     */
+    private String proId;
+    
+    
+
+	public String getPrice() {
+		return price;
+	}
+
+	public void setPrice(String price) {
+		this.price = price;
+	}
+
+	public String getRemark() {
+		return remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	public String getCodeRemark() {
+		return codeRemark;
+	}
+
+	public void setCodeRemark(String codeRemark) {
+		this.codeRemark = codeRemark;
+	}
+
+	
+	public String getFileUrl() {
+		return fileUrl;
+	}
+
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getTaskType() {
+		return taskType;
+	}
+
+	public void setTaskType(String taskType) {
+		this.taskType = taskType;
+	}
+
+	public String getTaskCode() {
+		return taskCode;
+	}
+
+	public void setTaskCode(String taskCode) {
+		this.taskCode = taskCode;
+	}
+
+	public String getTypeId() {
+		return typeId;
+	}
+
+	public void setTypeId(String typeId) {
+		this.typeId = typeId;
+	}
+
+	public String getMaType() {
+		return maType;
+	}
+
+	public void setMaType(String maType) {
+		this.maType = maType;
+	}
+
+	public String getMaName() {
+		return maName;
+	}
+
+	public void setMaName(String maName) {
+		this.maName = maName;
+	}
+
+	public String getMaCode() {
+		return maCode;
+	}
+
+	public void setMaCode(String maCode) {
+		this.maCode = maCode;
+	}
+
+	public String getNum() {
+		return num;
+	}
+
+	public void setNum(String num) {
+		this.num = num;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getProjectName() {
+		return projectName;
+	}
+
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
+	}
+
+	public String getCompanyName() {
+		return companyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+
+	public String getCurrentDate() {
+		return currentDate;
+	}
+
+	public void setCurrentDate(String currentDate) {
+		this.currentDate = currentDate;
+	}
+
+	public String getCurrentTime() {
+		return currentTime;
+	}
+
+	public void setCurrentTime(String currentTime) {
+		this.currentTime = currentTime;
+	}
+
+	public String getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	public String getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+
+	public String getProId() {
+		return proId;
+	}
+
+	public void setProId(String proId) {
+		this.proId = proId;
+	}
+    
+    
+   
+  
+	
+	
+}

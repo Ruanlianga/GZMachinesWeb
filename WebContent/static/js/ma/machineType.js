@@ -1,0 +1,525 @@
+ var levels ="";
+ var parentIds ="";
+ 
+$(function() {
+	// 初始化树
+	getOrgTreeData("","","");
+	getbaseList();
+	
+	getTypeName();
+	getName()
+	
+	$('#addBtn').on('click',function(e) {
+		// 通知浏览器不要执行与事件关联的默认动作
+		e.preventDefault();
+		cleanForm();
+		$("#names").val("");
+		JY.Model.edit("add", "新增", function() {
+			if (JY.Validate.form("addform")) {
+				var that = $(this);
+				var parentId = $("#parentIds").val();
+				// 添加调试信息
+				var name = $("#namesType").val();
+				var label =  $("input[name='label']:checked").val() // 获取选中的设备标签值
+				JY.Ajax.doRequest(null, bonuspath+'/backstage/machineType/insert',{parentId:parentId,name:name,level:3,label:label}, function(data) {
+					that.dialog("close");
+					JY.Model.info(data.resMsg, function() {
+						search();
+						refreshTree();
+					});
+				});
+			}
+		});
+	});
+	
+	$('#upWarnValue').on('click',function(e) {
+		// 通知浏览器不要执行与事件关联的默认动作
+		e.preventDefault();
+		$("#warnValue").val("");
+		JY.Model.edit("update", "修改", function() {
+			if (JY.Validate.form("updateform")) {
+				var that = $(this);
+				var warnValue = $("#warnValue").val();
+				JY.Ajax.doRequest(null, bonuspath+'/backstage/machineType/updateWarnValue',{warnValue:warnValue}, function(data) {
+					that.dialog("close");
+					JY.Model.info(data.resMsg, function() {
+						search();
+						refreshTree();
+					});
+				});
+			}
+		});
+	});
+	
+	$('#saveBtn').on('click', function(e) {
+		e.preventDefault();
+		var chks =[];    
+		$('#baseTable input[name="ids"]:checked').each(function(){
+			chks.push($(this).val());
+		});
+		if(chks.length==0) {
+			JY.Model.info("您没有选择任何内容!");
+		}else{
+			JY.Ajax.doRequest(null,bonuspath +'/backstage/machineType/updateType',{roleId:$("#roleId").val(),chks:chks.toString()},function(data){
+				JY.Model.info(data.resMsg);
+			});	
+		}
+	});
+	
+	
+	var typeNameSelect = document.getElementById("typeNameId");
+	
+	// 监听第一级下拉框的变化
+    typeNameSelect.addEventListener("change", function () {
+		getName();	
+    });
+	
+
+});
+
+$('#testBtn').on('click', function(e) {
+	e.preventDefault();
+	JY.Ajax.doRequest(null, bonuspath+'/backstage/machineType/testData',{}, function(data) {
+		that.dialog("close");
+		JY.Model.info(data.resMsg, function() {
+			search();
+			refreshTree();
+		});
+	});
+});
+
+$('#testBtn1').on('click', function(e) {
+	e.preventDefault();
+	JY.Ajax.doRequest(null, bonuspath+'/backstage/machineType/zulinTest',{}, function(data) {
+		that.dialog("close");
+		JY.Model.info(data.resMsg, function() {
+			search();
+			refreshTree();
+		});
+	});
+});
+
+
+ function exportData() {
+	 /*var keyWord = $("#keyWord").val();
+	 $("#baseForm").attr("action",bonuspath +'/backstage/machineType/expExcel?keyWord='+keyWord +"&level="+levels+"&parentIds="+parentIds);
+	 $("#baseForm").attr("target","downloadFrame");//iframe的名字
+	 $("#baseForm").submit();*/
+	 var params = {
+		 keyWord: $("#keyWord").val(),
+		 level: $("#level").val(),
+		 parentId: $("#pId").val()
+	 }
+	 var  url = bonuspath + '/backstage/machineType/expExcel'
+	 exportCommon(url,'POST', params,'机具类型详情表')
+ }
+
+
+// 树的设置
+var setting1 = {
+	view : {
+		addHoverDom : addHoverDom,
+		removeHoverDom : removeHoverDom,
+		selectedMulti : false
+	},
+	data : {
+		simpleData : {
+			enable : true
+		}
+	},
+	edit : {
+		enable : true,
+		renameTitle : "修改",
+		removeTitle : "删除",
+		showRemoveBtn: showRenameBtn,
+		showRenameBtn: showRenameBtn
+	},
+	callback : {
+		onClick: onTreeClick,
+		//点击前
+		beforeClick:beforeClick,
+		// 不允许拖拽
+		beforeDrag : beforeDrag,
+		// 修改前确认
+		beforeEditName : beforeEditName,
+		// 修改完时的处理
+		beforeRename : beforeRename,
+		// 修改成功后处理
+		onRename : onRename,
+		// 删除前确认
+		beforeRemove : beforeRemove
+	}
+};
+
+function beforeClick(treeId, treeNode){
+	if(treeNode.id == 0){
+		return false;
+	}
+	return true;
+}
+
+function showRenameBtn(treeId, treeNode){
+	if (treeNode.id == 0){
+		return false;
+	}
+	return true;
+}
+
+function removeHoverDom(treeId, treeNode) {
+	$("#addBtn_" + treeNode.id).unbind().remove();
+};
+
+// 修改完时处理 不进行后台数据处理
+function beforeRename(treeId, treeNode, newName) {
+	if (newName.length == 1) {
+		JY.Model.info("类型名称不能为空！");
+		var zTree = getTree();
+		setTimeout(function() {
+			zTree.editName(treeNode);
+		}, 10);
+		return false;
+	}
+	return true;
+}
+
+
+// 修改成功后处理
+function onRename(event, treeId, treeNode) {
+	if (treeNode.existed) {
+		updateNode(treeNode);
+	} else {
+		addNode(treeNode);
+	}
+}
+
+//添加节点
+function addNode(treeNode){
+	console.info("name"+treeNode.name+",parentId:"+treeNode.parentId+",level:"+treeNode.level);
+	//此处进行ajax后台数据处理
+	$.post(bonuspath +'/backstage/machineType/treeInsert',		//数据提交的地址
+		   {"name" : treeNode.name,"parentId":treeNode.parentId,"level":treeNode.level},	//提交的数据
+		   function(data){//回调函数
+				JY.Model.info(data.resMsg,function(){refreshTree();});
+		   },"json");//预期返回的数据类型
+}
+
+//修改节点名称
+function updateNode(treeNode){
+	//此处进行ajax后台数据处理
+	$.post(bonuspath +'/backstage/machineType/treeUpdate',		//数据提交的地址
+		   {"id" : treeNode.id,					//提交的数据
+			"name" : treeNode.name},				
+		   function(data){
+				JY.Model.info(data.resMsg,function(){refreshTree();});
+		   },"json");//预期返回的数据类型
+}
+
+// 不允许拖拽
+function beforeDrag(treeId, treeNodes) {
+	return false;
+}
+
+// 确认是否进入编辑状态
+function beforeEditName(treeId, treeNode) {
+	if (treeNode.id == 0) {
+		JY.Model.info("根节点不能修改！");
+		return false;
+	}
+	return true;
+}
+
+// 添加新增按钮
+function addHoverDom(treeId, treeNode) {
+	//console.info("editNameFlag:"+treeNode.editNameFlag+",length："+$("#addBtn_" + treeNode.id).length+"，pId："+treeNode.pId);
+	if (treeNode.editNameFlag || $("#addBtn_" + treeNode.id).length > 0 || (treeNode.pId != 0 && treeNode.pId != null && treeNode.pId != "null")){
+		return;
+	}
+	console.info("treeNode.tId="+treeNode.tId);
+	var sObj = $("#" + treeNode.tId + "_span");
+	var addStr = "<span class='button add' id='addBtn_" + treeNode.id
+			+ "' title='添加' onfocus='this.blur();'></span>";
+	sObj.append(addStr);
+	var btn = $("#addBtn_" + treeNode.id);
+	if (btn) {
+		btn.bind("click", function() {
+			var zTree = getTree();
+			var newNode;
+			newNode = zTree.addNodes(treeNode, {
+				parentId : treeNode.id,
+				name : "新增",
+				icon : bonuspath + "/static/css/sys/images/user_group.gif"
+			});
+			if (newNode) {
+				zTree.editName(newNode[0]);
+			}
+			return false;
+		});
+	}
+};
+
+//确认是否删除+删除处理
+function beforeRemove(treeId, treeNode) {
+	if(treeNode.id == 0){
+		JY.Model.info("根节点不能删除！");
+		return false;
+	}
+	
+	var zTree = getTree();
+	//选中该节点
+	zTree.selectNode(treeNode);
+	
+	if(treeNode.id){
+		JY.Model.confirm("请联系相关人员", function(){
+			JY.Model.confirm("确认删除 节点 -- " + treeNode.name + " 吗？",function(){
+				//此处进行ajax后台数据处理
+				$.post(bonuspath +'/backstage/machineType/del',
+					   {"id" : treeNode.id},
+					   function(data){
+						   JY.Model.info(data.resMsg,function(){refreshTree();});
+					   },"json");
+			});
+		});
+	} else {
+		  zTree.removeNode(treeNode);
+	}
+	return false;
+}
+
+// 定义树节点初始数据
+var zNodes1 = [{ id:0, pId:-1,open:true,name:"机具类型列表",icon:bonuspath + "/static/css/sys/images/home.gif"}];
+
+// 获取数据初始化树
+function getOrgTreeData(typeName,name,model) {
+	$.ajax({
+		type : 'POST',
+		url : bonuspath + '/backstage/machineType/maTypeTree',
+		data : {
+			typeName:typeName,
+			name:name,
+			model:model
+		},
+		success : function(result) {
+			var nodes = zNodes1.concat(result.obj.list);
+			console.info(zNodes1);
+			$.fn.zTree.init($("#orgTree"), setting1, nodes);
+		},
+		error : function(e) {
+			JY.Model.info(e.resMsg);
+		},
+		dataType : 'json'
+	});
+}
+
+function refreshTree(){
+	getOrgTreeData("","","");
+}
+
+function searchType(){
+	var typeName = $("#typeNameId").val();
+	var name = $("#nameId").val();
+	var model = $("#model").val();
+	getOrgTreeData(typeName,name,model);
+}
+
+
+// 获取树对象
+function getTree() {
+	return $.fn.zTree.getZTreeObj("orgTree");
+}
+
+function onTreeClick(event, treeId, treeNode, clickFlag){
+	console.info("name"+treeNode.name+",id:"+treeNode.id+",level:"+treeNode.level);
+	$("#roleVisName").html(treeNode.name);
+	$("#pId").val(treeNode.id);
+	$("#parentIds").val(treeNode.id);
+	$("#level").val(treeNode.level);
+	levels = treeNode.level;
+	parentIds= treeNode.id
+	localStorage.setItem("levels",levels);
+	getbaseList(1);
+}
+
+function search(){
+	getbaseList();
+}
+
+function getbaseList(type){
+	if(type == 2){
+		$("#roleVisName").html("请选择机具类型");
+		$("#pId").val(0);
+		$("#parentIds").val(0);
+		$("#level").val(1);
+	}
+	$("#baseForm.pageNum").val(1);
+	JY.Model.loading();
+	JY.Ajax.doRequest("baseForm",bonuspath +'/backstage/machineType/findByPage',null,function(data){
+		 $("#baseTable tbody").empty();
+		 
+		 var obj = data.obj;
+			var list = obj.list;
+			var results = list.results;
+			var permitBtn = obj.permitBtn;
+			var pageNum = list.pageNum,
+				pageSize = list.pageSize,
+				totalRecord = list.totalRecord;
+        	 var html = "";
+    		 if(results != null && results.length > 0){
+    			 var leng = (pageNum - 1) * pageSize;
+        		 for(var i = 0;i<results.length;i++){
+            		 var l=results[i];
+            		 html+="<tr>";
+            		 html+="<td style='vertical-align:middle;' class='center hidden-480'>"+(i + leng + 1)+"</td>";
+            		 html+="<td style='vertical-align:middle;' class='center hidden-480' >"+JY.Object.notEmpty(l.name)+"</td>";
+            		 var label = "";
+            		 if(l.label =="1"){
+            			 label = "自有"
+            		 }else if ((l.label =="2")){
+            			 label = "外租"
+            		 }
+            		 html+="<td style='vertical-align:middle;' class='center hidden-480' >"+JY.Object.notEmpty(label)+"</td>";
+            		 html+=rowFunction(l.id,l.name,l.label);
+            		 html+="</tr>";
+            	 } 
+        		 $("#baseTable tbody").append(html);
+        		 JY.Page.setPage("baseForm", "pageing", pageSize,pageNum, totalRecord, "getbaseList");
+        	 }else{
+        		html+="<tr><td colspan='4' class='center'>没有相关数据</td></tr>";
+        		$("#baseTable tbody").append(html);
+        		$("#pageing ul").empty();//清空分页
+        	 }
+    	 JY.Model.loadingClose();
+	 });
+}
+
+function cleanForm(){
+	JY.Tags.cleanForm("auForm");
+	$("#auForm input[name$='name']").val(JY.Object.notEmpty(''));
+	$("#auForm input[name='label']").prop('checked', false);
+	$("#auForm input[name$='sampingRatio']").val("0");
+	$("#auForm input[name$='warnValue']").val(JY.Object.notEmpty(''));
+	$("#auForm input[name$='sampingRatio']").val("0");
+	
+}
+
+function setForm(data){
+	//alert(JSON.stringify(data));
+	var l=data.obj;
+	$("#auForm input[name$='name']").val(JY.Object.notEmpty(l.name));
+	$("#auForm input[name$='warnValue']").val(JY.Object.notEmpty(l.warnValue));
+//	$("#updateform input[name$='warnValue']").val(JY.Object.notEmpty(l.warnValue));
+	if(l.label == "1") {
+		$('#label11').prop('checked',true);
+	} 
+	if(l.label == "2") {
+		$('#label21').prop('checked',true);
+	}
+}
+
+function rowFunction(id,name){
+	var h="";
+	h+="<td style='vertical-align:middle;' class='center'>";
+	h+="<div class='visible-md visible-lg hidden-sm hidden-xs btn-group'>";
+	h+="<a href='#' title='查看' onclick='check(&apos;"+id+"&apos;,&apos;"+name+"&apos;)' class='aBtnNoTD' ><i class='icon-zoom-in color-p bigger-140'></i></a>";
+	h+="<a href='#' title='修改' onclick='edit(&apos;"+id+"&apos;)' class='aBtnNoTD' ><i class='icon-edit color-blue bigger-140'></i></a>";
+	h+="<a href='#' title='删除' onclick='del(&apos;"+id+"&apos;)' class='aBtnNoTD' ><i class='icon-remove-sign col bigger-140'></i></a>";
+	h+="</div>";		
+	h+="</td>";
+	return h;
+}
+function del(accountId){
+	JY.Model.confirm("请联系相关人员", function(){
+	JY.Model.confirm("确认删除吗？",function(){	
+		JY.Ajax.doRequest(null,bonuspath +'/backstage/machineType/treeDelete',{id:accountId},function(data){
+			JY.Model.info(data.resMsg,function(){search();});
+		});
+	});
+	});
+}
+function edit(id){
+	cleanForm();
+	JY.Ajax.doRequest(null,bonuspath +'/backstage/machineType/find',{id:id},function(data){
+	    setForm(data);   
+	    JY.Model.edit("auDiv","修改",function(){
+	    	if(JY.Validate.form("auForm")){
+				var that =$(this);
+				JY.Ajax.doRequest("auForm",bonuspath +'/backstage/machineType/update',{id:id},function(data){
+				    that.dialog("close");
+				    JY.Model.info(data.resMsg,function(){search();});	
+				});
+			}	
+	    });
+	});
+}
+
+function del(id){
+	JY.Ajax.doRequest(null,bonuspath +'/backstage/role/findUserRole',{},function(data){
+		var res = data.obj;
+		if(res != 2){
+			JY.Model.confirm("权限不够，无法删除！");
+		}else{
+			JY.Model.confirm("请联系相关人员", function(){
+				JY.Model.confirm("确认删除吗？", function() {
+					JY.Ajax.doRequest(null, bonuspath + '/backstage/machineType/delete', {
+						id : id,
+						level : 4
+					}, function(data) {
+						JY.Model.info(data.resMsg, function() {
+							getbaseList(1);
+						});
+					});
+				});
+			});
+		}
+		
+	});
+}
+
+function check(id,name){
+	//iframe层-父子操作
+	localStorage.setItem("parentId",id);
+	localStorage.setItem("parentName",name);
+	layer.open({
+		type: 2,
+		title:['规格型号','background-color: #438EB9;color:#fff'],
+		shadeClose:true,
+		shade:false,
+		maxmin: true,
+		area: ['900px', '530px'],
+		content: bonuspath+'/backstage/machineType/details'
+	});
+}
+
+function getTypeName(){
+	$("#typeNameId").html("");
+	JY.Ajax.doRequest(null,bonuspath +'/backstage/machineType/getTypeNameList',null,function(data){
+		var l = data.obj.list;
+		console.log(l)
+		var str='';
+		str+='<option value="">物资类型</option>';
+		for(var i=0;i<l.length;i++){
+			str+='<option value='+l[i].name+'>'+l[i].name+'</option>';
+		}
+		$("#typeNameId").append(str);
+	});	
+}
+
+
+function getName(){
+	$("#nameId").html("");
+	
+	var typeName = $("#typeNameId").val();
+	
+	JY.Ajax.doRequest(null,bonuspath +'/backstage/machineType/getNameList',{typeName:typeName},function(data){
+		var l = data.obj.list;
+		console.log("a==",l)
+		var str='';
+		str+='<option value="">物资名称</option>';
+		for(var i=0;i<l.length;i++){
+			str+='<option value='+l[i].name+'>'+l[i].name+'</option>';
+		}
+		$("#nameId").append(str);
+	});	
+}
+
+
+

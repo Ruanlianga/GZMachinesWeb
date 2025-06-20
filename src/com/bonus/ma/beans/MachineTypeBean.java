@@ -1,0 +1,411 @@
+package com.bonus.ma.beans;
+
+import java.util.List;
+
+import com.bonus.bm.beans.subcontractorsBean;
+
+public class MachineTypeBean {
+
+	private String id;
+	private String name;
+	private String firstName;
+	private String secondName;
+	private String parentId;
+	private String parentName;
+	private String time;
+	private String keeperId;
+	private String keeper;
+	private String weight;
+	private String unit;
+	private String leasePrice;
+	private String payPrice;
+	private String buyPrice;
+	private String isTest;
+	private String keyWord;
+	private String level;
+	private String isActive;
+	private String isCount;
+	private String fileUrl;
+	private String nums;			//库存数量 数据库字段为num
+	private String allNums;			//总数量 数据库字段为nums
+	private String ratedLoad;
+	private String testLoad;
+	private String holdingTime;
+	private String testTime;
+	private String nextTestTime;
+	private String sampingRatio;	// 抽检比例0~100
+	private String model;
+	private String warnNum;			//库存预警数量阈值
+	private String modelNum;//规格编号
+	private String operationMan;//操作人
+	private String reamrk;//备注信息
+	private String maModelId;
+	private String isFixedAssets; //是否固定资产
+	private String companyId;
+	private String companyName;
+	private String rfidPower;//RFID功率
+	private String warnValue;
+
+	public Integer getLeaseProjectId() {
+		return leaseProjectId;
+	}
+
+	public void setLeaseProjectId(Integer leaseProjectId) {
+		this.leaseProjectId = leaseProjectId;
+	}
+
+	private Integer leaseProjectId;
+	
+	private String label;
+	
+	private String typeName;
+	
+	private List<MachineTypeBean> typeNameList;
+	
+	private List<MachineTypeBean> nameList;
+
+	public List<MachineTypeBean> getTypeNameList() {
+		return typeNameList;
+	}
+
+	public void setTypeNameList(List<MachineTypeBean> typeNameList) {
+		this.typeNameList = typeNameList;
+	}
+
+	public List<MachineTypeBean> getNameList() {
+		return nameList;
+	}
+
+	public void setNameList(List<MachineTypeBean> nameList) {
+		this.nameList = nameList;
+	}
+
+	public String getTypeName() {
+		return typeName;
+	}
+
+	public void setTypeName(String typeName) {
+		this.typeName = typeName;
+	}
+
+	public String getLabel() {
+		return label;
+	}
+
+	public void setLabel(String label) {
+		this.label = label;
+	}
+
+	public String getWarnValue() {
+		return warnValue;
+	}
+
+	public void setWarnValue(String warnValue) {
+		this.warnValue = warnValue;
+	}
+
+	public String getRfidPower() {
+		return rfidPower;
+	}
+
+	public void setRfidPower(String rfidPower) {
+		this.rfidPower = rfidPower;
+	}
+
+	public String getCompanyId() {
+		return companyId;
+	}
+
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
+	}
+
+	public String getCompanyName() {
+		return companyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+
+	public String getIsFixedAssets() {
+		return isFixedAssets;
+	}
+
+	public void setIsFixedAssets(String isFixedAssets) {
+		this.isFixedAssets = isFixedAssets;
+	}
+
+	public String getMaModelId() {
+		return maModelId;
+	}
+
+	public void setMaModelId(String maModelId) {
+		this.maModelId = maModelId;
+	}
+
+	public String getModelNum() {
+		return modelNum;
+	}
+
+	public void setModelNum(String modelNum) {
+		this.modelNum = modelNum;
+	}
+
+	public String getOperationMan() {
+		return operationMan;
+	}
+
+	public void setOperationMan(String operationMan) {
+		this.operationMan = operationMan;
+	}
+
+	public String getReamrk() {
+		return reamrk;
+	}
+
+	public void setReamrk(String reamrk) {
+		this.reamrk = reamrk;
+	}
+
+	public String getKeeperId() {
+		return keeperId;
+	}
+
+	public void setKeeperId(String keeperId) {
+		this.keeperId = keeperId;
+	}
+
+	public String getModel() {
+		return model;
+	}
+
+	public void setModel(String model) {
+		this.model = model;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getFirstName() {
+		return firstName;
+	}
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+	public String getKeeper() {
+		return keeper;
+	}
+
+	public void setKeeper(String keeper) {
+		this.keeper = keeper;
+	}
+
+	public String getSecondName() {
+		return secondName;
+	}
+
+	public void setSecondName(String secondName) {
+		this.secondName = secondName;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getParentId() {
+		return parentId;
+	}
+
+	public void setParentId(String parentId) {
+		this.parentId = parentId;
+	}
+
+	public String getParentName() {
+		return parentName;
+	}
+
+	public void setParentName(String parentName) {
+		this.parentName = parentName;
+	}
+
+	public String getKeyWord() {
+		return keyWord;
+	}
+
+	public void setKeyWord(String keyWord) {
+		this.keyWord = keyWord;
+	}
+
+	public String getIsActive() {
+		return isActive;
+	}
+
+	public void setIsActive(String isActive) {
+		this.isActive = isActive;
+	}
+
+	public String getTime() {
+		return time;
+	}
+
+	public void setTime(String time) {
+		this.time = time;
+	}
+
+	public String getWeight() {
+		return weight;
+	}
+
+	public void setWeight(String weight) {
+		this.weight = weight;
+	}
+
+	public String getUnit() {
+		return unit;
+	}
+
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+
+	public String getLeasePrice() {
+		return leasePrice;
+	}
+
+	public void setLeasePrice(String leasePrice) {
+		this.leasePrice = leasePrice;
+	}
+
+	public String getPayPrice() {
+		return payPrice;
+	}
+
+	public void setPayPrice(String payPrice) {
+		this.payPrice = payPrice;
+	}
+
+	public String getBuyPrice() {
+		return buyPrice;
+	}
+
+	public void setBuyPrice(String buyPrice) {
+		this.buyPrice = buyPrice;
+	}
+
+	public String getIsTest() {
+		return isTest;
+	}
+
+	public void setIsTest(String isTest) {
+		this.isTest = isTest;
+	}
+
+	public String getLevel() {
+		return level;
+	}
+
+	public void setLevel(String level) {
+		this.level = level;
+	}
+
+	public String getIsCount() {
+		return isCount;
+	}
+
+	public void setIsCount(String isCount) {
+		this.isCount = isCount;
+	}
+
+	public String getFileUrl() {
+		return fileUrl;
+	}
+
+	public void setFileUrl(String fileUrl) {
+		this.fileUrl = fileUrl;
+	}
+
+	public String getRatedLoad() {
+		return ratedLoad;
+	}
+
+	public void setRatedLoad(String ratedLoad) {
+		this.ratedLoad = ratedLoad;
+	}
+
+	public String getTestLoad() {
+		return testLoad;
+	}
+
+	public void setTestLoad(String testLoad) {
+		this.testLoad = testLoad;
+	}
+
+	public String getHoldingTime() {
+		return holdingTime;
+	}
+
+	public void setHoldingTime(String holdingTime) {
+		this.holdingTime = holdingTime;
+	}
+
+	public String getTestTime() {
+		return testTime;
+	}
+
+	public void setTestTime(String testTime) {
+		this.testTime = testTime;
+	}
+
+	public String getNextTestTime() {
+		return nextTestTime;
+	}
+
+	public void setNextTestTime(String nextTestTime) {
+		this.nextTestTime = nextTestTime;
+	}
+
+	public String getSampingRatio() {
+		return sampingRatio;
+	}
+	
+	public void setSampingRatio(String sampingRatio) {
+		this.sampingRatio = sampingRatio;
+	}
+	public String getNums() {
+		return nums;
+	}
+
+	public void setNums(String nums) {
+		this.nums = nums;
+	}
+
+	public String getAllNums() {
+		return allNums;
+	}
+
+	public void setAllNums(String allNums) {
+		this.allNums = allNums;
+	}
+
+	public String getWarnNum() {
+		return warnNum;
+	}
+
+	public void setWarnNum(String warnNum) {
+		this.warnNum = warnNum;
+	}
+
+
+}

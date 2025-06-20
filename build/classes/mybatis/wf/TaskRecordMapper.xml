@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.wf.dao.TaskRecordDao" >
+    <resultMap id="taskRecord" type="com.bonus.wf.beans.TaskRecordBean">
+    	<id property="id" column="id" />
+    	<result property="processId" column="processId"/>
+    	<result property="companyId" column="companyId"/>
+    	<result property="processName" column="processName"/>
+    	<result property="definitionId" column="definitionId"/>
+    	<result property="definitionName" column="definitionName"/>
+    	<result property="operationTime" column="operationTime"/>
+    	<result property="operationUserId" column="operationId"/>
+    	<result property="operationUserName" column="operationName"/>
+    	<result property="checkerId" column="checkerId"/>
+    	<result property="checkerName" column="checkerName"/>
+    	<result property="definitionId" column="definitionId"/>
+    	<result property="creatorName" column="creatorName"/>
+    	<result property="isExamine2" column="isExamine2"/>
+    	<result property="isApproval2" column="isApproval2"/>
+    	<result property="responer2" column="responer2"/>
+    	<result property="responer8" column="responer8"/>
+    	<result property="responer11" column="responer11"/>
+    	<result property="checkStatus12" column="checkStatus12"/>
+    	<result property="isExamine12" column="isExamine12"/>
+    	<result property="isApproval12" column="isApproval12"/>
+    	<result property="checker12" column="checker12"/>
+    	<result property="responer12" column="responer12"/>
+    	<result property="responer18" column="responer18"/>
+    	<result property="responer19" column="responer19"/>
+    	<result property="responer20" column="responer20"/>
+    	<result property="responer21" column="responer21"/>
+    	<result property="responer22" column="responer22"/>
+    	<result property="responer23" column="responer23"/>
+    	<result property="responer24" column="responer24"/>
+    	<result property="responer25" column="responer25"/>
+    	<result property="number" column="number"/>
+    	<result property="unitName" column="unitName"/>
+    	<result property="projectName" column="projectName"/>
+    	<result property="isFinish" column="isFinish"/>
+    </resultMap>
+    
+    <select id="findAll" parameterType="com.bonus.wf.beans.TaskRecordBean" resultMap="taskRecord">
+		SELECT wtr.ID,wtr.DEFINITION_ID as definitionId,wtd.`NAME` as definishtionName,wtr.PROCESS_ID as processId,
+		wpd.`NAME` as processName,wtr.OPERATION_USER as operationUserId,pu.`NAME` as operationUserName,
+		wtr.OPERATION_TIME as operationTime,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr,wf_task_definition wtd,wf_process_record wpr,
+		wf_process_definition wpd,pm_user pu
+		WHERE wtr.DEFINITION_ID = wtd.ID AND wtr.PROCESS_ID = wpr.ID 
+		AND wpr.PROCESS_ID = wpd.ID AND wtr.OPERATION_USER = pu.ID
+		AND wtr.IS_ACTIVE = 1
+		
+ 	</select>
+ 	
+ 	<select id="findUnFinishContent" parameterType="com.bonus.wf.beans.TaskRecordBean" resultMap="taskRecord">
+ 		<!-- SELECT
+			wtr.id,
+			wtr.DEFINITION_ID AS definitionId,
+			wtr.NUMBER AS number,
+			bp.`NAME` AS projectName,
+			bu.`NAME` AS unitName,
+			wpd.NAME AS processName,
+			wtd.NAME AS definitionName,
+			pu.`NAME` AS creatorName,
+			DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime,
+			task2.isExamine AS isExamine2,
+			task2.isApproval AS isApproval2,
+			task2.responer2 AS responer2,
+			task8.responer8 AS responer8,
+			task11.responer11 AS responer11,
+			task12.checkStatus AS checkStatus12,
+			task12.IS_EXAMINE AS isExamine12,
+			task12.IS_APPROVAL AS isApproval12,
+			task12.checker AS checker12,
+			task12.responer12 AS responer12,
+			task18.responer18 AS responer18,
+			task19.responer19 AS responer19,
+			task20.responer20 AS responer20,
+			task21.responer21 AS responer21,
+			task22.responer22 AS responer22,
+			task23.responer23 AS responer23,
+			task24.responer24 AS responer24,
+			task25.responer25 AS responer25 
+		FROM
+			wf_task_record wtr
+			LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+			LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+			LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+			LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+			LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+			LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+			LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+			LEFT JOIN (
+			SELECT
+				wtr2.id AS wtr2Id,
+				wcd2.IS_EXAMINE AS isExamine,
+				wcd2.IS_APPROVAL AS isApproval,
+				pu2.NAME AS responer2 
+			FROM
+				wf_task_record wtr2
+				LEFT JOIN wf_collar_details wcd2 ON wcd2.TASK_ID = wtr2.ID
+				LEFT JOIN pm_user pu2 ON pu2.id = wcd2.CUSTOMER_SERVICE_REP 
+			WHERE
+				wtr2.IS_FINISH = 0 
+				AND wtr2.DEFINITION_ID = 2 
+			) task2 ON task2.wtr2Id = wtr.id
+			LEFT JOIN (
+			SELECT
+				wtr8.id,
+				pu8.`NAME` AS responer8 
+			FROM
+				wf_task_record wtr8
+				LEFT JOIN pm_user pu8 ON pu8.id = wtr8.CHECKER_ID 
+			WHERE
+				wtr8.IS_FINISH = 0 
+				AND wtr8.DEFINITION_ID = 8 
+			) task8 ON task8.id = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wrmd.TASK_ID,
+				pu.`NAME` AS responer11 
+			FROM
+				wf_return_material_details wrmd
+				LEFT JOIN wf_task_record wtr ON wtr.id = wrmd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wrmd.SERVICE_ID 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 11 
+			) task11 ON task11.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wnd.TASK_ID,
+				wnd.CHECK_STATUS as checkStatus,
+				wnd.IS_EXAMINE,
+				wnd.IS_APPROVAL,
+				pu.`NAME` AS checker,
+				puo.NAME AS responer12 
+			FROM
+				wf_new_details wnd
+				LEFT JOIN pm_user pu ON pu.id = wnd.CHECKER
+				LEFT JOIN pm_user puo ON puo.id = wnd.CUSTOMER_SERVICE_REP
+				LEFT JOIN wf_task_record wtr ON wtr.id = wnd.TASK_ID 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 12 
+			) task12 ON task12.TASK_ID = wtr.id
+			LEFT JOIN (
+			SELECT
+				wrd.TASK_ID,
+				pu.`NAME` AS responer18 
+			FROM
+				wf_repair_details wrd
+				LEFT JOIN wf_task_record wtr ON wtr.id = wrd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wrd.REPAIR_MAN 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 18 
+			) task18 ON task18.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wsd.TASK_ID,
+				pu.`NAME` AS responer19 
+			FROM
+				wf_scrap_details wsd
+				LEFT JOIN wf_task_record wtr ON wtr.id = wsd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wsd.SCRAP_CHECKER 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 19 
+			) task19 ON task19.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wtr.id,
+				pu.`NAME` AS responer20 
+			FROM
+				wf_task_record wtr
+				LEFT JOIN pm_user pu ON pu.id = wtr.CHECKER_ID 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 20 
+			) task20 ON task20.id = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wpsd.TASK_ID,
+				pu.NAME AS responer21 
+			FROM
+				wf_put_storage_details wpsd
+				LEFT JOIN pm_user pu ON pu.id = wpsd.CUSTOMER_SERVICE_REP
+				LEFT JOIN wf_task_record wtr ON wtr.id = wpsd.TASK_ID 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 21 
+			) task21 ON task21.TASK_ID = wtr.id
+			LEFT JOIN (
+			SELECT
+				wsd.TASK_ID,
+				pu.`NAME` AS responer22 
+			FROM
+				wf_scrap_details wsd
+				LEFT JOIN wf_task_record wtr ON wtr.id = wsd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wsd.SCRAP_CHECKER 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 22 
+			) task22 ON task22.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wrd.TASK_ID,
+				pu.`NAME` AS responer23 
+			FROM
+				wf_repair_details wrd
+				LEFT JOIN wf_task_record wtr ON wtr.id = wrd.TASK_ID
+				LEFT JOIN pm_user pu ON pu.id = wrd.REPAIR_MAN 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 23 
+			) task23 ON task23.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wrc.TASK_ID,
+				pu.`NAME` AS responer24 
+			FROM
+				wf_repair_check wrc
+				LEFT JOIN wf_task_record wtr ON wtr.id = wrc.TASK_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+				LEFT JOIN pm_user pu ON pu.id = wrd.CUSTOMER_SERVICE_REP 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 24 
+			) task24 ON task24.TASK_ID = wtr.ID
+			LEFT JOIN (
+			SELECT
+				wpsd.TASK_ID,
+				pu.NAME AS responer25 
+			FROM
+				wf_put_storage_details wpsd
+				LEFT JOIN pm_user pu ON pu.id = wpsd.CUSTOMER_SERVICE_REP
+				LEFT JOIN wf_task_record wtr ON wtr.id = wpsd.TASK_ID 
+			WHERE
+				wtr.IS_FINISH = 0 
+				AND wtr.DEFINITION_ID = 25 
+			) task25 ON task25.TASK_ID = wtr.id  -->
+			
+			select
+a.id,
+a.definitionId,
+a.number,
+a.processName,
+a.definitionName,
+a.creatorName,
+a.operationTime,
+a.isFinish
+from
+(SELECT
+	wtr.id,
+	wtr.DEFINITION_ID AS definitionId,
+	wtr.NUMBER AS number,
+	wtr.IS_FINISH as isFinish,
+	wpd.NAME AS processName,
+	wtd.NAME AS definitionName,
+	pu.`NAME` AS creatorName,
+	DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime 
+FROM
+	wf_task_record wtr
+	LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+	LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+	LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+	LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+	LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID 
+WHERE
+
+	 wtr.DEFINITION_ID = 1 and wtr.IS_FINISH = #{param.isFinish}
+	AND wtr.IS_ACTIVE = 1 UNION
+SELECT
+	wtr.id,
+	wtr.DEFINITION_ID AS definitionId,
+	wtr.NUMBER AS number,
+	wtr.IS_FINISH as isFinish,
+	wpd.NAME AS processName,
+	wtd.NAME AS definitionName,
+	pu.`NAME` AS creatorName,
+	DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime 
+FROM
+	wf_task_record wtr
+	LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+	LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+	LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+	LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+	LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID 
+WHERE
+
+	wtr.DEFINITION_ID = 2 and wtr.IS_FINISH = #{param.isFinish}
+	AND wtr.IS_ACTIVE = 1 UNION
+SELECT
+	wtr.id,
+	wtr.DEFINITION_ID AS definitionId,
+	wtr1.NUMBER AS number,
+	wtr.IS_FINISH as isFinish,
+	wpd.NAME AS processName,
+	wtd.NAME AS definitionName,
+	pu.`NAME` AS creatorName,
+	DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime 
+FROM
+	wf_task_record wtr
+	LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+	LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+	LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+	LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+	LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+	LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID 
+WHERE
+	
+	wtr.DEFINITION_ID = 5 and wtr.IS_FINISH = #{param.isFinish}
+	AND wtr.IS_ACTIVE = 1
+	UNION
+	SELECT
+	wtr.id,
+	wtr.DEFINITION_ID AS definitionId,
+	wtr.NUMBER AS number,
+	wtr.IS_FINISH as isFinish,
+	wpd.NAME AS processName,
+	wtd.NAME AS definitionName,
+	pu.`NAME` AS creatorName,
+	DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime 
+FROM
+	wf_task_record wtr
+	LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+	LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+	LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+	LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+	LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID 
+WHERE
+
+	 wtr.DEFINITION_ID = 8 and wtr.IS_FINISH =#{param.isFinish}
+	AND wtr.IS_ACTIVE = 1
+	UNION
+
+
+	SELECT
+	wtr.id,
+	wtr.DEFINITION_ID AS definitionId,
+	wtr1.NUMBER AS number,
+	wtr1.IS_FINISH as isFinish,
+	wpd.NAME AS processName,
+	wtd.NAME AS definitionName,
+	pu.`NAME` AS creatorName,
+	DATE_FORMAT( wtr.OPERATION_TIME, '%Y-%m-%d' ) AS operationTime 
+FROM
+	wf_task_record wtr
+	LEFT JOIN pm_user pu ON pu.id = wtr.OPERATION_USER
+	LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+	LEFT JOIN wf_process_definition wpd ON wpd.id = wtr.PROCESS_ID
+	LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+	LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID 
+	LEFT join wf_task_record wtr1 on wtr1.ID=wtr.SUP_ID
+WHERE
+
+	 wtr.DEFINITION_ID = 11 and wtr1.IS_FINISH = #{param.isFinish}
+	AND wtr.IS_ACTIVE = 1		
+)a
+		WHERE
+			a.isFinish= #{param.isFinish} 
+			<if test="param.keyWord != null and param.keyWord !=''">
+			AND (
+				wpd.NAME LIKE concat("%",#{param.keyWord},"%") or
+				wtd.NAME LIKE concat("%",#{param.keyWord},"%") or
+				pu.NAME LIKE concat("%",#{param.keyWord},"%") or
+				bp.`NAME` LIKE concat("%",#{param.keyWord},"%")
+			)
+			</if>
+		GROUP BY a.id 
+	ORDER BY a.id DESC
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.wf.beans.TaskRecordBean" resultMap="taskRecord">
+        SELECT wtr.ID,wtr.DEFINITION_ID as definitionId,wtd.`NAME` as definishtionName,wtr.PROCESS_ID as processId,
+		wpd.`NAME` as processName,wtr.OPERATION_USER as operationUserId,pu.`NAME` as operationUserName,
+		wtr.OPERATION_TIME as operationTime,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr,wf_task_definition wtd,wf_process_record wpr,
+		wf_process_definition wpd,pm_user pu
+		WHERE wtr.DEFINITION_ID = wtd.ID AND wtr.PROCESS_ID = wpr.ID 
+		AND wpr.PROCESS_ID = wpd.ID AND wtr.OPERATION_USER = pu.ID
+		AND wtr.IS_ACTIVE = 1
+		where wtr.ID = #{id}
+    </select>
+    
+ 	<select id="findTaskInfo" parameterType="com.bonus.wf.beans.TaskRecordBean" resultMap="taskRecord">
+        SELECT wtr.ID AS taskId
+			FROM wf_task_record wtr
+			LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+			LEFT JOIN wf_new_check wnc ON wnc.TASK_ID = wtr.ID
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = #{definitionId}
+    </select>
+    
+ 	<select id="findRepairTask" parameterType="com.bonus.wf.beans.TaskRecordBean" resultMap="taskRecord">
+        	SELECT wtr.ID as taskId
+			FROM wf_task_record wtr
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = #{definitionId} and wtr.IS_FINISH = 0
+    </select>
+    
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    	insert into wf_task_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="definitionId != null">
+				DEFINITION_ID,
+			</if>
+			<if test="processId != null">
+				PROCESS_ID,
+			</if>
+			<if test="operationUserId != null">
+				OPERATION_USER,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="number != null">
+				NUMBER,
+			</if>
+			<if test="isSplit != null">
+				IS_SPLIT,
+			</if>
+			<if test="isFinish != null">
+				IS_FINISH,
+			</if>
+			<if test="leasePerson != null">
+				LEASE_PERSON,
+			</if>
+			<if test="phone != null">
+				PHONE,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="subcontractors != null">
+				SUBCONTRACTORS_ID,
+			</if>
+			
+			<if test="companyId != null">
+				org_id,
+			</if>
+			IS_ACTIVE,PLAN_OUT_ID
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="definitionId != null">
+				#{definitionId},
+			</if>
+			<if test="processId != null">
+				#{processId},
+			</if>
+			<if test="operationUserId != null">
+				#{operationUserId},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="number != null">
+				#{number},
+			</if>
+			<if test="isFinish != null">
+				#{isFinish},
+			</if>
+			<if test="isSplit != null">
+				#{isSplit},
+			</if>
+			<if test="leasePerson != null">
+				#{leasePerson},
+			</if>
+			<if test="phone != null">
+				#{phone},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="subcontractors != null">
+				#{subcontractors},
+			</if>
+			
+			<if test="companyId != null">
+				#{companyId},
+			</if>
+			1,#{planOutId}
+		</trim>
+    </insert>
+    
+     <select id="findNumber" parameterType="com.bonus.wf.beans.TaskRecordBean" resultType="java.lang.String">
+ 		SELECT COUNT(*) FROM wf_task_record wtr
+		WHERE wtr.OPERATION_TIME LIKE CONCAT("%",#{operationTime},"%")
+		AND wtr.DEFINITION_ID = #{definitionId}
+ 	</select>
+ 	
+ 	<delete id="delete" parameterType="com.bonus.wf.beans.TaskRecordBean">
+ 		delete from wf_task_record where id = #{id}
+ 	</delete>
+ 	
+ 	<update id="update" parameterType="com.bonus.wf.beans.TaskRecordBean">
+ 		update wf_task_record
+        <set>
+            <if test="definitionId != null">
+               DEFINITION_ID = #{definitionId},
+            </if>
+            <if test="processId != null">
+               PROCESS_ID = #{processId},
+            </if>
+             <if test="operationUserId !=null">
+              OPERATION_USER = #{operationUserId},
+            </if>
+             <if test="operationTime !=null">
+              OPERATION_TIME = #{operationTime},
+            </if>
+             <if test="number !=null">
+              NUMBER = #{number},
+            </if>
+             <if test="isFinish !=null">
+              IS_FINISH = #{isFinish},
+            </if>
+             <if test="isSplit !=null">
+              IS_SPLIT = #{isSplit},
+            </if>
+              <if test="companyId !=null">
+              ORG_ID = #{companyId},
+            </if>
+             <if test="remark != null">
+              REMARK = #{remark},
+            </if>
+        </set>
+ 		where id = #{id}
+ 	</update>
+ 	
+ 	<insert id="addTaskAgreement" parameterType="com.bonus.wf.beans.TaskRecordBean">
+ 		insert into wf_agreement_task(TASK_ID,AGREEMENT_ID) 
+ 		values(#{taskId},#{agreementId})
+ 	</insert>
+ 	
+    <delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM wf_process_record WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+
+	<select id="checkTask" parameterType="java.lang.String" resultMap="taskRecord">
+        SELECT wtr.ID AS taskId,number
+			FROM wf_task_record wtr	
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = 20 AND wtr.IS_SPLIT = 0
+    </select>
+
+</mapper>

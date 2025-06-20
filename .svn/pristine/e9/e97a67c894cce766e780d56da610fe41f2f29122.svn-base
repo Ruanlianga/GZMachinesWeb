@@ -1,0 +1,59 @@
+package com.bonus.rm.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.rm.beans.ReturnMaterialTaskRecordBean;
+import com.bonus.rm.dao.ReturnMaterialTaskRecordDao;
+import com.bonus.sys.BaseServiceImp;
+import com.bonus.sys.Page;
+import com.bonus.wf.beans.TaskRecordBean;
+import com.bonus.wf.dao.TaskRecordDao;
+
+@Service("returnTaskRecord")
+public class ReturnMaterialTaskRecordServiceImp extends BaseServiceImp<ReturnMaterialTaskRecordBean> implements ReturnMaterialTaskRecordService{
+
+	@Autowired private ReturnMaterialTaskRecordDao dao;
+	
+	@Autowired
+	private TaskRecordDao taskDao;
+	
+	@Override
+	public List<ReturnMaterialTaskRecordBean> findRMSheet(ReturnMaterialTaskRecordBean o) {
+		List<ReturnMaterialTaskRecordBean> list = dao.findRMSheet(o);
+		return list;
+	}
+
+	@Override
+	public Page<TaskRecordBean> findUnFinishContent(Page<TaskRecordBean> page, TaskRecordBean o) {
+		page.setResults(taskDao.findUnFinishContent(page,o));
+		return page;
+	}
+
+	@Override
+	public List<ReturnMaterialTaskRecordBean> findIdByTaskId(ReturnMaterialTaskRecordBean o) {
+		// TODO Auto-generated method stub
+		return dao.findIdByTaskId(o);
+	}
+
+	@Override
+	public int updateRemarkbyTaskId(ReturnMaterialTaskRecordBean o) {
+		// TODO Auto-generated method stub
+		return dao.updateRemarkbyTaskId(o);
+	}
+
+	@Override
+	public int updateRemarkMachinebyId(ReturnMaterialTaskRecordBean o) {
+		// TODO Auto-generated method stub
+		return dao.updateRemarkMachinebyId(o);
+	}
+
+	@Override
+	public List<ReturnMaterialTaskRecordBean> findUnFinishContentDetails(ReturnMaterialTaskRecordBean o) {
+		// TODO Auto-generated method stub
+		return dao.findUnFinishContentDetails(o);
+	}
+	
+}

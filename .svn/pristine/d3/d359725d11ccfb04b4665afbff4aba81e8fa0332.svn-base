@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.OutStorageCheckDao" >
+    <resultMap id="outstorage" type="com.bonus.lease.beans.OutStorageCheckBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT woc.ID as id,woc.TASK_ID as taskId, woc.MODEL_ID as typeId,bu.`NAME` AS leaseName,bp.`NAME` AS projectName,mmt.`NAME` as machineName,mt.`NAME` as machineModel,woc.CHECK_TIME AS checkTime,
+			woc.PRE_CHECK_NUM as preCheckNum,woc.ALREDY_CHECK_NUM as alCheckNum,woc.CHECKER as checkerId,pu.`NAME` as checker,mt.IS_COUNT as isCount
+			FROM wf_outstock_check woc
+	        LEFT JOIN wf_task_record wtr ON woc.TASK_ID = wtr.ID
+	        LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+	        LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+	        LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN mm_type mt ON woc.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		WHERE left(woc.CHECK_TIME,10) BETWEEN #{param.startTime} and #{param.endTime}
+		<if test="param.machineName != null and param.machineName != ''">
+			and mmt.`NAME` like concat('%',#{param.machineName},'%')
+	    </if>
+		<if test="param.machineModel != null and param.machineModel != ''">
+			and mt.`NAME` like concat('%',#{param.machineModel},'%')
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+		GROUP BY woc.ID 
+		order by woc.CHECK_TIME desc
+ 	</select>
+ 	
+    
+ 	<select id="findIsSureInfo" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT woc.TASK_ID AS taskId,woc.ID AS id
+			FROM wf_outstock_check woc
+			WHERE woc.TASK_ID = #{taskId} AND woc.IS_SURE = '0'
+ 	</select>
+ 	
+ 	<select id="outStorageCheckQuery" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+	select DISTINCT wir.ID as id,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseName,bp.`NAME` AS projectName,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+		wir.`CODE` as deviceCode,wir.TIME as checkTime,pu.`NAME` as checker,ROUND(wir.NUM) as thisCheckNum,mt.IS_COUNT as isCount,wir.TYPE as type
+		from wf_info_record wir
+		  LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		  LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		  LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+		  LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		  LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		  LEFT JOIN wf_outstock_check woc ON wir.SUP_ID = woc.TASK_ID
+		  LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		  LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		  LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		  where left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime} and wir.TYPE = 1
+		<if test="param.machineName != null and param.machineName != ''">
+			and mmt.`NAME` like concat('%',#{param.machineName},'%')
+	    </if>
+		<if test="param.machineModel != null and param.machineModel != ''">
+			and mt.`NAME` like concat('%',#{param.machineModel},'%')
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+     GROUP BY wir.ID 
+ 	</select>
+ 	
+ 	<select id="getOutStorageCheckList" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+	  SELECT DISTINCT wtr.ID AS taskId,bu.`NAME` AS leaseName,bp.`NAME` AS projectName,wtr.OPERATION_TIME AS applyTime,
+      wtr1.NUMBER AS applyNumber,wtr.IS_FINISH as isFinish
+      FROM wf_task_record wtr
+        LEFT JOIN  wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON  wtr.SUP_ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+      WHERE wtr.DEFINITION_ID = 4 AND left(wtr.OPERATION_TIME,10) = #{applyTime} and wtr.IS_FINISH = #{isFinish}
+      <if test="companyId != '1'">
+			AND wtr.ORG_ID = #{companyId}
+	  </if>
+	  GROUP BY wtr.ID
+ 	</select>
+ 	
+ 	<select id="getOutStorageCheckDetails" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT woc.ID as id,woc.TASK_ID as taskId, wtr.SUP_ID as supId,woc.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			woc.PRE_CHECK_NUM as preCheckNum,woc.ALREDY_CHECK_NUM as alCheckNum,woc.CHECKER as checkerId,pu.`NAME` as checker,mt.IS_COUNT as isCount,
+		    woc.IS_SURE as isSure
+			FROM wf_outstock_check woc
+            LEFT JOIN wf_task_record wtr ON woc.TASK_ID = wtr.ID 
+			LEFT JOIN mm_type mt ON woc.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		where woc.TASK_ID=#{taskId} and woc.CHECKER=#{checkerId}
+		GROUP BY woc.MODEL_ID 
+ 	</select>
+ 	
+ 	<select id="findCheckCount" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT wtr.ID AS id,wtr.IS_FINISH AS isFinish
+			FROM wf_task_record wtr
+			LEFT JOIN wf_outstock_check woc ON woc.TASK_ID = wtr.ID
+			WHERE wtr.SUP_ID = #{taskId} AND wtr.DEFINITION_ID = '4'
+ 	</select>
+ 	
+ 	<select id="findSupId" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT wtr.SUP_ID AS taskId,wtr.ID AS id
+			FROM wf_task_record wtr
+			LEFT JOIN wf_outstock_check wmo ON wmo.TASK_ID = wtr.ID
+			WHERE wmo.TASK_ID = #{taskId}
+ 	</select>
+ 	
+ 	<select id="findIsFinish" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT wcd.TASK_ID AS taskId,wcd.ID AS id
+			FROM wf_outstock_check wcd
+			WHERE wcd.TASK_ID = #{taskId} AND wcd.IS_SURE = '0'
+ 	</select>
+ 	
+ 	<select id="getCheckRecordList" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		select DISTINCT wir.ID as id,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+		wir.`CODE` as deviceCode,wir.TIME as checkTime,ROUND(wir.NUM) as thisCheckNum,wir.TYPE as type
+		from wf_info_record wir
+		LEFT JOIN wf_outstock_check woc ON wir.SUP_ID = woc.TASK_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		where wir.SUP_ID  =#{taskId} and wir.MODEL_ID=#{typeId}
+ 	</select>
+ 	
+ 	<select id="getModelInfo" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		select DISTINCT mt1.ID as typeId, mt.`NAME` as machineName,mt1.`NAME` AS machineModel from mm_type mt
+		LEFT JOIN mm_type mt1 ON mt1.PARENT_ID = mt.ID
+		LEFT JOIN mm_type mt2 ON mt2.PARENT_ID = mt1.ID
+		where mt1.`LEVEL` = 4 AND mt1.ID = #{typeId}
+ 	</select>
+
+ 	<select id="getAlCheckNum" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT woc.ID as id,woc.TASK_ID as taskId, woc.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			woc.PRE_CHECK_NUM as preCheckNum,woc.ALREDY_CHECK_NUM as alCheckNum,woc.CHECKER as checkerId,pu.`NAME` as checker,mt.IS_COUNT as isCount
+			FROM wf_outstock_check woc
+			LEFT JOIN mm_type mt ON woc.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		where  woc.ID = #{id}
+ 	</select>
+ 	
+ 	<select id="getCheckInfoByNum" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT woc.ID as id,woc.TASK_ID as taskId, woc.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			woc.PRE_CHECK_NUM as preCheckNum,woc.ALREDY_CHECK_NUM as alCheckNum,woc.CHECKER as checkerId,pu.`NAME` as checker,mt.IS_COUNT as isCount
+			FROM wf_outstock_check woc
+			LEFT JOIN mm_type mt ON woc.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		where woc.ID= #{id}
+ 	</select>
+ 	
+ 	<select id="confirmCheckTask" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT DISTINCT woc.ID as id,woc.TASK_ID as taskId, woc.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			woc.PRE_CHECK_NUM as preCheckNum,woc.ALREDY_CHECK_NUM as alCheckNum,woc.CHECKER as checkerId,pu.`NAME` as checker,mt.IS_COUNT as isCount
+			FROM wf_outstock_check woc
+			LEFT JOIN mm_type mt ON woc.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON woc.CHECKER = pu.ID
+		where woc.ID= #{id}
+ 	</select>
+ 	
+ 	<select id="findById" parameterType="com.bonus.lease.beans.OutStorageCheckBean" resultMap="outstorage">
+		SELECT wtr.SUP_ID AS taskId,woc.ALREDY_CHECK_NUM AS alCheckNum,
+			wcd.CUSTOMER_SERVICE_REP AS outPersonId,woc.MODEL_ID AS maModelId
+			FROM wf_outstock_check woc
+			LEFT JOIN wf_task_record wtr ON wtr.ID = woc.TASK_ID
+			LEFT JOIN wf_collar_details wcd ON wcd.TASK_ID = wtr.SUP_ID AND woc.MODEL_ID = wcd.MODEL_ID 
+			WHERE wtr.ID = #{taskId} AND woc.IS_SURE = '1' AND woc.MODEL_ID = #{maModelId}
+ 	</select>
+ 	
+ 	<update id="updateAlCheckNum" parameterType="com.bonus.lease.beans.OutStorageCheckBean">
+		update wf_outstock_check
+        <set>
+            <if test="alCheckNum != null">
+				ALREDY_CHECK_NUM = #{alCheckNum},
+			</if>
+        </set>
+       	where ID= #{id}
+	</update>
+	
+ 	<update id="isSure" parameterType="com.bonus.lease.beans.OutStorageCheckBean">
+		update wf_outstock_check set IS_SURE = '1'
+       	where ID = #{id}
+	</update>
+	
+ 	<insert id="addCheckRecord" parameterType="com.bonus.lease.beans.OutStorageCheckBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="checkTime != null">
+				TIME,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="thisCheckNum != null">
+				NUM,
+			</if>
+			
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="thisCheckNum != null">
+				#{thisCheckNum},
+			</if>
+			
+		</trim>
+	</insert>
+	
+	<insert id="doCheck" parameterType="com.bonus.lease.beans.OutStorageCheckBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="inspectionTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="inspectionNum != null">
+				CHECK_NUM,
+			</if>
+			<if test="deviceCode != null">
+				DEVICE_CODE,
+			</if>
+			<if test="isCount != null">
+				IS_COUNT,
+			</if>
+			TYPE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="inspectionTime != null">
+				#{inspectionTime},
+			</if>
+			<if test="inspectionNum != null">
+				#{inspectionNum},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="isCount != null">
+				#{isCount},
+			</if>
+			1,
+		</trim>
+	</insert>
+	<!-- 检验流程去除，改为直接出库 -->
+	<!-- <insert id="checkDetails" parameterType="com.bonus.lease.beans.OutStorageCheckBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_outstock_check
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="machineModel != null">
+				MODEL_ID,
+			</if>
+			<if test="preCheckNum != null">
+				PRE_CHECK_NUM,
+			</if>
+			<if test="alCheckNum != null">
+				ALREDY_CHECK_NUM,
+			</if>
+			<if test="checkTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="checkerId != null">
+				CHECKER,
+			</if>
+			IS_ACTIVE,
+			IS_SURE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="machineModel != null">
+				#{machineModel},
+			</if>
+			<if test="preCheckNum != null">
+				#{preCheckNum},
+			</if>
+			<if test="alCheckNum != null">
+				#{alCheckNum},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="checkerId != null">
+				#{checkerId},
+			</if>
+			1,
+			0,
+		</trim>
+	</insert> -->
+	<insert id="checkDetails" parameterType="com.bonus.lease.beans.OutStorageCheckBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_ma_outstock
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="machineModel != null">
+				MODEL_ID,
+			</if>
+			<if test="checkTime != null">
+				OUT_TIME,
+			</if>
+			<if test="checkerId != null">
+				OUT_PERSON,
+			</if>
+			<if test="preCollerNum != null">
+				PRE_COLLAR_NUM,
+			</if>
+			<if test="preCollerNum != null">
+				ALREDY_COLLAR_NUM,
+			</if>
+			IS_ACTIVE,
+			IS_SURE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="machineModel != null">
+				#{machineModel},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="checkerId != null">
+				#{checkerId},
+			</if>
+			<if test="preCheckNum != null">
+				#{preCheckNum},
+			</if>
+			<if test="preCheckNum != null">
+				0,
+			</if>
+			1,
+			0,
+		</trim>
+	</insert>
+ 	
+</mapper>

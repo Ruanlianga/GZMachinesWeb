@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.ReturnMaterialDetailsDao" >
+    <resultMap id="returnMaterialDetails" type="com.bonus.rm.beans.ReturnMaterialDetailsBean"></resultMap>
+    
+ 	<select id="findByCode" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultMap="returnMaterialDetails">
+		SELECT mma.ID,bu.ID as receiveUnitId,bu.`NAME` as receiveUnitName,bp.ID as receiveProjectId,
+		bp.`NAME` as receiveProjectName,wla.ID as agreementId,wla.`CODE` as agreementCode,mma.BATCH_STATUS as batchStatus
+		FROM mm_machines mma,wf_info_record wir,
+		wf_task_record wtr,wf_agreement_task wat,
+		wf_lease_agreement wla,bm_unit bu,bm_project bp,
+		mm_type mta,mm_type mtb
+		WHERE mma.DEVICE_CODE = wir.`CODE` AND mma.TYPE = wir.MODEL_ID
+		AND wir.SUP_ID = wtr.ID AND wtr.SUP_ID = wat.TASK_ID
+		AND wat.AGREEMENT_ID = wla.ID AND wla.LEASE_COMPANY = bu.ID
+		AND wla.PROJECT = bp.ID AND mma.TYPE = mta.ID
+		AND mta.PARENT_ID = mtb.ID
+		AND mma.DEVICE_CODE = #{code} AND wir.TYPE = 2
+		ORDER BY wir.TIME DESC LIMIT 1
+ 	</select>
+ 	
+ 	<select id="findByTaskId" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultMap="returnMaterialDetails">
+		SELECT wtr.id,wtr.OPERATION_TIME as returnMaterialTime,bu.ID as unitId,bp.ID as workId,
+		bu.`NAME` as unitName,bp.`NAME` as workName,wtr.LEASE_PERSON as userName,wtr.PHONE,wtr.NUMBER,
+		wla.ID as agreementId,wla.`CODE` as agreementCode,wtr.IS_FINISH as isFinish,wtr.REMARK
+		FROM wf_task_record wtr,wf_agreement_task wat,wf_lease_agreement wla,
+		bm_unit bu,bm_project bp
+		WHERE wtr.ID = wat.TASK_ID AND wat.AGREEMENT_ID = wla.ID
+		AND wla.LEASE_COMPANY = bu.ID AND wla.PROJECT = bp.ID
+		AND wtr.IS_ACTIVE = 1 AND wtr.PROCESS_ID = 3 AND wtr.DEFINITION_ID = 8
+		AND wtr.ID = #{taskId}
+ 	</select>
+ 	
+ 	<select id="findSupId" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultType="java.lang.String">
+		SELECT wrmd.ID as supId FROM wf_return_material_details wrmd 
+		WHERE wrmd.IS_ACTIVE = 1 AND TASK_ID = #{taskId} AND MODEL_ID = #{modelId}
+ 	</select>
+ 	
+ 	<select id="findLeaseNum" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultType="java.lang.String">
+		SELECT SUM(wir.NUM) as leaseNum 
+		FROM wf_agreement_task wat,wf_task_record wtr,wf_collar_details wcd,
+		wf_task_record wte,wf_info_record wir
+		WHERE wat.TASK_ID = wtr.ID 
+		AND wtr.ID = wcd.TASK_ID AND wcd.MODEL_ID = #{modelId}
+		AND wtr.ID = wte.SUP_ID AND wte.DEFINITION_ID = 5
+		AND wte.ID = wir.SUP_ID AND wir.MODEL_ID = #{modelId}
+		AND wat.AGREEMENT_ID = #{agreementId} AND wtr.DEFINITION_ID = 2
+ 	</select>
+ 	
+ 	<select id="findLeaseBackNum" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultMap="returnMaterialDetails">
+		SELECT IFNULL(a.leaseNum,0) as leaseNum,IFNULL(b.backNum,0) as backNum FROM
+		(SELECT wat.AGREEMENT_ID,SUM(wmo.ALREDY_COLLAR_NUM) as leaseNum
+		FROM wf_agreement_task wat,wf_task_record wtr,
+		wf_task_record wte,wf_ma_outstock wmo
+		WHERE wat.TASK_ID = wtr.ID
+		AND wtr.ID = wte.SUP_ID AND wte.DEFINITION_ID = 5
+		AND wte.ID = wmo.TASK_ID AND wmo.MODEL_ID = #{modelId}
+		AND wat.AGREEMENT_ID = #{agreementId} AND wtr.DEFINITION_ID = 2) a
+		LEFT JOIN
+		(SELECT wat.AGREEMENT_ID,SUM(wir.NUM) as backNum
+		FROM wf_agreement_task wat,wf_task_record wtr,
+		wf_return_material_details wrd,wf_info_record wir
+		WHERE wat.TASK_ID = wtr.ID AND wtr.DEFINITION_ID = 8
+		AND wtr.ID = wrd.TASK_ID AND wrd.MODEL_ID = #{modelId}
+		AND wrd.ID = wir.SUP_ID AND wir.MODEL_ID = #{modelId}
+		AND wat.AGREEMENT_ID = #{agreementId}) b ON a.AGREEMENT_ID = b.AGREEMENT_ID
+ 	</select>
+ 	
+ 	<select id="findTaskDetail" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultMap="returnMaterialDetails">
+
+	
+		SELECT mmy.`NAME` as typeName,mmt.`NAME` as modelName,mmt.IS_COUNT as isCount,
+		SUM(wir.NUM) as maNum,mmt.ID as modelId
+
+		FROM wf_return_material_details wrd
+		LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID
+		LEFT JOIN mm_type mmt ON wir.MODEL_ID = mmt.ID
+		LEFT JOIN mm_type mmy ON mmt.PARENT_ID = mmy.ID
+
+		WHERE wrd.TASK_ID = #{taskId}  and wir.type = 4
+		GROUP BY wir.MODEL_ID 
+ 	</select>
+ 	
+ 	<select id="findTaskDetailInfo" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean" resultMap="returnMaterialDetails">
+		
+		SELECT mmy.`NAME` as typeName,mmt.`NAME` as modelName,mmt.IS_COUNT as isCount,
+		ifnull(wir.`CODE`,'') as code,ROUND(wir.NUM) as maNum,wir.RM_STATUS as rmStatus
+	
+		FROM wf_return_material_details wrd
+		LEFT JOIN mm_type mmt ON wrd.MODEL_ID = mmt.ID
+		LEFT JOIN mm_type mmy ON mmt.PARENT_ID = mmy.ID
+		LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID
+		where wir.MODEL_ID = #{modelId} AND wrd.TASK_ID = #{taskId} and wir.type = 4 and wir.NUM &gt; 0
+		
+ 	</select>
+ 	
+ 	 <insert id="insert" useGeneratedKeys="true" keyProperty="supId">
+    	insert into wf_return_material_details
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="modelId != null">
+				MODEL_ID,
+			</if>
+			<if test="returnMaterialTime != null">
+				RETURN_MATERIAL_TIME,
+			</if>
+			<if test="operator != null">
+				OPERATOR,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="remark != null">
+				REMARK,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="modelId != null">
+				#{modelId},
+			</if>
+			<if test="returnMaterialTime != null">
+				#{returnMaterialTime},
+			</if>
+			<if test="operator != null">
+				#{operator},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="remark != null">
+				#{remark},
+			</if>
+			1
+		</trim>
+    </insert>
+    
+    <insert id="insertInfo" parameterType="com.bonus.rm.beans.ReturnMaterialDetailsBean">
+	    insert into wf_info_record
+			<trim prefix="(" suffix=")" suffixOverrides=",">
+				<if test="supId != null">
+					SUP_ID,
+				</if>
+				<if test="modelId != null">
+					MODEL_ID,
+				</if>
+				<if test="code != null">
+					CODE,
+				</if>
+				<if test="operationTime != null">
+					TIME,
+				</if>
+				<if test="maNum != null">
+					NUM,
+				</if>
+				<if test="state != null">
+					TYPE,
+				</if>
+				<if test="maId != null">
+					MA_ID,
+				</if>
+				<if test="rmStatus != null">
+					RM_STATUS,
+				</if>
+				<if test="scrapReason != null">
+					SCRAP_REASON,
+				</if>
+				<if test = "scrapUrl != null">
+					SCRAP_URL,
+				</if>
+			</trim>
+			<trim prefix="values (" suffix=")" suffixOverrides=",">
+				<if test="supId != null">
+					#{supId},
+				</if>
+				<if test="modelId != null">
+					#{modelId},
+				</if>
+				<if test="code != null">
+					#{code},
+				</if>
+				<if test="operationTime != null">
+					#{operationTime},
+				</if>
+				<if test="maNum != null">
+					#{maNum},
+				</if>
+				<if test="state != null">
+					#{state},
+				</if>
+				<if test="maId != null">
+					#{maId},
+				</if>
+				<if test="rmStatus != null">
+					#{rmStatus},
+				</if>
+				<if test="scrapReason != null">
+					#{scrapReason},
+				</if>
+				<if test="scrapUrl != null">
+					#{scrapUrl},
+				</if>
+			</trim>
+    
+    </insert>
+ 	
+</mapper>

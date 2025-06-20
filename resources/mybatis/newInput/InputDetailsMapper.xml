@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.InputDetailsDao" >
+    <resultMap id="inputDetails" type="com.bonus.newInput.beans.InputDetailsBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+		SELECT 	wnd.ID AS id, wnd.CHECK_PLACE AS checkPlace,wnd.ARRIVAL_NUM AS arrivalNum,
+				wnd.CHECK_STATUS AS checkStatus,wnd.CHECK_TIME AS checkTime,wnd.MODEL_ID AS maModelId,
+				wnd.PHOTO_URL AS picUrl,mt.`NAME` AS machineModel,mtt.`NAME` AS machineType,
+				pu.`NAME` AS checker,pu1.`NAME` AS customerRep,ROUND(mt.BUY_PRICE) AS buyPrice,
+				mv.`NAME` AS venderName,wnd.ACTUAL_PRICE AS actualPrice,wnd.CHECKER AS checkerId,
+				wnd.TASK_ID AS taskId,wnd.CHECK_URL AS checkUrl,wnd.INVOICE_URL AS invoiceUrl
+		FROM wf_new_details wnd 
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER 
+		WHERE wnd.TASK_ID = #{param.taskId} and wnd.IS_ACTIVE = '1'
+		<if test="param.keyWord != null">
+			AND( mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR pu1.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR wnd.MA_VENDER LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select>
+
+ 	<select id="findByTaskId" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   SELECT wnd.ID AS id, wnd.CHECK_PLACE AS checkPlace,wnd.ARRIVAL_NUM AS arrivalNum,
+		wnd.CHECK_STATUS AS checkStatus,wnd.CHECK_TIME AS checkTime,wnd.MODEL_ID AS maModelId,
+		wnd.PHOTO_URL AS picUrl,mt.`NAME` AS machineModel,mtt.`NAME` AS machineType,
+		pu.`NAME` AS checker,pu1.`NAME` AS customerRep,ROUND(mt.BUY_PRICE) AS buyPrice,
+		mv.`NAME` AS venderName,wnd.ACTUAL_PRICE AS actualPrice,wnd.CHECKER AS checkerId,
+		wnd.TASK_ID AS taskId,wnd.CHECK_URL AS checkUrl,wnd.INVOICE_URL AS invoiceUrl
+		FROM wf_new_details wnd 
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER 
+		WHERE wnd.TASK_ID = #{param.taskId}
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   	SELECT wnd.ID AS id, wnd.CHECK_PLACE AS checkPlace,wnd.ARRIVAL_NUM AS arrivalNum,
+		wnd.CHECK_STATUS AS checkStatus,wnd.CHECK_TIME AS checkTime,wnd.MODEL_ID AS maModelId,
+		wnd.PHOTO_URL AS picUrl,mt.`NAME` AS machineModel,mtt.`NAME` AS machineType,
+		pu.`NAME` AS checker,pu1.`NAME` AS customerRep,ROUND(mt.BUY_PRICE) AS buyPrice,
+		mv.`NAME` AS venderName,wnd.ACTUAL_PRICE AS actualPrice,wnd.CHECKER AS checkerId,
+		wnd.TASK_ID AS taskId,wnd.CHECK_URL AS checkUrl,wnd.INVOICE_URL AS invoiceUrl
+		FROM wf_new_details wnd 
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER
+		WHERE wnd.TASK_ID = #{taskId} and wnd.MODEL_ID = #{maModelId}
+ 	</select>
+ 	<select id="findByCheckTaskId" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   	SELECT wnd.TASK_ID AS taskId
+			FROM wf_task_record wtr
+			LEFT JOIN wf_new_check wnc ON wnc.TASK_ID = wtr.ID
+			LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+			LEFT JOIN wf_task_appoint wta ON wta.TASK_ID = wtr.SUP_ID
+			LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = wta.ID 
+			WHERE wnc.TASK_ID = #{taskId} AND wnc.MODEL_ID = #{maModelId}
+ 	</select>
+ 	
+    <!-- 新增和查看发票图片 -->
+ 	<select id="findInvoiceUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultType="com.bonus.newInput.beans.InputDetailsBean">
+		select INVOICE_URL as invoiceUrl
+		from wf_new_details
+		where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</select>
+	
+	<update id="updateInvoiceUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set INVOICE_URL = #{invoiceUrl}
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+ 	
+ 	
+ 	<!-- 新增和查看机具信息图片 -->
+ 	<select id="findManchinesUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultType="com.bonus.newInput.beans.InputDetailsBean">
+		select PHOTO_URL as picUrl
+		from wf_new_details
+		where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</select>
+ 	
+ 	<update id="updatePhotoUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set PHOTO_URL = #{picUrl}
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	
+	<!-- 新增和查看检查图片 -->
+	<select id="findcheckUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultType="com.bonus.newInput.beans.InputDetailsBean">
+		select CHECK_URL as checkUrl
+		from wf_new_details
+		where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</select>
+	<update id="updateCheckUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set CHECK_URL = #{checkUrl}
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+	
+	
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.newInput.beans.InputDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into wf_new_details
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maModelId != null">
+				MODEL_ID,
+			</if>
+			<if test="arrivalNum != null">
+				ARRIVAL_NUM,
+			</if>
+			<if test="checkStatus != null">
+				CHECK_STATUS,
+			</if>
+			<if test="checkTime != null">
+				CHECK_TIME,
+			</if>
+			<if test="checkPlace != null">
+				CHECK_PLACE,
+			</if>
+			<if test="operator != null">
+				OPERATOR,
+			</if>
+			<if test="operationTime != null">
+				OPERATION_TIME,
+			</if>
+			<if test="picUrl != null">
+				PHOTO_URL,
+			</if>
+			<if test="customerRep != null">
+				CUSTOMER_SERVICE_REP,
+			</if>
+			<if test="checker != null">
+				CHECKER,
+			</if>
+			<if test="maVenderId != null">
+				MA_VENDER,
+			</if>
+			<if test="actualPrice != null">
+				ACTUAL_PRICE,
+			</if>
+			IS_ACTIVE,
+			IS_SURE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maModelId != null">
+				#{maModelId},
+			</if>
+			<if test="arrivalNum != null">
+				#{arrivalNum},
+			</if>
+			<if test="checkStatus != null">
+				#{checkStatus},
+			</if>
+			<if test="checkTime != null">
+				#{checkTime},
+			</if>
+			<if test="checkPlace != null">
+				#{checkPlace},
+			</if>
+			<if test="operator != null">
+				#{operator},
+			</if>
+			<if test="operationTime != null">
+				#{operationTime},
+			</if>
+			<if test="picUrl != null">
+				#{picUrl},
+			</if>
+			<if test="customerRep != null">
+				#{customerRep},
+			</if>
+			<if test="checker != null">
+				#{checker},
+			</if>
+			<if test="maVenderId != null">
+				#{maVenderId},
+			</if>
+			<if test="actualPrice != null">
+				#{actualPrice},
+			</if>
+			1,
+			0,
+		</trim>
+	</insert>
+	
+ 	<insert id="insertMaNewInput" parameterType="com.bonus.newInput.beans.InputDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into mm_newinput
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				TASK_ID,
+			</if>
+			<if test="maId != null">
+				MA_ID,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="maId != null">
+				#{maId},
+			</if>
+		</trim>
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+		update wf_new_details
+        <set>
+            <if test="maModelId != null">
+               MODEL_ID = #{maModelId},
+            </if>
+             <if test="maVenderId !=null">
+              MA_VENDER = #{maVenderId},
+            </if>
+             <if test="arrivalNum !=null">
+              ARRIVAL_NUM = #{arrivalNum},
+            </if>
+             <if test="customerRep != null">
+              CUSTOMER_SERVICE_REP = #{customerRep},
+            </if>
+             <if test="checker != null">
+              CHECKER = #{checker},
+            </if>
+            <if test="checkPlace != null">
+              CHECK_PLACE = #{checkPlace},
+            </if>
+            <if test="actualPrice != null">
+              ACTUAL_PRICE = #{actualPrice},
+            </if>
+        </set>
+       	where ID = #{id}
+	</update>
+	
+	<select id="findPicUrl" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultType="string">
+		select PHOTO_URL
+		from wf_new_details
+		where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</select>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+		<!-- update wf_new_details set
+		IS_ACTIVE = '0' -->
+		delete from wf_new_details
+		where TASK_ID = #{taskId} and MODEL_ID = #{maModelId}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM tm_task_ma_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+ 	<update id="isSure" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details
+	    <set>
+             <if test="checkStatus != null">
+              CHECK_STATUS = #{checkStatus},
+            </if>
+             <if test="checkTime != null">
+              CHECK_TIME = #{checkTime},
+            </if>
+        </set>
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+ 	<update id="updateCheckStatus" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set CHECK_STATUS = #{checkStatus}
+	    where TASK_ID=#{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+ 	
+	
+ 	<update id="updateCheckStatusById" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set CHECK_STATUS = #{checkStatus}
+	    where ID = #{id}
+	</update>
+	
+ 	<update id="updateCheckNum" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+	    update wf_new_details set QUALIFIED_NUM = #{qualifiedNum},CHECK_CONCLUSION = #{checkConclusion}
+	    where TASK_ID  = #{taskId} and MODEL_ID = #{maModelId}
+	</update>
+	
+ 	<select id="findPersonInfo" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   SELECT CHECKER AS checker,CUSTOMER_SERVICE_REP AS customerRep
+		FROM wf_new_details 
+		WHERE ID = #{id}
+ 	</select>
+ 	
+ 	<select id="findMaIdByTask" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   SELECT mm.ID AS id,mm.TYPE AS maModelId
+			FROM mm_newinput mn
+			LEFT JOIN mm_machines mm ON mm.ID = mn.MA_ID
+			WHERE mn.TASK_ID = #{taskId} AND mm.TYPE = #{maModelId}
+ 	</select>
+ 	
+ 	<select id="findMaIdByTaskBachStatus" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   SELECT mm.ID AS id,mm.TYPE AS maModelId
+			FROM mm_newinput mn
+			LEFT JOIN mm_machines mm ON mm.ID = mn.MA_ID
+			WHERE mn.TASK_ID = #{taskId} AND mm.TYPE = #{maModelId}
+			AND mm.BATCH_STATUS = '1'
+ 	</select>
+</mapper>

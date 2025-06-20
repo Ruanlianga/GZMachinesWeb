@@ -1,0 +1,270 @@
+.headerLeft {
+	width: 300px;
+	height: 106px;
+	float: left
+}
+
+.headerSelect {
+	border: solid 1px #012547;
+	background-color: #012547;
+	position: relative;
+	top: 10px;
+	left: 30px;
+	font-family: "Segoe UI", "Lucida Grande", Helvetica, Arial,
+		"Microsoft YaHei", FreeSans, Arimo, "Droid Sans",
+		"wenquanyi micro hei", "Hiragino Sans GB", "Hiragino Sans GB W3",
+		Arial, sans-serif;
+	font: 14px;
+	color: #ffffff;
+}
+
+.headerRight {
+	float: right;
+	margin-right: 25px;
+	margin-top: 1.2%;
+}
+
+.headerDate {
+	border: solid 1px #012547;
+	background-color: #012547;
+	font-family: Arial;
+	position: relative;
+	color: #ffffff;
+	top: 10px;
+}
+
+.headerTime {
+	border: solid 1px #012547;
+	background-color: #012547;
+	font-family: Arial;
+	position: relative;
+	color: #ffffff;
+	position: relative;
+	font-size: 180%;
+	top: 10px;
+}
+
+.main {
+	width: 100%;
+	float: left;
+	height: 81%;
+}
+
+.main_left {
+	width: 23.7%;
+	height: 97%;
+	float: left;
+	border-radius: 8px;
+	margin: 1%;
+	margin-top: -1%;
+}
+
+#test {
+	width: 100%;
+	height: 100%;
+	background-color: #F45052;
+	margin: auto;
+}
+
+#text {
+	color: #292929;
+	font-size: 10px;
+	font-family: "微软雅黑";
+	padding: 2px;
+	margin-top: 1px
+}
+
+#text>a {
+	margin: 10px;
+	color: #FFFFFF;
+}
+
+#text>a:hover {
+	color: #FFFFFF;
+}
+
+span {
+	margin-left: 3px;
+}
+
+select::-ms-expand {
+	display: none;
+}
+
+.tbody {
+	width: 100%;
+	height: 85%;
+	overflow: scroll;
+	overflow-x: hidden;
+	overflow-y: auto;
+	scrollbar-3dlight-color: #0C68A6;
+	scrollbar-darkshadow-color: #0C68A6;
+}
+/* chrome下的滚动条样式 */
+::-webkit-scrollbar {
+	width: 12px;
+} /* 滚动槽 */
+::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 6px #0466A6;
+	border-radius: 5px;
+} /* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+	border-radius: 10px;
+	background: #0466A6;
+	-webkit-box-shadow: inset 0 0 6px #0466A6;
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+	background: #0466A6;
+}
+
+.number {
+	border-radius: 5px;
+}
+
+.left_top {
+	width: 100%;
+	height: 35%;
+	background-color: #033059;
+	float: left;
+	border-radius: 8px;
+	border-top: 1px solid #073f89;
+}
+
+.left_bottom {
+	width: 100%;
+	height: 35%;
+	border-top: 1px solid #073f89;
+	background-color: #033059;
+	margin-top: 2%;
+	float: left;
+	border-radius: 8px;
+	text-align: center;
+}
+
+.left_center {
+	width: 100%;
+	height: 40%;
+	border-top: 1px solid #073f89;
+	background-color: #033059;
+	margin-top: 2%;
+	float: left;
+	border-radius: 8px;
+	text-align: center;
+}
+
+.main_center {
+	width: 35%;
+	height: 99%;
+	float: left;
+	padding: 3px 1% 1% 0;
+}
+
+.main_right {
+	width: 30%;
+	height: 99%;
+	float: left;
+	border-radius: 8px;
+	padding: 1% 0 0 0;
+	margin-top: -4%;
+}
+
+.rigth_top {
+	width: 100%;
+	height: 63%;
+	background-color: #033059;
+	border-top: 1px solid #073f89;
+	float: left;
+	border-radius: 8px;
+}
+
+.rigth_bottom {
+	width: 100%;
+	height: 37%;
+	border-top: 1px solid #073f89;
+	background-color: #033059;
+	margin-top: 2%;
+	float: left;
+	border-radius: 8px;
+}
+
+/* 照片展示样式 */
+ul.imglist {
+	margin: 0 auto;
+	width: 100%;
+	overflow: hidden;
+	margin-left: -7%;
+	height: 100%
+}
+
+li {
+	list-style-type: none;
+}
+
+li a {
+	border: 1px solid #0347C7;
+}
+
+ul.imglist li {
+	float: left;
+	width: 30%;
+	height: 28%;
+	margin: 1% 0 0 1%;
+}
+
+ul.imglist li img {
+	display: block;
+	width: 100%;
+	height: 100%
+}
+
+.rigth_bottom img {
+	width: 100%;
+	height: 100%;
+}
+/* 照片展示样式 */
+#image {
+	width: 95%;
+	height: 90%;
+	margin: 2% 2% 2% 2%;
+}
+
+.bottom_div {
+	width: 35%;
+	height: 100%;
+	float: left;
+	margin-left: 9%;
+}
+
+/* 地图自定义控件样式 */
+.map_title1, .map_title2 { /* 自定义组件模块内容样式 */
+	position: relative;
+	left: 20px;
+	top: 10px;
+	height: 70%;
+	float: left;
+	text-align: center;
+}
+
+.map_title3, .map_title4, .map_title5 { /* 自定义组件模块内容样式 */
+	position: relative;
+	top: 10px;
+	width: 13%;
+	height: 70%;
+	float: left;
+	text-align: center;
+}
+
+.text, .sequential_up_text, .loading_text, .end_text { /* 文字内容样式 */
+	position: absolute;
+	bottom: 0px;
+	left: -2px;
+	width: 100%
+}
+
+.no_workumber, .loading_workumber, .end_workumber { /* 施工数量样式 */
+	position: absolute;
+	left: -2px;
+	width: 100%
+}
+/* 地图自定义控件样式 */

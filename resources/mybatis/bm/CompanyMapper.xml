@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.bm.dao.CompanyDao" >
+
+    <select id="getCompany" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        select ID,`NAME` from bm_company where IS_ACTIVE=1
+    </select>
+    
+    <select id="getCompanyType" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        select ID,`NAME` from bm_company_type where IS_ACTIVE = 1
+    </select>
+    
+    <select id="getUnit" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        select ID,`NAME` from bm_unit 
+        where IS_ACTIVE=1 and company_id = #{companyId}
+        <if test="typeId != null and typeId != ''">
+        	and TYPE_ID = #{typeId}
+        </if>
+    </select>
+    
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+    
+    <select id="unitTree" resultMap="ZNode" parameterType="com.bonus.bm.beans.CompanyBean">
+     	SELECT
+			bu.TYPE_ID as id,
+			bct.`NAME`,
+			0 as pId,
+			1 as level 
+			FROM
+			bm_unit bu
+			LEFT JOIN bm_company_type bct on bu.TYPE_ID = bct.id 
+			WHERE bu.IS_ACTIVE = 1 
+			GROUP BY bu.TYPE_ID
+	UNION
+			SELECT
+			bu.ID,
+			bu.`NAME` ,
+			bu.TYPE_ID as pId,
+			2 AS level 
+			FROM 
+			bm_unit bu
+			WHERE bu.IS_ACTIVE = 1 
+    </select>
+    
+    <update id="delete" parameterType="com.bonus.bm.beans.CompanyBean">
+        update bm_unit set IS_ACTIVE =0 where id=#{id}
+    </update>
+    
+    <select id="findByPage" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+		SELECT bmu.ID,bmu.COMPANY_ID as companyId,bmc.`NAME` as companyName,
+		bmu.TYPE_ID as typeId,bmt.`NAME` as typeName,bmu.TIME as unitTime,
+		bmu.`NAME` as name,bmu.MATERIAL_CLERK as materialClerk,bmu.MANAGER as manager,
+		bmu.PHONE as phone,bmu.IS_DISMISS as isDismiss
+		from bm_unit bmu
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_company_type bmt on bmt.ID = bmu.TYPE_ID
+		where  1=1 and bmu.IS_ACTIVE=1
+		<if test="param.isDis !=null and param.isDis!=''">
+		   and bmu.IS_DISMISS=#{param.isDis}
+		</if>
+		<if test="param.typeId !=0">
+		   and bmu.TYPE_ID =#{param.typeId}
+		</if>
+		<if test="param.companyId !=0">
+		   and bmu.COMPANY_ID=#{param.companyId}
+		</if> 
+		<if test="param.keyWord !=null">
+		   and ( 
+			   bmu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			   bmu.MATERIAL_CLERK LIKE CONCAT('%',#{param.keyWord},'%') OR
+			   bmu.MANAGER LIKE CONCAT('%',#{param.keyWord},'%') OR
+			   bmu.PHONE LIKE CONCAT('%',#{param.keyWord},'%') 
+			)
+		</if> 
+		<if test="param.startTime !='' and param.endTime =='' ">
+		   <![CDATA[ 
+		    and bmu.TIME > #{param.startTime}
+		    ]]>
+		</if>
+		<if test="param.startTime =='' and param.endTime !='' ">
+		   <![CDATA[ 
+		    and bmu.TIME <#{param.endTime}
+		    ]]>
+		</if>
+		<if test="param.startTime !='' and param.endTime !='' ">
+		   <![CDATA[ 
+		    and ( bmu.TIME > #{param.startTime}
+		    and bmu.TIME < #{param.endTime} 
+		    	)
+		    ]]>
+		</if>
+		
+		ORDER BY bmu.TIME DESC      
+    </select>
+    
+    <insert id="insert" parameterType="com.bonus.bm.beans.CompanyBean"> 
+       insert into bm_unit
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+        	<if test="name !=null">
+        	    NAME,
+        	</if>
+        	<if test="typeId1 !=null">
+        	    TYPE_ID,
+        	</if>
+        	<if test="companyId1 !=null">
+        	    COMPANY_ID,
+        	</if>
+        	<if test="materialClerk !=null">
+        	    MATERIAL_CLERK,
+        	</if>
+        	<if test="manager !=null">
+        	    MANAGER,
+        	</if>
+        	<if test="phone !=null">
+        	    PHONE,
+        	</if>
+        	IS_DISMISS,
+        	TIME,
+        </trim>
+        <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+        	<if test="name !=null">
+        	    #{name},
+        	</if>
+        	<if test="typeId1 !=null">
+        	    #{typeId1},
+        	</if>
+        	<if test="companyId1 !=null">
+        	   #{companyId1},
+        	</if>
+        	<if test="materialClerk !=null">
+        	    #{materialClerk},
+        	</if>
+        	<if test="manager !=null">
+        	    #{manager},
+        	</if>
+        	<if test="phone !=null">
+        	    #{phone},
+        	</if>
+        	 '0',
+        	NOW(),
+        </trim>
+    </insert>
+    
+    <select id="find" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        SELECT bmu.ID,bmu.COMPANY_ID as companyId,bmc.`NAME` as companyName,
+		bmu.TYPE_ID as typeId,bmt.`NAME` as typeName,
+		bmu.`NAME` as name,bmu.MATERIAL_CLERK as materialClerk,bmu.MANAGER as manager,
+		bmu.PHONE as phone,bmu.IS_DISMISS as isDismiss
+		from bm_unit bmu
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_company_type bmt on bmt.ID = bmu.TYPE_ID
+		where bmu.IS_ACTIVE=1
+		and bmu.ID=#{id}
+    </select>
+
+    <update id="update" parameterType="com.bonus.bm.beans.CompanyBean">
+       update bm_unit
+        <set>
+             <if test="name !=null">
+        	    NAME =#{name},
+        	</if>
+        	<if test="typeId1 !=null">
+        	    TYPE_ID =#{typeId1},
+        	</if>
+        	<if test="companyId1 !=null">
+        	    COMPANY_ID =#{companyId1},
+        	</if>
+        	<if test="materialClerk !=null">
+        	    MATERIAL_CLERK =#{materialClerk},
+        	</if>
+        	<if test="manager !=null">
+        	    MANAGER =#{manager},
+        	</if>
+        	<if test="phone !=null">
+        	    PHONE =#{phone},
+        	</if>
+        </set>
+        where id=#{id}
+    </update>
+    
+    <select id="getUnitName" resultType="com.bonus.bm.beans.CompanyBean" parameterType="com.bonus.bm.beans.CompanyBean">
+        SELECT bmu.ID,bmu.COMPANY_ID as companyId,bmc.`NAME` as companyName,
+		bmu.TYPE_ID as typeId,bmt.`NAME` as typeName,
+		bmu.`NAME` as name,bmu.MATERIAL_CLERK as materialClerk,bmu.MANAGER as manager,
+		bmu.PHONE as phone,bmu.IS_DISMISS as isDismiss
+		from bm_unit bmu
+		LEFT JOIN bm_company bmc on bmc.ID = bmu.COMPANY_ID
+		LEFT JOIN bm_company_type bmt on bmt.ID = bmu.TYPE_ID
+		where bmu.IS_ACTIVE=1 and bmu.`NAME` = #{name}
+		<if test="companyId1 != null and companyId1 != ''">
+			and bmu.COMPANY_ID = #{companyId1}
+		</if>
+    </select>
+    
+     <select id="findByNameAndCompanyId" parameterType="com.bonus.bm.beans.CompanyBean" resultType="com.bonus.bm.beans.CompanyBean">
+        SELECT 	distinct ID,COMPANY_ID as companyId,TYPE_ID as typeId,`NAME` as name,
+        		MATERIAL_CLERK as materialClerk,MANAGER as manager,
+				PHONE as phone,IS_DISMISS as isDismiss
+		from bm_unit
+		where `NAME` = #{name} and COMPANY_ID = #{companyId1}
+    </select>
+    
+</mapper>

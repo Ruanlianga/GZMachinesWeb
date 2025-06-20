@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<taglib xmlns="http://java.sun.com/xml/ns/j2ee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-jsptaglibrary_2_0.xsd"
+  version="2.0">
+    
+  <description>JSTL 1.1 functions library</description>
+  <display-name>JSTL functions sys</display-name>
+  <tlib-version>1.1</tlib-version>
+  <short-name>fns</short-name>
+  <uri>http://java.sun.com/jsp/jstl/functionss</uri>
+
+  <!-- DictUtils -->
+  
+  <function>
+    <description>获取时间状态</description>
+    <name>checkDateStatus</name>
+    <function-class>com.bonus.core.DateTimeHelper</function-class>
+    <function-signature>java.lang.Integer checkDateStatus(java.lang.String,java.lang.String)</function-signature>
+    <example>${fns:checkDateStatus(starTime,endTime)}</example>  
+  </function>
+  
+  <function>
+    <description>获取时间状态</description>
+    <name>currentDateTimeAddOrSub</name>
+    <function-class>com.bonus.core.DateTimeHelper</function-class>
+    <function-signature>java.lang.String currentDateTimeAddOrSub(java.lang.String)</function-signature>
+    <example>${fns:currentDateTimeAddOrSub(dateFmt)}</example>  
+  </function>
+  
+  <function>
+    <description>判断活动报名是否开始</description>
+    <name>isStartApply</name>
+    <function-class>com.bonus.core.DateTimeHelper</function-class>
+    <function-signature>java.lang.Boolean isStartApply(java.lang.String)</function-signature>
+    <example>${fns:isStartApply(starTime)}</example>  
+  </function>
+  
+  <function>
+    <description>非空占位符</description>
+    <name>nullPlaceholder</name>
+    <function-class>com.bonus.core.StringHelper</function-class>
+    <function-signature>java.lang.String nullPlaceholder(java.lang.String,java.lang.String)</function-signature>
+    <example>${fns:nullPlaceholder(str,holderStr)}</example>
+  </function>
+  
+  <function>
+    <description>向下取整</description>
+    <name>ceshi</name>
+    <function-class>com.bonus.core.StringHelper</function-class>
+    <function-signature>java.lang.Integer ceshi(java.lang.Integer,java.lang.Integer)</function-signature>
+    <example>${fns:ceshi(a,b)}</example>  
+  </function>
+  
+  <function>
+    <description>将2019-09-12改成2019年09月12日</description>
+    <name>dateFormat</name>
+    <function-class>com.bonus.core.DateTimeHelper</function-class>
+    <function-signature>java.lang.String dateFormat(java.lang.String)</function-signature>
+    <example>${fns:dateFormat(a)}</example>  
+  </function>
+  
+  <!-- 获取权限btn集合 -->
+  <function>
+    <description>获取该文件的</description>
+    <name>getShiroBtns</name>
+    <function-class>com.bonus.core.StringHelper</function-class>
+    <function-signature>java.lang.String getShiroBtns(java.lang.String)</function-signature>
+    <example>${fns:getShiroBtns(a)}</example>  
+  </function>
+  
+</taglib>

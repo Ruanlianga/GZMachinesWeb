@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.settlement.dao.SettlementMoneyDao">
+
+	<resultMap id="SettlsementMoney" type="com.bonus.settlement.beans.SettlementMoneyBean"></resultMap>
+	
+	<insert id="insert" parameterType="com.bonus.settlement.beans.SettlementMoneyBean">
+		insert into wf_settlement_details(AGREEMENT_ID,MA_TYPE_ID,NUM,START_TIME,NUMS,END_TIME,MONEY,TYPE,BATCH,IS_SURE,IS_SETTLEMENT) 
+	    values(#{agreementId},#{typeId},#{num},#{startTime},#{nums},#{endTime},#{money},#{type},#{batch},#{isSure},#{isSettlement})
+	</insert>
+
+	<delete id="delete" parameterType="com.bonus.settlement.beans.SettlementMoneyBean">
+		delete from wf_settlement_details 
+		where AGREEMENT_ID = #{agreementId} and TYPE = #{type} and BATCH = #{batch}
+	</delete>
+
+</mapper>
+

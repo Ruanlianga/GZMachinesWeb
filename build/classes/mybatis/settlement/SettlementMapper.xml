@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.settlement.dao.SettlementDao" >
+    <resultMap id="settlement" type="com.bonus.settlement.beans.SettlementBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.settlement.beans.SettlementBean" resultMap="settlement">
+		SELECT 	distinct wla.ID as id,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,
+				bp.`NAME` as projectName,wla.IS_BALANCE as isSettlement
+		        FROM wf_lease_agreement wla
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+	    where wla.`CODE` = #{param.agreementCode} and wla.IS_BALANCE = #{param.isSettlement}
+	 	<if test="param.keyWord !='' and param.keyWord !=null"> 
+	     	and (
+			    wla.`CODE` like concat('%',#{param.keyWord},'%') or
+			    bu.`NAME` 	like concat('%',#{param.keyWord},'%') or
+			    bp.`NAME` 	like concat('%',#{param.keyWord},'%')
+	      	)
+	 	</if>  
+ 	</select>
+ 	
+ 	<select id="find" resultType="com.bonus.settlement.beans.SettlementBean">
+	 SELECT distinct wla.ID as id,wla.`CODE` as agreementCode,bu.`NAME` as leaseName,bp.`NAME` as projectName,
+	    wla.IS_BALANCE as isSettlement,wla.SETTLEMENT_TIME as settlementDate
+		FROM wf_lease_agreement wla
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		where wla.ID = #{id}
+	</select>
+	
+	<select id="findCode" resultType="java.lang.String" parameterType="com.bonus.settlement.beans.SettlementBean">
+		SELECT COUNT(a.ID) FROM wf_lease_agreement a WHERE a.IS_BALANCE = 0
+	</select>
+	
+ 	
+</mapper>

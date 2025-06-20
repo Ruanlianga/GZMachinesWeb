@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.scrap.dao.ScrapAuditDao" >
+    <resultMap id="scrap" type="com.bonus.scrap.beans.ScrapAuditBean"></resultMap>
+
+<resultMap id="baseResultMap" type="com.bonus.scrap.beans.ScrapAuditBean" >
+   <id column="ID" property="id" jdbcType="INTEGER" />
+   
+   	<result column="code" property="code" />
+   	<result column="applyTime" property="applyTime" />
+   	<result column="applyRemark" property="applyRemark" />
+   	<result column="applyer" property="applyer" />
+   	<result column="auditor" property="auditor" />
+   	<result column="auditTime" property="auditTime" />
+   	<result column="auditRemark" property="auditRemark" />
+   	<result column="status" property="status" />
+ 	<collection property="details" ofType="com.bonus.scrap.beans.ScrapAuditBean">
+			<id column="dId" property="id" jdbcType="INTEGER" />
+		    <result column="typeId" property="typeId" />
+		    <result column="maId" property="maId" />
+		    <result column="typeName" property="typeName" />
+		    <result column="modelName" property="modelName" />
+		    <result column="maCode" property="maCode" />
+		    <result column="num" property="num" />
+		 	<result column="url" property="url" />
+		 	<result column="fileName" property="fileName" />
+	</collection> 
+	   	
+  </resultMap>
+	
+	<select id="findByPage" resultMap="scrap" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+		
+	    SELECT
+			wsa.ID,
+			wsa.`CODE`,
+			wsa.CREATE_TIME AS applyTime,
+			wsa.apply_remark AS applyRemark,
+			
+			pu.`NAME` AS applyer,
+			pu2.`NAME` AS auditor,
+			wsa.AUDIT_TIME AS auditTime,
+			wsa.AUDIT_REMARK AS auditRemark ,
+			wsa.`STATUS`,
+			GROUP_CONCAT(DISTINCT mt2.`NAME`) as typeName
+			
+		FROM
+		wf_scrap_apply wsa
+		LEFT JOIN scrap_apply_details sad ON sad.apply_id = wsa.ID
+		LEFT JOIN mm_type mt ON mt.ID = sad.type_id
+		LEFT JOIN mm_type mt2 ON mt2.ID = mt.PARENT_ID
+		LEFT JOIN pm_user pu on wsa.CREATOR = pu.ID
+		LEFT JOIN pm_user pu2 on wsa.AUDITOR = pu2.ID 
+		where wsa.`STATUS` in (0,1,2)
+		<if test="param.status != null and param.status != ''">
+			AND wsa.status = #{param.status}
+		</if>
+		<if test="param.keyWord != null and param.keyWord != ''">
+			AND (
+				 	wsa.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+				 or pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				 or pu2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				
+			)
+		</if>
+		GROUP BY wsa.ID
+		order by wsa.ID desc
+	</select>
+	
+	<select id="findScrapApplyById" resultMap="baseResultMap" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	
+	       SELECT
+			wsa.id,
+			wsa.`code`,
+			wsa.apply_remark AS applyRemark,
+			pu.`NAME` AS applyer,
+			sad.id as dId,
+			sad.type_id as typeId,
+			sad.ma_id as maId,
+			ma.DEVICE_CODE as maCode ,
+			mt2.`NAME` as typeName,
+			mt.`NAME` as modelName,
+			sad.num,
+			wsa.AUDIT_REMARK as auditRemark,
+			saf.FILE_URL as url
+			FROM
+			wf_scrap_apply wsa
+			LEFT JOIN scrap_apply_file saf ON saf.APPLY_ID = wsa.ID
+			LEFT JOIN scrap_apply_details sad on wsa.ID = sad.apply_id
+			LEFT JOIN mm_type mt on sad.type_id = mt.ID
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID
+			LEFT JOIN mm_machines ma on sad.ma_id = ma.ID
+			LEFT JOIN pm_user pu on wsa.CREATOR = pu.ID
+			WHERE wsa.ID = #{id}
+	</select>
+	
+	<select id="findScrapFileById" resultMap="baseResultMap" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+		SELECT APPLY_ID as dId,FILE_NAME as fileName,FILE_URL as url
+		FROM scrap_apply_file 
+		WHERE APPLY_ID = #{id}
+	</select>
+
+  <insert id="insertBean" useGeneratedKeys="true" keyProperty="id"
+											parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	 insert into 
+	    	scrap_apply_audit 
+	    	<trim prefix="(" suffix=")" suffixOverrides=",">
+	    	    
+	    	 <if test="source != null ">
+	    		source,
+	    	</if>   
+	    	    
+	    	<if test="sourceId != null ">
+	    		source_id,
+	    	</if>
+	    	
+	    	<if test="code != null ">
+	    		CODE,
+	    	</if>
+	    	
+	    	<if test="applyer != null ">
+	    		applyer,
+	    	</if>
+	    	
+	    	<if test="applyTime != null ">
+	    		apply_time,
+	    	</if>
+	    	
+	    	<if test="applyRemark !=null ">
+	    	   apply_remark,
+	    	</if>
+	    	<if test="status !=null ">
+	    	   status
+	    	</if>
+	   	</trim>
+	     <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+	         
+	        <if test="source != null ">
+	    		#{source},
+	    	</if>
+	    	
+	    	<if test="sourceId != null">
+	    		#{sourceId},
+	    	</if>
+	    	
+	    	<if test="code != null ">
+	    		#{code},
+	    	</if>
+	    	
+	    	<if test="applyer != null">
+	    		#{applyer},
+	    	</if>
+	    	
+	    	<if test="applyTime != null ">
+	    		#{applyTime},
+	    	</if>
+	    	
+	    	<if test="applyRemark !=null ">
+	    	    #{applyRemark},
+	    	</if>
+	    	<if test="status !=null ">
+	    	   #{status}
+	    	</if>
+    	</trim>
+	    	
+	</insert>
+	
+  <insert id="insertDetails" 
+			parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	 insert into 
+	    	scrap_apply_details 
+	    	<trim prefix="(" suffix=")" suffixOverrides=",">
+	    	    
+	    	 <if test="applyId != null ">
+	    		apply_id,
+	    	</if>   
+	    	    
+	    	<if test="typeId != null ">
+	    		type_id,
+	    	</if>
+	    	
+	    	<if test="maId != null ">
+	    		ma_id,
+	    	</if>
+	    	
+	    	<if test="num != null ">
+	    		num,
+	    	</if>
+	    	
+	    
+	    	<if test="damageNum != null ">
+	    		damage_num
+	    	</if>
+	    	
+	   	</trim>
+	     <trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+	         
+	        <if test="applyId != null ">
+	    		#{applyId},
+	    	</if>
+	    	
+	    	<if test="typeId != null">
+	    		#{typeId},
+	    	</if>
+	    	
+	    	<if test="maId != null ">
+	    		#{maId},
+	    	</if>
+	    	
+	    	<if test="num != null">
+	    		#{num},
+	    	</if>
+	    	
+	   	    	<if test="damageNum != null ">
+	    		#{damageNum}
+	    	</if>
+	  
+	    	</trim>
+	</insert>
+	
+  
+  	<update id="updateBean" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE wf_scrap_apply
+		<set>
+            <if test="status !=null">
+              STATUS = #{status},
+            </if>
+            <if test="auditor !=null">
+              AUDITOR = #{auditor},
+            </if>
+            <if test="auditTime !=null">
+              AUDIT_TIME = #{auditTime},
+            </if>
+            <if test="auditRemark !=null">
+              AUDIT_REMARK = #{auditRemark}
+            </if>
+		</set>
+		WHERE 
+			ID = #{id}
+	</update>
+	
+  	<update id="updateISF" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE bpm_inventory_scrap_from
+		<set>
+            <if test="sourceStatus !=null">
+              status = #{sourceStatus},
+            </if>
+           	<if test="auditRemark !=null">
+              audit_remark = #{auditRemark}
+            </if>
+		</set>
+		WHERE 
+			ID = #{sourceId}
+	</update>
+	
+  	<update id="updateBe" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE bpm_example
+		<set>
+            <if test="sourceStatus !=null">
+              status = #{sourceStatus}
+            </if>
+          
+		</set>
+		WHERE 
+			ID = #{sourceId}
+	</update>
+	
+  	<update id="updateRF" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE bpm_repair_form
+		<set>
+            <if test="num !=null">
+              scrap_num = 0,
+            </if>
+            <if test="damageNum !=null">
+              damage_num =0,
+            </if>
+          is_sure = 0
+		</set>
+		WHERE 
+			EXAMPLE_ID = #{sourceId} and MATYPE_ID = #{typeId}
+			     
+           <if test="maId !=null">
+             and  MA_ID = #{maId} 
+           </if>
+        
+	</update>
+	
+	<update id="updateStatus" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE scrap_apply_details set is_sure = 1
+		WHERE id = #{id}
+	</update>
+	
+	<select id="getApply" resultMap="scrap" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+		select id as id
+		from scrap_apply_audit 
+		where source_id = #{sourceId} and status =#{status}
+	</select>	
+	
+	<update id="updateApplyStatus" parameterType="com.bonus.scrap.beans.ScrapAuditBean">
+	   UPDATE scrap_apply_audit set status = 0
+		WHERE source_id = #{id} and status = 3
+	</update>
+	
+</mapper>

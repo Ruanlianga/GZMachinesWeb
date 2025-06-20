@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.data.dao.GpsDataDao" >
+
+    <resultMap id="gpsData" type="com.bonus.data.beans.GpsDataBean"></resultMap>
+	
+	<insert id="insert" parameterType="com.bonus.data.beans.GpsDataBean">
+		REPLACE into gps_real_time_data
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="gpsCode !=null">
+				GPS_CODE,
+			</if>
+			<if test="deviceCode !=null">
+				DEVICE_CODE,
+			</if>
+			<if test="collectTime !=null">
+				COLLECT_TIME,
+			</if>
+			<if test="lon !=null">
+				LON,
+			</if>
+			<if test="lat !=null">
+				LAT,
+			</if>
+			<if test="gpsStatus !=null">
+				STATUS,
+			</if>
+			<if test="posType !=null">
+				POS_TYPE,
+			</if>
+			<if test="hbTime !=null">
+				HB_TIME,
+			</if>
+			<if test="activationFlag !=null">
+				ACTIVATION_FLAG,
+			</if>
+			<if test="expireFlag !=null">
+				EXPIRE_FLAG,
+			</if>
+			<if test="electQuantity !=null">
+				ELECT_QUANTITY,
+			</if>
+			<if test="speed !=null">
+				SPEED,
+			</if>
+			<if test="powerValue !=null">
+				POWER_VALUE,
+			</if>
+			<if test="accStatus !=null">
+				ACC_STATUS,
+			</if>
+			<if test="upTime !=null">
+				UP_TIME,
+			</if>
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="gpsCode !=null">
+				#{gpsCode},
+			</if>
+			<if test="deviceCode !=null">
+				#{deviceCode},
+			</if>
+			<if test="collectTime !=null">
+				#{collectTime},
+			</if>
+			<if test="lon !=null">
+				#{lon},
+			</if>
+			<if test="lat !=null">
+				#{lat},
+			</if>
+			<if test="gpsStatus !=null">
+				#{gpsStatus},
+			</if>
+			<if test="posType !=null">
+				#{posType},
+			</if>
+			<if test="hbTime !=null">
+				#{hbTime},
+			</if>
+			<if test="activationFlag !=null">
+				#{activationFlag},
+			</if>
+			<if test="expireFlag !=null">
+				#{expireFlag},
+			</if>
+			<if test="electQuantity !=null">
+				#{electQuantity},
+			</if>
+			<if test="speed !=null">
+				#{speed},
+			</if>
+			<if test="powerValue !=null">
+				#{powerValue},
+			</if>
+			<if test="accStatus !=null">
+				#{accStatus},
+			</if>
+			<if test="upTime !=null">
+				#{upTime},
+			</if>
+				
+		</trim>
+	</insert>
+	
+	<select id="getDeviceCode" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT bmd.DEVICE_CODE FROM gps_binding bmb,mm_machines bmd
+		WHERE bmb.DEVICE_CODE = bmd.DEVICE_CODE
+		AND bmb.GPS_CODE = #{gpsCode}
+		GROUP BY bmb.GPS_CODE
+	</select>
+	
+	<select id="findRealData" parameterType="com.bonus.data.beans.GpsDataBean" resultType="com.bonus.data.beans.GpsDataBean">
+		SELECT GPS_CODE as gpsCode,DEVICE_CODE as deviceCode,COLLECT_TIME as collectTime,
+		lon,lat,`STATUS` as gpsStatus,POS_TYPE as posType,HB_TIME as hbTime,UP_TIME as upTime,
+		ACTIVATION_FLAG as activationFlag,EXPIRE_FLAG as expireFlag,ELECT_QUANTITY as electQuantity,
+		SPEED,ACC_STATUS as accStatus,POWER_VALUE as powerValue
+		FROM gps_real_time_data
+	</select>
+	
+	<!-- 插入历史数据表 -->
+	<insert id="addHisData" parameterType="com.bonus.data.beans.GpsDataBean">
+		insert into gps_history_data
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="gpsCode !=null">
+				GPS_CODE,
+			</if>
+			<if test="deviceCode !=null">
+				DEVICE_CODE,
+			</if>
+			<if test="collectTime !=null">
+				COLLECT_TIME,
+			</if>
+			<if test="lon !=null">
+				LON,
+			</if>
+			<if test="lat !=null">
+				LAT,
+			</if>
+			<if test="gpsStatus !=null">
+				STATUS,
+			</if>
+			<if test="posType !=null">
+				POS_TYPE,
+			</if>
+			<if test="hbTime !=null">
+				HB_TIME,
+			</if>
+			<if test="activationFlag !=null">
+				ACTIVATION_FLAG,
+			</if>
+			<if test="expireFlag !=null">
+				EXPIRE_FLAG,
+			</if>
+			<if test="electQuantity !=null">
+				ELECT_QUANTITY,
+			</if>
+			<if test="speed !=null">
+				SPEED,
+			</if>
+			<if test="powerValue !=null">
+				POWER_VALUE,
+			</if>
+			<if test="accStatus !=null">
+				ACC_STATUS,
+			</if>
+			<if test="upTime !=null">
+				UP_TIME,
+			</if>
+		</trim>
+		<trim prefix="VALUES(" suffix=")" suffixOverrides=",">
+			<if test="gpsCode !=null">
+				#{gpsCode},
+			</if>
+			<if test="deviceCode !=null">
+				#{deviceCode},
+			</if>
+			<if test="collectTime !=null">
+				#{collectTime},
+			</if>
+			<if test="lon !=null">
+				#{lon},
+			</if>
+			<if test="lat !=null">
+				#{lat},
+			</if>
+			<if test="gpsStatus !=null">
+				#{gpsStatus},
+			</if>
+			<if test="posType !=null">
+				#{posType},
+			</if>
+			<if test="hbTime !=null">
+				#{hbTime},
+			</if>
+			<if test="activationFlag !=null">
+				#{activationFlag},
+			</if>
+			<if test="expireFlag !=null">
+				#{expireFlag},
+			</if>
+			<if test="electQuantity !=null">
+				#{electQuantity},
+			</if>
+			<if test="speed !=null">
+				#{speed},
+			</if>
+			<if test="powerValue !=null">
+				#{powerValue},
+			</if>
+			<if test="accStatus !=null">
+				#{accStatus},
+			</if>
+			<if test="upTime !=null">
+				#{upTime},
+			</if>
+				
+		</trim>
+	</insert>
+
+	<select id="findIsOnline" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT datediff(now(),COLLECT_TIME)
+		FROM gps_real_time_data WHERE GPS_CODE = #{gpsCode}
+		GROUP BY LEFT(COLLECT_TIME,10)
+	</select>
+
+</mapper>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.MachinesAcceptDao" >
+    <resultMap id="MachinesAccept" type="com.bonus.newInput.beans.MachinesAcceptBean">
+    	<result column="CHECK_TIME" property="checkTime" jdbcType="VARCHAR"/>
+    	<result column="CHECK_CODE" property="checkCode" jdbcType="VARCHAR"/>
+    	<result column="CHECK_NUM" property="checkNum" jdbcType="VARCHAR"/>
+    	<result column="EXTERIOR_CHECK" property="exteriorCheck" jdbcType="VARCHAR"/>
+    	<result column="TEST_CHECK" property="testCheck" jdbcType="VARCHAR"/>
+    	<result column="CHECK_CONCLUSION" property="checkConclusion" jdbcType="VARCHAR"/>
+    	<result column="BUYER" property="buyer" jdbcType="VARCHAR"/>
+    	<result column="STOREKEEPER" property="storekeeper" jdbcType="VARCHAR"/>
+    	<result column="LEASE_MANAGER" property="leaseManager" jdbcType="VARCHAR"/>
+    	<result column="REPAIRMAN" property="repaitman" jdbcType="VARCHAR"/>
+    	<result column="REPAIR_MANAGER" property="repairManageer" jdbcType="VARCHAR"/>
+    	<result column="CHECKER" property="checker" jdbcType="VARCHAR"/>
+    	<result column="SAFETY_MANAGER" property="safetyManager" jdbcType="VARCHAR"/>
+		<result column="LEADER" property="leader" jdbcType="VARCHAR"/>
+    </resultMap>
+
+ 	<select id="find" parameterType="com.bonus.newInput.beans.MachinesAcceptBean" 
+ 		resultType="com.bonus.newInput.beans.MachinesAcceptBean">
+ 	   		SELECT wnd.ID AS id, wnd.CHECK_PLACE AS checkPlace,wnd.ARRIVAL_NUM AS arrivalNum,
+		wnd.CHECK_STATUS AS checkStatus,wnd.CHECK_TIME AS checkTime,wnd.MODEL_ID AS maModelId,
+		wnd.PHOTO_URL AS picUrl,mt.`NAME` AS machineModel,mtt.`NAME` AS machineType,
+		pu.`NAME` AS checker,pu1.`NAME` AS customerRep,ROUND(mt.BUY_PRICE) AS buyPrice,
+		mv.`NAME` AS venderName,wnd.ACTUAL_PRICE AS actualPrice,wnd.CHECKER AS checkerId,
+		wnd.TASK_ID AS taskId,wnd.CHECK_URL AS checkUrl,wnd.INVOICE_URL AS invoiceUrl,
+		wnd.CHECK_CONCLUSION as checkConclusion
+		FROM wf_new_details wnd 
+		LEFT JOIN mm_type mt ON mt.ID = wnd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wnd.CHECKER
+		LEFT JOIN pm_user pu1 ON pu1.ID = wnd.CUSTOMER_SERVICE_REP
+		LEFT JOIN mm_vender mv ON mv.ID = wnd.MA_VENDER
+		WHERE wnd.TASK_ID = #{taskId} and wnd.MODEL_ID = #{maModelId}
+ 	</select>
+ 	<select id="findCode" parameterType="com.bonus.newInput.beans.MachinesAcceptBean" 
+ 		resultType="java.lang.String">
+ 		SELECT COUNT(TASK_ID)  from ba_check 
+		WHERE CHECK_TIME LIKE CONCAT("%",#{checkTime},"%")
+ 	</select>
+ 	<select id="findInput" parameterType="com.bonus.newInput.beans.MachinesAcceptBean" 
+ 		resultType="com.bonus.newInput.beans.MachinesAcceptBean">
+ 		SELECT 	mav.`NAME` as vender,left(mam.BUY_TIME,10) as buyTime,mat2.`NAME` as machineType,
+ 				mat.`NAME` as model,mat.UNIT as unit,ROUND(mat.BUY_PRICE) as buyPrice,mam.DEVICE_NUM 
+ 				as deviceNum,mam.OUT_FAC_TIME as outFacTime
+		from tm_task_ma ttm
+		LEFT JOIN ma_machines mam on mam.ID = ttm.MA_ID
+		LEFT JOIN ma_type mat on mat.ID = mam.TYPE
+		LEFT JOIN ma_type mat2 on mat2.ID = mat.PARENT_ID
+		LEFT JOIN ma_vender mav on mav.ID = mam.VENDER_ID
+		WHERE ttm.TASK_ID = #{batchId} AND mat.ID = #{maTypeId}
+ 	</select>
+ 	
+ 	<insert id="insert" parameterType="com.bonus.newInput.beans.MachinesAcceptBean">
+ 		replace into ba_check
+ 		(TASK_ID,MA_TYPE_ID,CHECK_TIME,CHECK_CODE,CHECK_NUM,EXTERIOR_CHECK,TEST_CHECK,
+		CHECK_CONCLUSION,MAT_DATA)
+		values
+		(#{taskId},#{maTypeId},#{checkTime},#{checkCode},#{checkNum},#{exteriorCheck},
+		#{testCheck},#{checkConclusion},#{matData})
+ 	</insert>
+ 	
+ 	<select id="findParts" parameterType="com.bonus.newInput.beans.MachinesAcceptBean" 
+ 		resultType="com.bonus.newInput.beans.MachinesAcceptBean">
+ 	   	SELECT DISTINCT tmt.TASK_ID as taskId,tmt.MACHINES_NUM as machineNums,mt.ID as maTypeId,
+ 	   			mtb.`NAME` as machineType, mt.`NAME` as model,bac.CHECK_NUM as checkNum,
+ 	   			bac.EXTERIOR_CHECK as exteriorCheck,bac.TEST_CHECK as testCheck,
+ 	   			bac.CHECK_CONCLUSION as checkConclusion,
+				bac.CHECK_TIME as checkTime,bac.CHECK_CODE as checkCode,mav.`NAME` as vender,
+				tmt.ABOUT_FILE as aboutFile
+		FROM tm_task_ma_type tmt
+		LEFT JOIN pa_type mt ON tmt.MA_TYPE_ID = mt.ID
+		LEFT JOIN pa_type mtb ON mt.PARENT_ID = mtb.ID
+		LEFT JOIN ba_check bac on bac.TASK_ID = tmt.TASK_ID and bac.MA_TYPE_ID = mt.ID
+		LEFT JOIN ma_vender mav on mav.ID = tmt.MANUFACTURER_ID
+		where tmt.TASK_ID = #{batchId} AND mt.ID = #{maTypeId}
+ 	</select>
+ 	
+ 	<update id="updAcpNum" parameterType="com.bonus.newInput.beans.MachinesAcceptBean">
+		update wf_new_details set ARRIVAL_NUM = #{checkNum} where TASK_ID = #{taskId} and MODEL_ID = #{maTypeId}
+	</update>
+ 	
+</mapper>

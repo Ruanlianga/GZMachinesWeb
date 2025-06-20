@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.rm.dao.PutInStorageAuditDao" >
+    <resultMap id="putTask" type="com.bonus.rm.beans.PutInStorageAuditBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" resultMap="putTask">
+     SELECT wpd.ID as id,bp.`NAME` AS projectName,bu.`NAME` AS leaseName,mt.ID AS maModelId,mt.`NAME` AS machineModel,mtt.`NAME` AS machineName,pu.`NAME` AS operator,
+		wtr.LEASE_PERSON AS leasePerson,ROUND(wpd.AL_PUT_NUM) AS alPutNum,wpd.TASK_ID AS taskId,wpd.IS_EXAMINE AS isExamine,wpd.CUSTOMER_SERVICE_REP AS putPersonId,
+		pmu.`NAME` AS putPerson,wtr.OPERATION_TIME AS operationTime,wpd.IS_SURE as isSure,mt.IS_COUNT AS isCount,wpd.AUDIT_TIME as AuditTime,wtd.`NAME` AS definitionName
+		FROM wf_task_record wtr
+		LEFT JOIN wf_put_storage_details wpd ON wpd.TASK_ID = wtr.ID
+        LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		LEFT JOIN mm_type mt ON mt.ID = wpd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+		LEFT JOIN pm_user pu ON pu.ID = wtr.OPERATION_USER
+		LEFT JOIN pm_user pmu ON pmu.ID = wpd.CUSTOMER_SERVICE_REP
+		LEFT JOIN wf_task_definition wtd ON wtd.ID = wtr.DEFINITION_ID
+		WHERE left(wtr.OPERATION_TIME,10) BETWEEN #{param.startTime} and #{param.endTime} AND wtr.DEFINITION_ID IN (8,11,21,25) AND wpd.IS_SURE = 1
+		
+		<if test="param.companyId != 1 and param.companyId != '1' and param.companyId !='' and param.companyId !=null ">
+	    	and wtr1.ORG_ID=#{param.companyId}
+		</if>
+		
+		<if test="param.isExamine != null and param.isExamine != ''">
+			and wpd.IS_EXAMINE = #{param.isExamine}
+	    </if>
+	    
+		<if test="param.machineName != null and param.machineName != ''">
+			and mtt.`NAME` like concat('%',#{param.machineName},'%')
+	    </if>
+		<if test="param.machineModel != null and param.machineModel != ''">
+			and mt.`NAME` like concat('%',#{param.machineModel},'%')
+		</if>
+		<if test="param.keyWord != null and param.keyWord !='' ">
+			AND(
+				mtt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+				OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+				OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+			)
+		</if>
+      GROUP BY wpd.MODEL_ID,wtr.ID
+      ORDER BY wpd.IS_EXAMINE DESC, wtr.OPERATION_TIME DESC
+ 	</select>
+ 	
+    <select id="findPutTaskInfo" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" resultMap="putTask">
+	  SELECT DISTINCT mt.ID AS maModelId,mt.`NAME` AS machineModel,mtt.`NAME` AS machineName,ROUND(mt.NUM) AS storageNum,ROUND(wpd.AL_PUT_NUM) AS alPutNum from wf_put_storage_details wpd
+		LEFT JOIN mm_type mt ON mt.ID = wpd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mt.PARENT_ID = mtt.ID
+	   where wpd.TASK_ID = #{taskId} and   wpd.MODEL_ID = #{maModelId}
+	   GROUP BY wpd.MODEL_ID 
+ 	</select>
+ 	
+ 	<update id="updateStorageNum" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" >
+		update mm_type set NUM = #{storageNum}
+       	where ID = #{maModelId}
+	</update>
+	
+ 	 <select id="findPutMaInfo" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" resultMap="putTask">
+	   	SELECT DISTINCT mm.ID as id,mm.BATCH_STATUS as machineStatus 
+	   	from wf_info_record wir
+	   	LEFT JOIN wf_put_storage_details wpd ON wir.SUP_ID = wpd.TASK_ID
+	   	LEFT JOIN mm_machines mm ON wir.`CODE` = mm.DEVICE_CODE
+     	where wpd.TASK_ID = #{taskId} and wpd.MODEL_ID = #{maModelId}
+ 	</select>
+ 	
+ 	<update id="updateMachineStatus" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" >
+		update mm_machines set BATCH_STATUS = #{machineStatus}
+       	where ID = #{id}
+	</update>
+	
+ 	<update id="auditPutTask" parameterType="com.bonus.rm.beans.PutInStorageAuditBean" >
+		update  wf_put_storage_details set IS_EXAMINE = 1,AUDIT_TIME = #{auditTime}
+        where ID = #{id}
+	</update>
+	
+</mapper>

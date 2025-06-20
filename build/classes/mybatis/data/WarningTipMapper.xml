@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.data.dao.WarningTipDao" >
+	<resultMap id="WarningTip" type="com.bonus.data.beans.WarningTipBean"></resultMap>
+	
+	<select id="findByPage" parameterType="com.bonus.data.beans.WarningTipBean" resultType="com.bonus.data.beans.WarningTipBean">
+		select am.LAT as lat,am.LON as lon,am.TIME as time, at.`NAME` as warnName,
+			am.DEVICE_CODE as code,bdy.`NAME` as typeName,am.Type as typeId
+			from am_alarm am 
+			LEFT JOIN am_type at ON  at.`id`= am.TYPE
+			LEFT JOIN mm_machines bmd ON bmd.GPS_CODE= am.DEVICE_CODE
+			LEFT JOIN mm_type bdt on bdt.ID = bmd.TYPE
+			LEFT JOIN mm_type bdy ON bdt.PARENT_ID = bdy.ID
+			where  1=1 
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (LAT like CONCAT('%',#{param.keyWord},'%') or 
+			    LON like CONCAT('%',#{param.keyWord},'%') or 
+			    TIME like CONCAT('%',#{param.keyWord},'%') or 
+			    at.`NAME` like CONCAT('%',#{param.keyWord},'%') or 
+			    bdy.`NAME` like CONCAT('%',#{param.keyWord},'%') or 
+			    am.DEVICE_CODE like CONCAT('%',#{param.keyWord},'%') 
+			    )
+		</if>
+		ORDER BY am.ID DESC
+	</select>
+	
+	<select id="findByCode" parameterType="com.bonus.data.beans.WarningTipBean" resultType="com.bonus.data.beans.WarningTipBean">
+		select DEVICE_CODE as code from am_alarm 
+			where DEVICE_CODE = #{code} AND TYPE = #{typeId}
+	</select>
+	
+	<insert id="insert" parameterType="com.bonus.data.beans.WarningTipBean"> 
+		insert into am_alarm
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="typeId != null">
+				TYPE,
+			</if>
+			<if test="time != null">
+				TIME,
+			</if>
+			<if test="code != null">
+				DEVICE_CODE,
+			</if>
+			<if test="gpsCode != null">
+				GPS_CODE,
+			</if>
+			<if test="lon != null">
+				LON,
+			</if>
+			<if test="lat != null">
+				LAT,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="time != null">
+				#{time},
+			</if>
+			<if test="code != null">
+				#{code},
+			</if>
+			<if test="gpsCode != null">
+				#{gpsCode},
+			</if>
+			<if test="lon != null">
+				#{lon},
+			</if>
+			<if test="lat != null">
+				#{lat},
+			</if>
+		</trim>
+   </insert>
+   
+	<insert id="addHisData" parameterType="com.bonus.data.beans.WarningTipBean"> 
+		insert into am_his_alarm
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="typeId != null">
+				TYPE,
+			</if>
+			<if test="time != null">
+				TIME,
+			</if>
+			<if test="code != null">
+				DEVICE_CODE,
+			</if>
+			<if test="gpsCode != null">
+				GPS_CODE,
+			</if>
+			<if test="lon != null">
+				LON,
+			</if>
+			<if test="lat != null">
+				LAT,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="time != null">
+				#{time},
+			</if>
+			<if test="code != null">
+				#{code},
+			</if>
+			<if test="gpsCode != null">
+				#{gpsCode},
+			</if>
+			<if test="lon != null">
+				#{lon},
+			</if>
+			<if test="lat != null">
+				#{lat},
+			</if>
+		</trim>
+   </insert>
+   
+   <update id="update" parameterType="com.bonus.data.beans.WarningTipBean">
+		update am_alarm
+		<set>
+			<if test="time != null">
+				TIME = #{time},
+			</if>
+			<if test="gpsCode != null">
+				GPS_CODE = #{gpsCode},
+			</if>
+			<if test="lon != null">
+				LON = #{lon},
+			</if>
+			<if test="lat != null">
+				LAT = #{lat},
+			</if>
+		</set>
+       where DEVICE_CODE = #{code} AND TYPE = #{typeId}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.data.beans.WarningTipBean">
+		delete from am_alarm where TYPE = #{typeId}
+	</delete>
+	
+	<select id="findByPageTwo" parameterType="com.bonus.data.beans.WarningTipBean" resultType="com.bonus.data.beans.WarningTipBean">
+	select DISTINCT am.ID as id,am.TIME as time, at.`NAME` as warnName,am.DEVICE_CODE as code,
+	am.GPS_CODE as gpsCode,bdy.`NAME` as typeName,bdt.NAME as modelName
+			from am_his_alarm am 
+			LEFT JOIN am_type at ON  at.`id`= am.TYPE
+		LEFT JOIN mm_machines bmd ON bmd.GPS_CODE= am.DEVICE_CODE
+			LEFT JOIN mm_type bdt on bdt.ID = bmd.TYPE
+			LEFT JOIN mm_type bdy ON bdt.PARENT_ID = bdy.ID
+			where 1=1 
+			
+			<if test="param.keyWord != null and param.keyWord != ''">
+			and (at.`NAME` like CONCAT('%',#{param.keyWord},'%') or 
+			     am.DEVICE_CODE like CONCAT('%',#{param.keyWord},'%') or 
+			     am.GPS_CODE like CONCAT('%',#{param.keyWord},'%') or 
+			     bdy.`NAME` like CONCAT('%',#{param.keyWord},'%') or 
+			     bdt.NAME like CONCAT('%',#{param.keyWord},'%') or 
+			     am.TIME like CONCAT('%',#{param.keyWord},'%')  
+			    )
+			</if>
+			order by am.TIME desc
+	</select>
+	
+	<select id="findWranTip" parameterType="com.bonus.data.beans.WarningTipBean" resultType="com.bonus.data.beans.WarningTipBean">
+		select DISTINCT am.ID as id, am.LAT as lat,am.LON as lon,am.TIME as time, at.`NAME` as warnName,
+			am.DEVICE_CODE as code,am.GPS_CODE as gpsCode,bdty.`NAME` as typeName,at.ID as typeId
+			from am_alarm am 
+			LEFT JOIN am_type at ON  at.`id`= am.TYPE
+			LEFT JOIN mm_machines bmd ON bmd.GPS_CODE= am.DEVICE_CODE
+			LEFT JOIN mm_type bdt on bdt.ID = bmd.TYPE
+			LEFT JOIN mm_type bdy ON bdt.PARENT_ID = bdy.ID
+			where 1=1 
+			order by am.TIME desc
+	</select>
+	
+</mapper>

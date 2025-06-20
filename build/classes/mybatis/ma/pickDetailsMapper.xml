@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.pickDetailsDao">
+
+	<resultMap id="pickDetails" type="com.bonus.ma.beans.pickDetailsBean"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.pickDetailsBean" resultMap="pickDetails">
+		SELECT
+			wir.`CODE` AS deviceCode,
+			mt2.`NAME` AS maTypeName,
+			mt.`NAME` AS maModelName,
+			mt.UNIT,
+			mm.REMARK as remark,
+			bu.`NAME` AS pickingUnit,
+			bp.`NAME` AS projectName,
+			wla.`CODE` AS pickCode,
+			wtr1.NUMBER AS number,
+			ROUND(wir.num) AS pickNum,
+			wtr.OPERATION_TIME AS operationTime,
+			wtr1.LEASE_PERSON AS leaseName,
+			pmo. NAME AS companyName,
+			pu.`NAME` as servicer,
+			bs.`NAME` as bsName
+		FROM wf_info_record wir
+		LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN	wf_task_record wtr2 ON wtr2.ID = wtr1.SUP_ID
+		LEFT JOIN wf_collar_apply wca ON wca.APPLY_NUMBER = wtr2.NUMBER
+		LEFT JOIN bm_subcontractors bs ON wca.SUBCONTRACTORS_ID = bs.ID 
+		LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.id
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		LEFT JOIN wf_ma_outstock wmo ON wir.SUP_ID = wmo.TASK_ID
+		LEFT JOIN pm_user pu ON wmo.OUT_PERSON = pu.ID 
+		LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+		WHERE wir.TYPE = 2 and wtr.IS_ACTIVE = 1
+		
+	    <if test="param.orgId != 1 and param.orgId != '1'">
+			and wtr.org_id=#{param.orgId}
+		</if>
+	    <if test="param.startTime != null and param.endTime != null ">
+			and left(wtr.OPERATION_TIME,10) between #{param.startTime} and #{param.endTime}
+		</if>
+		
+		<if test="param.maTypeName != null and param.maTypeName !='' ">
+			and mt2.`NAME` like concat('%',#{param.maTypeName},'%')
+		</if>
+		
+		<if test="param.maModelName != null and param.maModelName !='' ">
+			and mt.`NAME` like concat('%',#{param.maModelName},'%')
+		</if>
+		
+	    <if test="param.keyWord != null and param.keyWord != ''">
+			AND(
+				mt2.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				mt.UNIT LIKE CONCAT('%',#{param.keyWord},'%') OR
+				bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr.OPERATION_TIME LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr.LEASE_PERSON LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wla.`CODE` LIKE CONCAT('%',#{param.keyWord},'%') OR
+				wtr1.NUMBER LIKE CONCAT('%',#{param.keyWord},'%') OR
+				pmo. NAME LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		GROUP BY wir.SUP_ID,wir.MODEL_ID,wir.`CODE`
+	 </select>
+	 
+	 
+	 
+	 <select id="findPickDetails" parameterType="com.bonus.ma.beans.pickDetailsBean"
+		resultMap="pickDetails">
+		SELECT
+			mt2.`NAME` AS maTypeName,
+			mt.`NAME` AS maModelName,
+			mt.UNIT,
+			bu.`NAME` AS pickingUnit,
+			bp.`NAME` AS projectName,
+			wla.`CODE` AS pickCode,
+			ROUND(wir.num) AS pickNum,
+			wtr.OPERATION_TIME AS operationTime,
+			wtr.LEASE_PERSON AS leaseName,
+			pmo. NAME AS companyName
+		FROM
+			wf_info_record wir
+		LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+		LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mt2 ON mt.PARENT_ID = mt2.ID
+		LEFT JOIN mm_machines mm ON wir.MA_ID = mm.id
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.id
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN pm_organization pmo ON pmo.id = wtr.ORG_ID
+		WHERE
+			wir.TYPE = 2
+	 </select>
+	 
+	 
+</mapper>

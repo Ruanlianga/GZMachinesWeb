@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MaTotalChangeWarnDao" >
+
+    <select id="getChangeWarnList" resultType="com.bonus.ma.beans.ChangeWarning">
+        select
+            mtc.id, mtc.task_id as taskId, mtc.task_code as taskCode,
+            mtc.type_id as typeId, mtc.num, mtc.user_id as userId, mtc.content as warningContent, mtc.`time` as createTime,
+            mt.`name` as typeName, mt1.`NAME` as deviceName, mt2.`NAME` as deviceType,
+            pu.`name` as userName, pr.`NAME` as userRole
+        from
+            ma_total_change mtc
+        left join mm_type mt on mt.id = mtc.type_id
+        LEFT JOIN mm_type mt1 ON mt.PARENT_ID = mt1.ID
+        LEFT JOIN mm_type mt2 ON mt1.PARENT_ID = mt2.ID
+        left join pm_user pu on pu.id = mtc.user_id
+        LEFT JOIN pm_user_role pur ON pu.ID = pur.USER_ID
+        LEFT JOIN pm_role pr ON pr.ID = pur.ROLE_ID
+    </select>
+</mapper>

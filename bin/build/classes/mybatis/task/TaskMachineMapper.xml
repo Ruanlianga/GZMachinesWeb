@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.task.dao.TaskMachineDao" >
+    <resultMap id="taskMa" type="com.bonus.task.beans.TaskMachineBean"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.task.beans.TaskMachineBean" resultMap="taskMa">
+		SELECT task_id as taskId,ma_id as maId,creator,create_time as createTime
+		from tm_task_ma
+		WHERE 1 = 1
+		
+ 	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.task.beans.TaskMachineBean" resultMap="taskMa">
+ 	   	SELECT task_id as taskId,ma_id as maId,creator,create_time as createTime
+		from tm_task_ma
+		WHERE task_id = #{taskId}
+ 	</select>
+ 	
+ 	<insert id="insert" parameterType="com.bonus.task.beans.TaskMachineBean" useGeneratedKeys="true" keyProperty="id">
+		insert into tm_task_ma(task_id,ma_id,creator,create_time) 
+		values (#{taskId},#{maId},#{creator},#{createTime})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.task.beans.TaskMachineBean">
+		update tm_task_ma set 
+		creator = #{creator},
+		create_time = #{createTime}
+		where task_id = #{taskId} and ma_id = #{maId}
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.task.beans.TaskMachineBean">
+		delete from tm_task_ma
+		where task_id = #{taskId} and ma_id = #{maId}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM tm_task_ma WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+ 	
+</mapper>

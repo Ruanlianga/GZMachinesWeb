@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sys.dao.FileUploadInfoDao" >
+  <resultMap id="baseResultMap" type="com.bonus.sys.beans.FileUploadInfoBean" >
+    <id column="ID" property="id" jdbcType="VARCHAR" />
+    <result column="model_id" property="model.id" jdbcType="VARCHAR" />
+    <result column="folder_name" property="folderName" jdbcType="VARCHAR" />
+    <result column="pre_name" property="preName" jdbcType="VARCHAR" />
+    <result column="save_name" property="saveName" jdbcType="VARCHAR" />
+    <result column="type" property="type.id" jdbcType="VARCHAR" />
+    <result column="suffix" property="suffix" jdbcType="VARCHAR" />
+    <result column="model_flag" property="modelFlag" jdbcType="VARCHAR" />
+    <result column="upload_time" property="uploadTime" jdbcType="DATE" />
+    <result column="temp_flag" property="tempFlag" jdbcType="INTEGER" />
+    <result column="IS_ACTIVE" property="isActive" jdbcType="INTEGER" />
+    <result column="owner_id" property="ownerId" jdbcType="INTEGER" />
+     <result column="user_id" property="creator.id" jdbcType="INTEGER" />
+  </resultMap>
+  
+  
+   
+  
+  <select id="findByFileId" resultMap="baseResultMap" parameterType="com.bonus.sys.beans.FileUploadInfoBean">
+		select 
+		*
+         from 
+         	project_settlement_info
+         where 
+         	id = 17
+	</select>
+ 
+  	<select id="findListByOwnerId" resultType="com.bonus.sys.beans.FileUploadInfoBean" parameterType="com.bonus.sys.beans.FileUploadInfoBean">
+		select 
+			id,
+	        model_id,
+	    	folder_name,
+	    	pre_name,
+	    	type,
+	    	suffix,
+	    	save_name,
+	    	model_flag,
+	    	upload_time,
+	    	temp_flag,
+	    	IS_ACTIVE,
+	    	owner_id,
+	    	user_id
+         from 
+         	file_upload_info
+         where 
+         	1 = 1 
+         and 
+         	owner_id = #{ownerId} 
+         and 
+         	model_flag = #{modelFlag}
+        
+	</select>
+ 
+</mapper>

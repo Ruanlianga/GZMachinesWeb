@@ -1,0 +1,100 @@
+package com.bonus.index.beans;
+
+public class IndexHomeBean {
+	
+	private String id ;
+	
+	private PartOneBean partOne;
+	
+	private PartTwoBean partTwo;
+	
+	private PartThreeBean partThree;
+	
+	private PartFourBean partFour;
+	
+	private PartFiveBean partFive;
+	
+	private PartSixBean partSix;
+
+	private String type;
+	
+	private String time;
+	
+	
+	
+	
+	public String getTime() {
+		return time;
+	}
+
+	public void setTime(String time) {
+		this.time = time;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public PartOneBean getPartOne() {
+		return partOne;
+	}
+
+	public void setPartOne(PartOneBean partOne) {
+		this.partOne = partOne;
+	}
+
+	public PartTwoBean getPartTwo() {
+		return partTwo;
+	}
+
+	public void setPartTwo(PartTwoBean partTwo) {
+		this.partTwo = partTwo;
+	}
+
+	public PartThreeBean getPartThree() {
+		return partThree;
+	}
+
+	public void setPartThree(PartThreeBean partThree) {
+		this.partThree = partThree;
+	}
+
+	public PartFourBean getPartFour() {
+		return partFour;
+	}
+
+	public void setPartFour(PartFourBean partFour) {
+		this.partFour = partFour;
+	}
+
+	public PartFiveBean getPartFive() {
+		return partFive;
+	}
+
+	public void setPartFive(PartFiveBean partFive) {
+		this.partFive = partFive;
+	}
+
+	public PartSixBean getPartSix() {
+		return partSix;
+	}
+
+	public void setPartSix(PartSixBean partSix) {
+		this.partSix = partSix;
+	}
+	
+	
+	
+}

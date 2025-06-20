@@ -1,0 +1,1766 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MachineDao" >
+    <resultMap id="machine" type="com.bonus.ma.beans.MachineBean"></resultMap>
+    <resultMap id="out" type="com.bonus.lease.beans.OutStorageBean"></resultMap>
+    <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+    
+ 	<select id="findByPage" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as tyoeId,mat.`NAME` as type,mav.ID as verderId,mav.`NAME` as venderName,
+				mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.PIC_URL as picUrl,
+			    mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,	mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.REMARK as remarks,mam.PROPERTY_DEPARTMENT as propertyDepartment,mam.USE_DEPARTMENT as useDepartment,mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,mam.GPS_CODE as gpsCode,mam.MAKE_ORDER_DATE as makeOrderDate,mam.INVOICE_DATE as invoiceDate,mam.QRCODE as qrcode
+				,org.NAME  companyName,mam.ORIGIN_NUM  originNum,mam.TYPE as typeId,OPT_URL as optUrl,mam.OPT_NAME as optName,
+				GROUP_CONCAT(mmf.FILE_NAME) as fileName,
+				GROUP_CONCAT(mmf.FILE_PATH) as filePath,
+				GROUP_CONCAT(mmf.FILE_TYPE) as fileType,
+				mam.DEVICE_TYPE as deviceType
+		from mm_machines mam 
+		LEFT JOIN mm_machines_file mmf on mmf.ID = mam.ID 
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN pm_organization org on org.ID=rel.ORG_ID
+		where mam.DEVICE_TYPE = #{param.deviceType}
+		<if test='param.orgId !=null and param.orgId!="" and  param.orgId!="1" and  param.orgId!=1'>
+			and  rel.ORG_ID=#{param.orgId}
+		</if>
+		<if test="param.batchStatus != '-1'">
+			and mam.BATCH_STATUS = #{param.batchStatus}
+		</if>
+		<if test="param.type0 != null and param.type0 != ''">
+			and matt.`NAME` LIKE CONCAT('%',#{param.type0},'%')
+		</if>
+		<if test="param.type != null and param.type != ''">
+			and mat.`NAME` = #{param.type}
+		</if>
+		<if test="param.remarks != null and param.remarks != ''">
+			and mam.REMARK LIKE CONCAT('%',#{param.remarks},'%') 
+		</if>
+		<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.GPS_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mav.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+		GROUP BY mam.ID
+		order by mam.ID 
+ 	</select>
+ 	
+ 	<select id="fileViewFindByPage" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select 	mmf.ID as id,mmf.FILE_PATH as filePath,mmf.FILE_NAME as fileName,mmf.FILE_TYPE as fileType
+		from mm_machines_file mmf
+		where 1 = 1 and mmf.FILE_TYPE = #{param.fileType}
+		<if test="param.id != null and param.id != ''">
+			and mmf.ID = #{param.id}
+		</if>
+ 	</select>
+ 	
+ 	
+ 	<select id="findPhotoList" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT 
+		ID,
+		FILE_PATH as filePath,
+		FILE_TYPE as fileType,
+		FILE_NAME as fileName
+		FROM `mm_machines_file`
+		where id = #{id} and FILE_TYPE = #{fileType}
+		ORDER BY CREATE_TIME desc
+		limit 0,3
+ 	</select>
+ 	
+ 	
+ 	<select id="findIdByName" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+SELECT
+mmt1.`NAME` as typeName,
+mmt.`NAME` as machineName,
+mmt.ID as typeId
+from
+mm_type mmt 
+LEFT JOIN mm_type mmt1 on mmt.PARENT_ID = mmt1.ID
+where mmt1.NAME=#{typeName}
+and mmt.`NAME` = #{machineName}
+ 	</select>
+ 	
+ 	<select id="findOptPhotoList" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT
+	OPT_URL AS filePath,
+	OPT_NAME AS fileName,
+	OPT_NEW_NAME AS fileNewName 
+FROM
+	`mm_machines` 
+	where id =#{id}
+ORDER BY
+	OPT_NAME DESC
+ 	</select>
+ 	
+ 	<select id="findFileList" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT
+	ID,
+	FILE_PATH AS filePath ,
+	FILE_NAME as fileName,
+	FILE_TYPE as fileType
+FROM
+	`mm_machines_file` 
+WHERE
+	id = #{id} and FILE_TYPE = #{fileType}
+ORDER BY
+	FILE_NAME DESC 
+ 	</select>
+ 	
+ 	
+ 	<select id="getRoleBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,PARENT_ID as pId FROM mm_type WHERE IS_ACTIVE = '1'
+  	</select>
+ 	
+ 	<select id="find" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	   	select 	distinct mam.ID as id,
+ 	   			wnd.PHOTO_URL as machineNewUrl,
+ 	   			matt.ID as typeId0,
+				matt.`NAME` as type0,
+				mat.ID as typeId,
+				mat.`NAME` as type,
+				mav.ID as verderId,
+				mav.`NAME` as venderName,   
+				mam.OUT_FAC_TIME as outFactortTime, 
+				mam.OUT_FAC_NUM as outFactortNum, 
+				mam.DEVICE_CODE as deviceCode,   
+				ROUND(mat.BUY_PRICE) as buyPrice, 
+				mam.PIC_URL as picUrl,
+			  	mam.IS_FIXED_ASSETS as isFixedAssets,
+				mat.LEASE_PRICE as leasePrice,
+				ROUND(mat.PAY_PRICE) as payPrice,	
+				mam.ASSETS_NUM as assetNum,  
+				mam.THIS_CHECK_MAN as thisCheckMan, 
+				mam.THIS_CHECK_TIME as thisCheckTime, 
+				mam.NEXT_CHECK_TIME as nextCheckTime, 
+				mam.CYCLE_NUM as outInNum,      
+				mam.PROPERTY_DEPARTMENT as propertyDepartment, 
+				mam.USE_DEPARTMENT as useDepartment,   
+				mam.SERVICE_LIFE as serviceLife,
+				mam.BATCH_STATUS as batchStatus,
+				mam.GPS_CODE as gpsCode,
+				mam.MAKE_ORDER_DATE as makeOrderDate,  
+				mam.INVOICE_DATE as invoiceDate,  
+				mam.REMARK as remarks,   
+				mam.QRCODE as qrcode, 
+				rel.ORG_ID as orgId 
+		from mm_machines mam 
+		LEFT JOIN mm_machines_file mmf ON mmf.ID = mam.ID
+		LEFT JOIN ma_status mas on mam.BATCH_STATUS = mas.BATCH_STATUS
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN ma_org_relation rel on rel.TYPE_ID=mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN mm_newinput mn ON mn.MA_ID = mam.ID 
+		LEFT JOIN wf_new_details wnd ON wnd.TASK_ID = mn.TASK_ID
+		WHERE 1=1
+		<if test="id != null and id != ''">
+			AND mam.ID=#{id}
+		</if>
+		limit 1
+		<!-- <if test="typeId != null and typeId != ''">
+			AND wnd.MODEL_ID=#{typeId}
+		</if> -->
+		
+ 	</select>
+ 	
+ 	<select id="findFile" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	   	select
+ 	   		mmf.FILE_PATH as filePath
+		from mm_machines_file mmf 
+		WHERE 1=1
+		<if test="id != null and id != ''">
+			AND mmf.ID=#{id}
+		</if>
+		
+ 	</select>
+ 	
+ 	<select id="findByPageTwo" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as tyoeId,mat.`NAME` as type,
+				mav.ID as verderId,mam.OUT_FAC_TIME as outFactortTime,ROUND(mat.BUY_PRICE) as buyPrice,
+				mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+				mam.GPS_CODE as gpsCode,COUNT(mat.ID) as stockNum,mat.WEIGHT as weight,
+				mat.UNIT as unit,if(pmu.`NAME` is not null,GROUP_CONCAT(DISTINCT pmu.`NAME` SEPARATOR ','),'') keeper
+		from mm_type mat 
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_machines mam ON mam.TYPE = mat.ID
+		
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		
+		where 1=1
+		<if test='param.batchStatus == 1 or param.batchStatus == "1"'>
+			and mam.BATCH_STATUS = 5
+			GROUP BY mat.ID,pmu.`NAME`
+		</if>
+		<if test='param.batchStatus == 2 or param.batchStatus == "2"'>
+			and mam.BATCH_STATUS = 6
+			GROUP BY mat.ID,pmu.`NAME`
+		</if>
+		<if test='param.batchStatus == 3 or param.batchStatus == "3"'>
+			and mam.BATCH_STATUS > 6 
+			GROUP BY mat.ID,pmu.`NAME`
+		</if>
+		
+		<if test="param.keyWord != null and param.keyWord != ''">
+			and (
+				matt.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mat.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mav.`NAME` like concat('%',#{param.keyWord},'%') OR
+				mam.DEVICE_CODE like concat('%',#{param.keyWord},'%') OR
+				mam.GPS_CODE like concat('%',#{param.keyWord},'%')
+			)
+		</if>
+ 	</select>
+ 	 	
+ 	<select id="findCode" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT
+		mam.ID as id,
+		mam.GPS_CODE as gpsCode
+		from mm_machines mam
+		WHERE id =#{id}
+ 	</select>
+ 	
+ 	<select id="findMachineNum" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT mt.NUM AS sums
+		FROM mm_type mt
+		WHERE mt.ID = #{typeId}
+ 	</select>
+ 	
+ 	<!-- <select id="findCodeByEpc" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select distinct mam.ID,matt.`NAME` AS type0, mat.`NAME` AS type,
+		mam.DEVICE_CODE as deviceCode,mam.BATCH_STATUS as batchStatus
+		from mm_machines mam 
+		
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		WHERE mam.RFID_EPC = #{rfidEpc}
+ 	</select> -->
+ 	<select id="buyCompany" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		SELECT
+		mam.ID as id
+	
+		from mm_machines mam
+		WHERE id =#{id}
+ 	</select>
+ 	<insert id="insertBean" parameterType="com.bonus.ma.beans.MachineBean" useGeneratedKeys="true" keyProperty="id">
+		insert into mm_machines
+		(TYPE,IS_FIXED_ASSETS,HOUSE_ID,POSITION,IS_TRACK,IS_CHECK,DEVICE_NUM,
+		VENDER_ID,BUY_TIME,OUT_FAC_TIME,OUT_FAC_NUM,ASSETS_NUM,DEVICE_STATUS,
+		CYCLE_NUM,REMARK,BATCH_STATUS,IS_ACTIVE,THIS_CHECK_TIME,BUY_COMNPANY
+		<if test="originNum!=null and originNum!='' ">
+			,ORIGIN_NUM
+		</if>
+		)
+		values (#{type},#{isFixedAssets},#{houseName},#{position},#{isTrack},#{isCheck},#{deviceNum},
+		#{venderName},#{buyTime},#{outFactortTime},#{outFactortNum},#{assetNum},#{equipmentState},
+		#{outInNum},#{remarks},#{batchStatus},1,#{tOverhaulTime},#{buyCompany}
+			<if test="originNum !=null and originNum!='' ">
+				,#{originNum}
+			</if>
+		)
+	</insert>
+	
+	<insert id="insert" parameterType="com.bonus.ma.beans.MachineBean" useGeneratedKeys="true" keyProperty="id">
+		insert into mm_machines
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="batchStatus != null">
+				BATCH_STATUS,
+			</if>
+			<if test="deviceCode != null">
+				DEVICE_CODE,
+			</if>
+			<if test="qrcode != null">
+				QRCODE,
+			</if>
+			<if test="picUrl != null">
+				PIC_URL,
+			</if>
+			<if test="verderId != null">
+				VENDER_ID,
+			</if>
+			<if test="buyTime != null">
+				BUY_TIME,
+			</if>
+			<if test="outFactortTime != null">
+				OUT_FAC_TIME,
+			</if>
+			<if test="outFactortNum != null">
+				OUT_FAC_NUM,
+			</if>
+			<if test="assetNum != null">
+				ASSETS_NUM,
+			</if>
+			<if test="tOverhaulTime != null">
+				THIS_CHECK_TIME,
+			</if>
+			<if test="tOverhaulPersion != null">
+				THIS_CHECK_MAN,
+			</if>
+			<if test="nOverhaulTime != null">
+				NEXT_CHECK_TIME,
+			</if>
+			<if test="remarks != null">
+				REMARK,
+			</if>
+			<if test="gpsCode != null">
+				GPS_CODE,
+			</if>
+			<if test="propertyDepartment != null">
+				PROPERTY_DEPARTMENT,
+			</if>
+			<if test="useDepartment != null">
+				USE_DEPARTMENT,
+			</if>
+			<if test="serviceLife != null">
+				SERVICE_LIFE,
+			</if>
+			<if test="makeOrderDate != null">
+				MAKE_ORDER_DATE,
+			</if>
+			<if test="invoiceDate != null">
+				INVOICE_DATE,
+			</if>
+			<if test="originNum!=null and originNum !='' ">
+				ORIGIN_NUM,
+			</if>
+			<if test="creator!=null and creator !='' ">
+				CREATOR,
+			</if>
+			<if test="deviceType!=null and deviceType!='' ">
+				device_type,
+			</if>
+			IS_ACTIVE,
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="batchStatus != null">
+				#{batchStatus},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="qrcode != null">
+				#{qrcode},
+			</if>
+			<if test="picUrl != null">
+				#{picUrl},
+			</if>
+			<if test="verderId != null">
+				#{verderId},
+			</if>
+			<if test="buyTime != null">
+				#{buyTime},
+			</if>
+			<if test="outFactortTime != null">
+				#{outFactortTime},
+			</if>
+			<if test="outFactortNum != null">
+				#{outFactortNum},
+			</if>
+			<if test="assetNum != null">
+				#{assetNum},
+			</if>
+			<if test="tOverhaulTime != null">
+				#{tOverhaulTime},
+			</if>
+			<if test="tOverhaulPersion != null">
+				#{tOverhaulPersion},
+			</if>
+			<if test="nOverhaulTime != null">
+				#{nOverhaulTime},
+			</if>
+			<if test="remarks != null">
+				#{remarks},
+			</if>
+			<if test="gpsCode != null">
+				#{gpsCode},
+			</if>
+			<if test="propertyDepartment != null">
+				#{propertyDepartment},
+			</if>
+			<if test="useDepartment != null">
+				#{useDepartment},
+			</if>
+			<if test="serviceLife != null">
+				#{serviceLife},
+			</if>
+			<if test="makeOrderDate != null">
+				#{makeOrderDate},
+			</if>
+			<if test="invoiceDate != null">
+				#{invoiceDate},
+			</if>
+			<if test="originNum !=null and originNum !='' ">
+				#{originNum},
+			</if>
+			<if test="creator !=null and creator !='' ">
+				#{creator},
+			</if>
+			<if test="deviceType !=null and deviceType !='' ">
+				#{deviceType},
+			</if>
+			1,
+		</trim>
+	</insert>
+	
+		<update id="updateBatchStatus" parameterType="com.bonus.ma.beans.MachineBean">
+			update mm_machines
+       <set>
+           <if test="batchStatus != null">
+             BATCH_STATUS = #{batchStatus},
+           </if>
+       </set>
+      			where ID = #{id}
+    </update>
+	
+	
+	<update id="updateMachineStatus" parameterType="com.bonus.ma.beans.MachineBean">
+	update mm_machines
+       <set>
+           <if test="batchStatus != null">
+             BATCH_STATUS = #{batchStatus},
+           </if>
+       </set>
+      	where DEVICE_CODE = #{deviceCode} and TYPE =#{typeId}
+    </update>
+	
+	<update id="updByCode" parameterType="com.bonus.ma.beans.MachineBean">
+	update mm_machines
+       <set>
+           <if test="batchStatus != null">
+             BATCH_STATUS = #{batchStatus},
+           </if>
+       </set>
+      	where DEVICE_CODE = #{deviceCode}
+    </update>
+	   
+		<update id="machineBinding" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+	       <set>
+	           <if test="type != null">
+	              	TYPE = #{type},
+	           </if>
+	           <if test="tOverhaulTime != null">
+				THIS_CHECK_TIME = #{tOverhaulTime},
+			</if>
+			<if test="tOverhaulPersion != null">
+				THIS_CHECK_MAN = #{tOverhaulPersion},
+			</if>
+			<if test="nOverhaulTime != null">
+				NEXT_CHECK_TIME = #{nOverhaulTime},
+			</if>
+	           <if test="deviceCode != null">
+	             DEVICE_CODE = #{deviceCode},
+	           </if>
+	           <if test="qrcode != null">
+	             QRCODE = #{qrcode},
+	           </if>
+	            <if test="outFactortTime != null">
+	             OUT_FAC_TIME = #{outFactortTime},
+	           </if>
+	            <if test="outFactortNum != null">
+	             OUT_FAC_NUM = #{outFactortNum},
+	           </if>
+	            <if test="outInNum != null">
+	             CYCLE_NUM = #{outInNum},
+	           </if>
+	           <if test="batchStatus != null">
+	             BATCH_STATUS = #{batchStatus},
+	           </if>
+	           <if test="isScrap != null">
+				IS_SCRAP= #{isScrap},
+			</if>
+			<if test="verderId !=null">
+				VENDER_ID = #{verderId},
+			</if>
+	       </set>
+	      	where DEVICE_CODE = #{deviceCode}
+	     
+	</update>
+	
+ 	
+
+	<select id="findDev" parameterType="com.bonus.ma.beans.MachineBean"
+		resultMap="machine">
+		SELECT distinct RFID_EPC as rfidEpc FROM `mm_machines` where RFID_EPC=#{rfidEpc} ;
+	</select>
+
+	<select id="findGps" parameterType="com.bonus.ma.beans.MachineBean"
+		resultMap="machine">
+		SELECT distinct GPS_CODE as gpsCode FROM `mm_machines` where GPS_CODE=#{gpsCode} ;
+	</select>
+
+	<update id="updateCode" parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE `mm_machines` SET
+		`RFID_EPC`=#{rfidEpc}, `GPS_CODE`=#{gpsCode}
+		WHERE (`ID`=#{id})
+	</update>
+	
+	<update id="isFixedAssets" parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE `mm_machines` SET `IS_FIXED_ASSETS`='1'
+		WHERE (`ID`=#{id})
+	</update>
+	
+	<delete id="delete" parameterType="com.bonus.ma.beans.MachineBean">
+		delete from mm_machines	where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM bm_area_type WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+	<update id="insertQRCode" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+		set QRCODE_URL = #{qrcodeUrl},
+		DEVICE_NUM = #{deviceNum},
+		ASSETS_NUM = #{assetNum},
+		BATCH_STATUS = 4
+		where ID = #{id}
+	</update>
+	
+	<update id="insertMachinesUrl" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+		set PIC_URL = #{picUrl}
+		where TYPE = #{type}
+	</update>
+	
+	<update id="updateMachinesUrl" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+		set PIC_URL = #{picUrl}
+		where ID = #{id}
+	</update>
+	
+	
+	<select id="findStockNums" parameterType="com.bonus.ma.beans.MachineBean" resultType="java.lang.String">
+		SELECT COUNT(ID) 
+		FROM mm_machines 
+		WHERE BUY_TIME LIKE CONCAT((select YEAR(CURDATE())),'%')
+		AND BATCH_STATUS >= 4
+	</select>
+	
+	<select id="findByTaskId" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT	DISTINCT tmt.id as taskId,mam.ID,
+				mam.DEVICE_CODE as deviceCode,mam.BATCH_STATUS as batchStatus
+		FROM mm_machines mam
+		LEFT JOIN tm_task_ma tta on tta.MA_ID = mam.ID
+		LEFT JOIN tm_task tmt on tmt.ID = tta.TASK_ID
+		WHERE tmt.id = #{taskId}
+		<if test="maTypeId != null and maTypeId != ''">
+			and mam.TYPE = #{maTypeId}
+		</if>
+		<if test="deviceCode != null and deviceCode != ''">
+			and mam.DEVICE_CODE like concat('%',#{deviceCode},'%') 
+		</if>
+		<if test="batchStatus != null and batchStatus != ''">
+			<if test="batchStatus != 10">
+				and mam.BATCH_STATUS = #{batchStatus}
+			</if>
+			<if test="batchStatus == 10">
+				and (
+					mam.BATCH_STATUS in (10,11,12) 
+				
+				)
+			</if>
+		</if>
+		ORDER BY mam.ID ASC
+	</select>
+	
+	<select id="findById" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT  DISTINCT mam.ID,mam.DEVICE_CODE as deviceCode,tmtm.TASK_ID as taskId,
+				mat1.`NAME` as type,mat.`NAME` as model,mam.THIS_CHECK_MAN as 
+				tOverhaulPersion,mam.THIS_CHECK_TIME as tOverhaulTime,
+				mam.NEXT_CHECK_TIME as nOverhaulTime,mat.ID as typeId,
+				mam.BATCH_STATUS as batchStatus,mam.VENDER_ID as 
+				verderId,mav.`NAME` as venderName,mam.CYCLE_NUM as outInNum
+		FROM mm_machines mam
+		LEFT JOIN tm_task_ma tmtm on tmtm.MA_ID = mam.ID
+		LEFT JOIN ba_ma_repair bamr on bamr.ID = tmtm.TASK_ID
+		LEFT JOIN mm_type mat on mat.ID = mam.TYPE
+		LEFT JOIN mm_type mat1 on mat1.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		WHERE mam.ID = #{id}
+		ORDER BY tmtm.CREATE_TIME DESC
+		LIMIT 1
+	</select>
+	
+	<select id="findSums" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT COUNT(ID) as sums FROM mm_machines 
+		WHERE BATCH_STATUS = 5 AND TYPE = #{type};
+	</select>
+	
+ 	<select id="findType" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT mtb.ID as typeId0,mtb.`NAME`as type0
+		FROM mm_machines mas 
+		LEFT JOIN mm_type mta ON mas.TYPE = mta.ID
+		LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID
+		WHERE mas.BATCH_STATUS = 5
+		GROUP BY mtb.ID
+	</select> 
+	
+	 <select id="findModel" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT mta.ID as typeId,mta.`NAME` as type
+		FROM mm_machines mas 
+		LEFT JOIN mm_type mta ON mas.TYPE = mta.ID
+		LEFT JOIN mm_type mtb ON mta.PARENT_ID = mtb.ID
+		WHERE mas.BATCH_STATUS = 5
+		AND mtb.ID = #{typeId0}
+		GROUP BY mta.ID 
+	</select>
+
+	<select id="getMachineStatus" resultType="com.bonus.ma.beans.MachineBean">
+	    select CODE as id,NAME as batchStatus from tm_task_status tts
+	</select>
+	
+	<select id="findByOutFactortNum" resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+		select distinct mam.ID
+		from mm_machines mam 
+		WHERE mam.OUT_FAC_NUM = #{outFactortNum}
+	</select>
+	
+	<select id="findMachineType"  resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+	SELECT ID,`NAME`
+	FROM `mm_type`
+    WHERE `LEVEL` =3 and IS_ACTIVE="1" and IS_COUNT=0
+	</select>
+	
+	<select id="findMachineTypeId"  resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+	SELECT ID,`NAME`
+    FROM `mm_type`
+    WHERE PARENT_ID=#{id} and IS_ACTIVE="1" and IS_COUNT=0
+	</select>
+	
+	<select id="findByAssetNum" resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+		select distinct mam.ASSETS_NUM
+		from mm_machines mam 
+		WHERE mam.ASSETS_NUM = #{assetNum}
+	</select>
+	
+	<select id="findByCode" resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+		select 	distinct mam.ID,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,mav.ID as verderId,
+				mav.`NAME` as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,
+				mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,
+				mam.PIC_URL as picUrl,mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+				mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks,
+				mam.BATCH_STATUS as batchStatus,mam.THIS_CHECK_TIME as tOverhaulTime,mam.THIS_CHECK_MAN as tOverhaulPersion,
+				mam.NEXT_CHECK_TIME as nOverhaulTime,mam.QRCODE as qrcode
+		from mm_machines mam 
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		WHERE mam.DEVICE_CODE = #{deviceCode}
+	</select>
+	
+	<select id="findByAccountName" resultType="com.bonus.ma.beans.MachineBean" parameterType="com.bonus.ma.beans.MachineBean">
+		SELECT ID AS userId ,`NAME` AS userName FROM pm_user
+		WHERE LOGIN_NAME = #{accountName}
+	</select>
+	
+	<select id="findByQrcode" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	    select distinct mam.ID as id,mor.ORG_ID as orgId,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,mav.ID as verderId,
+				mav.`NAME` as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,
+				mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.QRCODE as qrcode,
+				mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+				mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks,
+				mam.BATCH_STATUS as batchStatus,mam.THIS_CHECK_TIME as tOverhaulTime,mam.THIS_CHECK_MAN as tOverhaulPersion,
+				mam.NEXT_CHECK_TIME as nOverhaulTime,mat.FILE_URL as mainPara
+		from bm_qrcode bmq
+		LEFT JOIN mm_type mat on bmq.MA_MODEL = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_machines mam on bmq.`CODE` = mam.QRCODE and mam.TYPE = bmq.MA_MODEL
+		LEFT JOIN ma_org_relation mor on mat.ID = mor.TYPE_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		WHERE bmq.`CODE` = #{qrcode}
+ 	</select>
+ 	
+	<select id="findByQrcodePage" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+		select distinct 
+		matt.`NAME` as type0, -- 固资类型
+		mat.`NAME` as type,-- 规格型号
+		mam.DEVICE_CODE as deviceCode,-- 设备编号
+		mam.QRCODE as qrcode,-- 二维码编号
+		mam.REMARK as remarks,-- 备注
+		CASE mam.BATCH_STATUS 
+		 WHEN "1" THEN "待通知"
+		 WHEN "2" THEN "待检验"
+		 WHEN "3" THEN "待打印"
+		 WHEN "4" THEN "待入库"
+		 WHEN "5" THEN "在库"
+		 WHEN "6" THEN "在用"
+		 WHEN "7" THEN "在修"
+		 WHEN "8" THEN "在检"
+		 WHEN "9" THEN "修饰后待入库"
+		 WHEN "10" THEN "待报废"
+		 WHEN "11" THEN "已报废"
+		 WHEN "12" THEN "报废封存"
+		 WHEN "13" THEN "在检"
+		 WHEN "14" THEN "在审"
+		 WHEN "15" THEN "出库审核通过，待供应主管批准"
+		 WHEN "16" THEN "待报废检验"
+		 WHEN "17" THEN "待封存检验"
+		 WHEN "19" THEN "维修合格"
+		 ELSE ""	
+		 END as batchStatus,-- 设备状态
+		mam.BUY_TIME as buyTime,-- 购买日期
+		mav.`NAME` as venderName,-- 设备厂家
+		"固定资产" as BuyCompany,-- 资产属性
+		mmf.FILE_PATH as filePath,-- 合格证
+		mam.OPT_NAME as optName,
+		mam.opt_url as optUrl
+		from bm_qrcode bmq
+		LEFT JOIN mm_type mat on bmq.MA_MODEL = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_machines mam on bmq.`CODE` = mam.QRCODE and mam.TYPE = bmq.MA_MODEL
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		LEFT JOIN mm_machines_file mmf ON mmf.id = mam.id  AND mmf.FILE_TYPE="1"
+		WHERE bmq.`CODE` = #{qrcode}
+	</select>
+ 	
+	<select id="findInfoData" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+	    SELECT rf.id,
+		u.`NAME` as infoName,
+	  	rf.file_url as fileUrl,
+    	rf.time
+		FROM mm_machines mam
+		LEFT JOIN repair_file rf ON rf.ma_id=mam.id
+		LEFT JOIN pm_user u ON u.id=rf.info_name
+		WHERE mam.QRCODE=#{qrcode}
+		ORDER BY rf.id desc
+		LIMIT 0,6
+	</select>
+	
+ 	<select id="findByDeviceCode" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	    select 	distinct mam.ID as id,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,mav.ID as verderId,
+				mav.`NAME` as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,
+				mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.QRCODE as qrcode,
+				mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+				mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks,
+				mam.BATCH_STATUS as batchStatus,mam.THIS_CHECK_TIME as tOverhaulTime,mam.THIS_CHECK_MAN as tOverhaulPersion,
+				mam.NEXT_CHECK_TIME as nOverhaulTime,mat.FILE_URL as mainPara
+		from mm_machines mam 
+		LEFT JOIN mm_type mat on mam.type = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		WHERE mam.DEVICE_CODE = #{deviceCode}
+		<if test="typeId != null and typeId != '' ">
+		  and mat.ID = #{typeId}
+		</if>
+		
+		
+		
+ 	</select>
+ 	
+ 	
+ 		<select id="findByLikeCode" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine">
+ 	    select 	distinct mam.ID as id,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,mav.ID as verderId,
+				ifnull(mav.`NAME`,"--") as venderName,mam.OUT_FAC_TIME as outFactortTime,mam.DEVICE_CODE as deviceCode,
+				mam.OUT_FAC_NUM as outFactortNum,ROUND(mat.BUY_PRICE) as buyPrice,mam.QRCODE as qrcode,
+				mam.IS_FIXED_ASSETS as isFixedAssets,mat.LEASE_PRICE as leasePrice,ROUND(mat.PAY_PRICE) as payPrice,
+				mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,mam.REMARK as remarks,
+				mam.BATCH_STATUS as batchStatus,mam.THIS_CHECK_TIME as tOverhaulTime,mam.THIS_CHECK_MAN as tOverhaulPersion,
+				mam.NEXT_CHECK_TIME as nOverhaulTime,mat.FILE_URL as mainPara,ifnull(mam.REMARK,"") as remark
+		from mm_machines mam 
+		LEFT JOIN mm_type mat on mam.type = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		WHERE mat.ID = #{typeId} 
+			<if test="batchStatus != null and batchStatus != '' ">
+		   and mam.BATCH_STATUS = #{batchStatus}
+		</if>
+		
+			<if test="deviceCode != null and deviceCode !='' ">
+		    and mam.DEVICE_CODE like concat('%',#{deviceCode},'%')
+		</if>
+		 
+		 limit 1
+	
+ 	</select>
+ 	
+ 	<select id="getAlOutStorageInfoList" parameterType="com.bonus.lease.beans.OutStorageBean" resultMap="out">
+		select 	distinct mam.ID as id,matt.ID as tyoeId0,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,
+				ifnull(mav.`NAME`,"--") as venderName,mam.DEVICE_CODE as deviceCode,mam.ASSETS_NUM as assetNum,mam.CYCLE_NUM as outInNum,
+				mam.BATCH_STATUS as batchStatus,ifnull(mam.REMARK,"") as remark,wmo.ALREDY_COLLAR_NUM as alOutNum,wmo.TASK_ID
+		from wf_info_record wir 
+		LEFT JOIN mm_machines mam on wir.`CODE` = mam.DEVICE_CODE 
+		LEFT JOIN mm_type mat on mam.type = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+		left join wf_ma_outstock wmo on wmo.TASK_ID = wir.SUP_ID
+		WHERE wmo.TASK_ID = #{taskId} and wmo.OUT_PERSON= #{outPersonId} and mam.BATCH_STATUS = 14
+ 	</select>
+ 	
+ 	<update id="binding" parameterType="com.bonus.ma.beans.MachineBean">
+ 		update mm_machines 
+ 		set QRCODE = #{qrcode}
+ 		where DEVICE_CODE = #{deviceCode}
+ 	</update>
+ 	
+ 	<update id="unbinding" parameterType="com.bonus.ma.beans.MachineBean">
+ 		update mm_machines 
+ 		set QRCODE = ""
+ 		where DEVICE_CODE = #{deviceCode}
+ 	</update>
+
+ 	<update id="updateByEpc" parameterType="com.bonus.ma.beans.MachineBean">
+ 		update mm_machines 
+ 		set BATCH_STATUS = #{batchStatus}
+ 		where QRCODE = #{rfidEpc}
+ 	</update>
+ 	
+ 	<update id="updateCodeByQrcode" parameterType="com.bonus.ma.beans.MachineBean">
+ 		update mm_machines 
+ 		set QRCODE = #{qrcode}
+ 		where DEVICE_CODE= #{deviceCode}
+ 	</update>
+ 	
+ 	<!-- <select id="findByEpc" resultType="com.bonus.ma.beans.MachineBean" parameterType="java.lang.String" >
+ 	    select mam.ID,matt.`NAME` as type0,mat.ID as typeId,mat.`NAME` as type,
+		mam.DEVICE_CODE as deviceCode,
+		mam.BATCH_STATUS as batchStatus,
+		mam.THIS_CHECK_TIME as tOverhaulTime,mam.THIS_CHECK_MAN as tOverhaulPersion,
+		mam.RFID_EPC AS rfidEpc,mam.NEXT_CHECK_TIME as nOverhaulTime
+		from mm_machines mam 
+		LEFT JOIN mm_type mat on mam.TYPE = mat.ID
+		LEFT JOIN mm_type matt on matt.ID = mat.PARENT_ID
+	
+		LEFT JOIN mm_vender mav on mav.ID = mam.VENDER_ID
+	    WHERE mam.RFID_EPC = #{rfidEpc}
+ 	</select> -->
+	
+	<select id="export" parameterType="com.bonus.ma.beans.MachineBean" resultMap="machine" >
+	 SELECT DISTINCT
+	mam.ID,
+	matt.ID AS tyoeId0,
+	matt.`NAME` AS type0,
+	mat.ID AS typeId,
+	mat.`NAME` AS type,
+	mav.ID AS verderId,
+	ifnull( mav.`NAME`, "--" ) AS venderName,
+	mam.OUT_FAC_TIME AS outFactortTime,
+	mam.DEVICE_CODE AS deviceCode,
+	mam.OUT_FAC_NUM AS outFactortNum,
+	ROUND( mat.BUY_PRICE ) AS buyPrice,
+	mam.PIC_URL AS picUrl,
+	mam.IS_FIXED_ASSETS AS isFixedAssets,
+	mat.LEASE_PRICE AS leasePrice,
+	ROUND( mat.PAY_PRICE ) AS payPrice,
+	mam.ASSETS_NUM AS assetNum,
+	mam.CYCLE_NUM AS outInNum,
+	mam.REMARK AS remarks,
+	mam.DEVICE_TYPE as deviceType,
+	mam.BATCH_STATUS AS batchStatus,
+	mam.THIS_CHECK_TIME AS tOverhaulTime,
+	mam.THIS_CHECK_MAN AS tOverhaulPersion,
+	mam.PROPERTY_DEPARTMENT AS propertyDepartment,
+	mam.USE_DEPARTMENT AS useDepartment,
+	mam.SERVICE_LIFE AS serviceLife,
+	mam.NEXT_CHECK_TIME AS nOverhaulTime,
+	mam.QRCODE AS qrcode,
+	mam.GPS_CODE AS gpsCode,
+	mam.MAKE_ORDER_DATE AS makeOrderDate,
+	mam.INVOICE_DATE AS invoiceDate,
+	a.subcontractors,
+	a.leaseName,
+	a.projectName 
+FROM
+	mm_machines mam
+	LEFT JOIN mm_type mat ON mam.TYPE = mat.ID
+	LEFT JOIN mm_type matt ON matt.ID = mat.PARENT_ID
+	LEFT JOIN mm_vender mav ON mav.ID = mam.VENDER_ID
+	LEFT JOIN ma_org_relation rel ON rel.TYPE_ID = mat.ID
+	LEFT JOIN (
+		SELECT
+		res.agreementId,
+		res.leaseName,
+		res.machineId,
+		res.projectName,
+		res.subcontractors
+		FROM
+		(
+		SELECT
+		
+				bu.`NAME` AS leaseName,
+				bp.`NAME` AS projectName,
+				wir.ma_id AS machineId,
+				bs.`NAME` AS subcontractors ,
+				wca.AGREEMENT_ID as agreementId
+		FROM
+				wf_info_record wir
+				
+				LEFT JOIN mm_machines mm ON wir.ma_id = mm.id
+				LEFT JOIN wf_task_record wtr on wir.SUP_ID = wtr.ID
+				LEFT JOIN wf_agreement_task wat on wtr.SUP_ID = wat.TASK_ID
+				LEFT JOIN wf_collar_apply wca ON wca.AGREEMENT_ID =	wat.AGREEMENT_ID
+				LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_subcontractors bs ON wca.SUBCONTRACTORS_ID = bs.ID 
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				where  wir.TYPE = 2 and mm.BATCH_STATUS = 6
+		
+				GROUP BY mm.ID,wat.AGREEMENT_ID
+						ORDER BY wir.TIME desc 
+						) res 
+						GROUP BY res.machineId
+	) a ON mam.id = a.machineId 
+WHERE
+	mam.DEVICE_TYPE=#{param.deviceType}
+		<if test='param.orgId !=null and param.orgId!="" and  param.orgId!="1" and  param.orgId!=1'>
+			and  rel.ORG_ID=#{param.orgId}
+		</if>
+		<if test="param.batchStatus != '-1'">
+		    and mam.BATCH_STATUS=#{param.batchStatus}
+		</if>
+		<if test="param.erpNum != null and param.erpNum != ''">
+			and mam.ERP_NUM like concat('%',#{param.erpNum},'%')
+		</if>
+		<if test="param.type0 != null and param.type0 != ''">
+			and matt.`NAME` = #{param.type0}
+		</if>
+		<if test="param.type != null and param.type != ''">
+			and mat.`NAME` = #{param.type}
+		</if>
+		<if test="param.remarks != null and param.remarks != ''">
+			and mam.REMARK LIKE CONCAT('%',#{param.remarks},'%') 
+		</if>
+		<if test="param.keyWord !=null and param.keyWord !=''">
+		    and (
+			    matt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.DEVICE_CODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mat.`NAME` LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mam.QRCODE LIKE CONCAT('%',#{param.keyWord},'%') OR
+			    mav.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+		    )
+		</if>
+		order by mam.ID desc
+	</select>
+	
+	<select id="findOneNoBinding" parameterType="com.bonus.ma.beans.MachineBean" resultType="java.lang.String">
+		SELECT mas.ID FROM mm_machines mas 
+		LEFT JOIN tm_task_ma ttm ON mas.ID = ttm.MA_ID
+		WHERE ttm.TASK_ID = #{taskId} 
+		AND (ISNULL(mas.DEVICE_CODE) || mas.DEVICE_CODE = "" )
+		AND mas.BATCH_STATUS = 3
+		LIMIT 1
+	</select>
+	
+	<update id="intoByQrcode" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+        <set>
+            <if test="type != null">
+               	TYPE = #{type},
+            </if>
+             <if test="isFixedAssets != null">
+              	IS_FIXED_ASSETS = #{isFixedAssets},
+            </if>
+             <if test="houseName != null">
+              	HOUSE_ID = #{houseName},
+            </if>
+             <if test="position != null">
+              	POSITION = #{position},
+            </if>
+             <if test="isTrack != null">
+              	IS_TRACK = #{isTrack},
+            </if>
+             <if test="isCheck != null">
+               IS_CHECK = #{isCheck},
+            </if>
+            <if test="deviceNum != null">
+              	DEVICE_NUM = #{deviceNum},
+            </if>
+            <if test="tOverhaulTime != null">
+				THIS_CHECK_TIME = #{tOverhaulTime},
+			</if>
+			<if test="tOverhaulPersion != null">
+				THIS_CHECK_MAN = #{tOverhaulPersion},
+			</if>
+			<if test="nOverhaulTime != null">
+				NEXT_CHECK_TIME = #{nOverhaulTime},
+			</if>
+            <if test="deviceCode != null">
+              DEVICE_CODE = #{deviceCode},
+            </if>
+             <if test="outFactortTime != null">
+              OUT_FAC_TIME = #{outFactortTime},
+            </if>
+             <if test="outFactortNum != null">
+              OUT_FAC_NUM = #{outFactortNum},
+            </if>
+             <if test="assetNum != null">
+              ASSETS_NUM = #{assetNum},
+            </if>
+             <if test="equipmentState != null">
+              DEVICE_STATUS = #{equipmentState},
+            </if>
+             <if test="outInNum != null">
+              CYCLE_NUM = #{outInNum},
+            </if>
+             <if test="erpNum != null">
+              ERP_NUM = #{erpNum},
+            </if>
+            <if test="batchStatus != null">
+              BATCH_STATUS = #{batchStatus},
+            </if>
+            <if test="gpsCode != null">
+              GPS_CODE = #{gpsCode},
+            </if>
+            <if test="rfidEpc != null">
+              RFID_EPC = #{rfidEpc},
+            </if>
+            <if test="isScrap != null">
+				IS_SCRAP= #{isScrap},
+			</if>
+			<if test="clerk != null">
+				MACHINES_CLERK = #{clerk},
+			</if>
+			<if test="buyCompany != null">
+				BUY_COMNPANY = #{buyCompany},
+			</if>
+		
+			<if test="mainPara !=null">
+				URL = #{mainPara},
+			</if>
+			<if test="venderName !=null">
+				VENDER_ID = #{venderName},
+			</if>
+        </set>
+       	where qrcode = #{qrcode}
+	</update>
+	
+	<select id="machinePicking" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wmo.OUT_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark 
+		FROM wf_info_record wir
+		LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wir.SUP_ID
+		LEFT JOIN pm_user pu ON pu.ID = wmo.OUT_PERSON
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 2 AND wir.`CODE` = #{deviceCode}
+		ORDER BY wmo.OUT_TIME DESC
+	</select>
+	
+	
+	<select id="machineMaterialReturn" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT wrmd.OPERATOR AS name,wrmd.RETURN_MATERIAL_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark
+		FROM wf_info_record wir
+		LEFT JOIN wf_return_material_details wrmd ON wrmd.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wrmd.TASK_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 4 AND wir.`CODE` = #{deviceCode}
+		ORDER BY wrmd.RETURN_MATERIAL_TIME DESC
+	</select>
+	
+	
+	<select id="machineRepair" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wir.TIME AS outTime
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+	
+		WHERE wir.TYPE = 6 AND wir.`CODE` =#{deviceCode}
+		ORDER BY wir.TIME DESC
+		limit 1
+	</select>
+	<select id="machineRepairhistory" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 6 AND wir.`CODE` =#{deviceCode}
+		ORDER BY wir.TIME DESC
+	</select>
+	
+	<select id="machineOverhaul" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+	SELECT pu.`NAME` AS name,wir.TIME AS outTime
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+		LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.CHECK_ID
+	
+		WHERE wir.TYPE = 8 AND wir.`CODE` =#{deviceCode}
+		ORDER BY wir.TIME DESC
+		limit 1
+	</select>
+	
+	<select id="machineOverhaulhistory" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+	SELECT pu.`NAME` AS name,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+		LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.CHECK_ID
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 8 AND wir.`CODE` =#{deviceCode}
+		ORDER BY wir.TIME DESC
+	</select>
+	
+	
+	<select id="machineWarehousing" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wir.`CODE` AS devCode,wir.TIME AS outTime
+		FROM wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wir.SUP_ID 
+		LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+	
+		WHERE wir.TYPE = 3 AND wir.`CODE` = #{deviceCode}
+		ORDER BY wir.TIME  DESC
+	</select>
+	
+	<select id="machineWarehousinghistory" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wir.`CODE` AS devCode,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark
+		FROM wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wir.SUP_ID 
+		LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 3 AND wir.`CODE` = #{deviceCode}
+		ORDER BY wir.TIME  DESC
+	</select>
+	
+	<select id="machineScrap" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT pu.`NAME` AS name,wir.`CODE` AS devCode,wsd.OPERATION_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark
+		FROM wf_info_record wir
+		LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wir.SUP_ID and wsd.MODEL_ID = wir.MODEL_ID
+		LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_PERSON
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.TYPE = 7 AND wir.`CODE` = #{deviceCode}
+		ORDER BY wsd.OPERATION_TIME DESC
+	</select>
+	
+	
+	<select id="findByPageThree" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+			
+	       	<if test="param.optType == '2' or param.optType == 2 ">
+			    SELECT
+				pu.`NAME` AS name,
+				wmo.OUT_TIME AS outTime,
+				bp.`NAME` AS proName,
+				bu.`NAME` AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wmo.OUT_PERSON
+				LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+				LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+			WHERE
+				wir.`CODE` = #{param.deviceCode}	AND wir.TYPE = 2
+		  </if>
+	    
+	       		<if test="param.optType == '3' or param.optType == 3">
+	       	SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum
+				
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+			
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+					AND wir.TYPE = 3
+				 </if>
+	       	
+	       	
+	       	
+	         
+	        	<if test="param.optType == '4' or param.optType == 4 ">
+			SELECT
+				wrmd.OPERATOR AS name,
+				wrmd.RETURN_MATERIAL_TIME AS outTime,
+				bp.`NAME` AS proName,
+				bu.`NAME` AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.ID = wir.SUP_ID
+				LEFT JOIN wf_task_record wtr ON wtr.ID = wrmd.TASK_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+			WHERE
+					wir.`CODE` = #{param.deviceCode}
+					AND wir.TYPE = 4
+		  </if>
+	    <if test="param.optType == '6' or param.optType == 6">
+	     SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+			  "" AS proName,
+			  "" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wir.USER_ID
+				
+			WHERE wir.`CODE` = #{param.deviceCode}
+					AND wir.TYPE = 6
+				</if>
+	        
+	        <if test="param.optType == '7' or param.optType == 7">
+	            SELECT
+	             pu.`NAME` AS name,
+				wsd.OPERATION_TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum 
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wir.SUP_ID 
+				AND wsd.MODEL_ID = wir.MODEL_ID
+				LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_PERSON
+			
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+					AND wir.TYPE = 7
+	        </if>
+	         <if test="param.optType == '8' or param.optType == 8">
+	        SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum  
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+				LEFT JOIN pm_user pu ON pu.ID = wir.USER_ID
+			
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+				
+					AND wir.TYPE = 8
+				</if>
+	        
+	     
+	     	<if test="param.optType == '-1'or param.optType == -1 ">
+	SELECT * from(SELECT
+				pu.`NAME` AS name,
+				wmo.OUT_TIME AS outTime,
+				bp.`NAME` AS proName,
+				bu.`NAME` AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum   
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wmo.OUT_PERSON
+				LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+				LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+			WHERE
+				wir.`CODE` = #{param.deviceCode}
+				<if test="param.optType == '-1'">
+					AND wir.TYPE = 2
+				</if>
+				 UNION
+			SELECT
+				wrmd.OPERATOR AS name,
+				wrmd.RETURN_MATERIAL_TIME AS outTime,
+				bp.`NAME` AS proName,
+				bu.`NAME` AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum    
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_return_material_details wrmd ON wrmd.ID = wir.SUP_ID
+				LEFT JOIN wf_task_record wtr ON wtr.ID = wrmd.TASK_ID
+				LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+				LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+				LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT
+				LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY 
+			WHERE
+					wir.`CODE` = #{param.deviceCode}
+				<if test="param.optType == '-1'">
+					AND wir.TYPE = 4
+				</if>
+				
+				UNION
+			SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+			    "" AS proName,
+			    "" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum      
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wir.USER_ID
+			WHERE wir.`CODE` = #{param.deviceCode}
+				<if test="param.optType == '-1'">
+					AND wir.TYPE = 6
+				</if>
+				UNION
+			SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum        
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+				LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+				LEFT JOIN pm_user pu ON pu.ID = wir.USER_ID
+			
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+				<if test="param.optType == '-1'">
+					AND wir.TYPE = 8
+				</if>
+				UNION
+			SELECT
+				pu.`NAME` AS name,
+				wir.TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum 
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wir.SUP_ID
+				LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+			
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+				<if test="param.optType == '-1'">
+					AND wir.TYPE = 3
+				</if>
+				
+				UNION
+			SELECT
+				pu.`NAME` AS name,
+				wsd.OPERATION_TIME AS outTime,
+				"" AS proName,
+				"" AS unitName,
+				wir.REMARK AS remark,
+				wir.TYPE AS type,
+				wir.`CODE` as code,
+                mmt.`NAME` as machineName,
+                 mmt1.`NAME` as typeName,
+			    mma.ASSETS_NUM as assetsNum    
+			FROM
+				wf_info_record wir
+				LEFT JOIN mm_machines mma on wir.`CODE` = mma.DEVICE_CODE
+				LEFT JOIN mm_type mmt on wir.MODEL_ID = mmt.ID
+				LEFT JOIN mm_type mmt1 on mmt1.ID =mmt.PARENT_ID
+				LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wir.SUP_ID 
+				AND wsd.MODEL_ID = wir.MODEL_ID
+				LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_PERSON
+			WHERE
+				 wir.`CODE` = #{param.deviceCode}
+					AND wir.TYPE = 7
+					
+					)as a
+			where 1 =1
+			<if test="param.name != null and param.name != ''">
+			and a.name = #{param.name}
+		    </if>
+				<if test="param.proName != null and param.proName != ''">
+			and a.proName = #{param.proName}
+		    </if>	
+			<if test="param.unitName != null and param.unitName != ''">
+			and a.unitName = #{param.unitName}
+		    </if>
+			ORDER BY
+				outTime
+			</if>
+	 
+	</select>
+	
+	<select id="getCode" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+		SELECT mm.DEVICE_CODE as deviceCode FROM mm_machines mm
+		WHERE mm.DEVICE_CODE = #{deviceCode}
+	</select>
+	
+	<select id="exporthistory" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+	   SELECT pu.`NAME` AS name,wmo.OUT_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_ma_outstock wmo ON wmo.TASK_ID = wir.SUP_ID
+		LEFT JOIN pm_user pu ON pu.ID = wmo.OUT_PERSON
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.`CODE` = #{param.deviceCode} and wir.TYPE =2
+		
+	UNION
+	    SELECT wrmd.OPERATOR AS name,wrmd.RETURN_MATERIAL_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_return_material_details wrmd ON wrmd.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wrmd.TASK_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.`CODE` =  #{param.deviceCode} and wir.TYPE =4
+	UNION
+		SELECT pu.`NAME` AS name,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_details wrd ON wrd.TASK_ID = wir.SUP_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.REPAIR_MAN
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE  wir.`CODE` = #{param.deviceCode} and wir.TYPE =6
+   UNION
+		SELECT pu.`NAME` AS name,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_repair_check wrc ON wrc.TASK_ID = wir.SUP_ID
+		LEFT JOIN wf_repair_details wrd ON wrd.id = wrc.REPAIR_ID
+		LEFT JOIN pm_user pu ON pu.ID = wrd.CHECK_ID
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE  wir.`CODE` = #{param.deviceCode} and wir.TYPE =8
+  UNION
+		SELECT pu.`NAME` AS name,wir.TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpsd ON wpsd.TASK_ID = wir.SUP_ID 
+		LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+	    LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY
+		WHERE wir.`CODE` =  #{param.deviceCode} and wir.TYPE =3
+ UNION
+		SELECT pu.`NAME` AS name,wsd.OPERATION_TIME AS outTime,bp.`NAME` AS proName,bu.`NAME` AS unitName,wir.REMARK as remark,wir.TYPE as type
+		FROM wf_info_record wir
+		LEFT JOIN wf_scrap_details wsd ON wsd.TASK_ID = wir.SUP_ID and wsd.MODEL_ID = wir.MODEL_ID
+		LEFT JOIN pm_user pu ON pu.ID = wsd.SCRAP_PERSON
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wir.SUP_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID = wtr.SUP_ID
+		LEFT JOIN wf_agreement_task wat ON wat.TASK_ID = wtr1.ID
+		LEFT JOIN wf_lease_agreement wla ON wla.ID = wat.AGREEMENT_ID
+		LEFT JOIN bm_project bp ON bp.ID = wla.PROJECT 
+		LEFT JOIN bm_unit bu ON bu.ID = wla.LEASE_COMPANY	
+		WHERE wir.`CODE` =  #{param.deviceCode} and wir.TYPE =7 
+		
+		
+	    ORDER BY outTime
+	</select>
+	<update id="updTime"  parameterType="String">
+		UPDATE mm_machines SET THIS_CHECK_TIME=#{1}, NEXT_CHECK_TIME=#{2}  WHERE id=#{0}
+    </update>
+    
+    <!-- <select id="findCertificateById" parameterType="com.bonus.ma.beans.MachineBean" resultType="com.bonus.ma.beans.MachineBean">
+	    SELECT ID 
+		FROM mm_machines_file
+		WHERE ID = #{id}
+	</select> -->
+	<!-- <update id="updCertificateBuId"  parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE mm_machines_file 
+		SET 
+		CERTIFICATE_FILE_NAME=#{certificateFileName}, 
+		CERTIFICATE_FILE_PATH=#{certificateFilePath}  
+		WHERE id=#{id}
+    </update> -->
+    <insert id="insCertificateBuId" parameterType="com.bonus.ma.beans.MachineBean">
+    	INSERT INTO mm_machines_file(ID,FILE_NAME,FILE_PATH,FILE_TYPE,FILE_NEW_NAME,CREATE_TIME) 
+    	values(#{id}, #{fileName},#{filePath},#{fileType},#{fileNewName},now());
+    </insert>
+    
+    <update id="updMaterialsById"  parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE mm_machines_file SET TEC_MATERIALS_FILE_NAME=#{tecMaterialsFileName}, TEC_MATERIALS_FILE_PATH=#{tecMaterialsFilePath}  WHERE id=#{id}
+    </update>
+    <insert id="insMaterialsById" parameterType="com.bonus.ma.beans.MachineBean">
+    	INSERT INTO mm_machines_file(ID, FILE_NAME,FILE_PATH,FILE_TYPE,FILE_NEW_NAME) 
+    	values(#{id}, #{fileName},#{filePath},#{fileType},#{fileNewName});
+    </insert>
+    
+    <update id="updProceduresById"  parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE mm_machines_file 
+		SET TRANS_PROCEDURES_FILE_NAME=#{transProceduresFileName}, 
+		TRANS_PROCEDURES_FILE_PATH=#{transProceduresFilePath}  
+		WHERE id=#{id}
+    </update>
+    <insert id="insProceduresById" parameterType="com.bonus.ma.beans.MachineBean">
+    	INSERT INTO mm_machines_file(ID, FILE_NAME,FILE_PATH,FILE_TYPE,FILE_NEW_NAME) 
+    	values(#{id}, #{fileName},#{filePath},#{fileType},#{fileNewName});
+    </insert>
+    
+    <update id="updateOpmanual"  parameterType="com.bonus.ma.beans.MachineBean">
+      UPDATE mm_machines SET OPT_NAME=#{fileName},OPT_URL=#{filePath},OPT_NEW_NAME=#{fileNewName}
+      where ID = #{id}
+    </update>
+	
+	<insert id="insOpmanualById" parameterType="com.bonus.ma.beans.MachineBean">
+    	INSERT INTO mm_machines_file(ID, FILE_NAME,FILE_PATH,FILE_TYPE,FILE_NEW_NAME) 
+    	values(#{id}, #{fileName},#{filePath},#{fileType},#{fileNewName});
+    </insert>
+	<insert id="insOpmanualSubmitById" parameterType="com.bonus.ma.beans.MachineBean">
+    	INSERT INTO mm_machines(OPT_NAME,OPT_URL) 
+    	values(#{fileName},#{filePath});
+    </insert>
+    
+	 <update id="updateOptInfo"  parameterType="com.bonus.ma.beans.MachineBean">
+		UPDATE mm_machines 
+		SET OPT_NAME=#{fileName}, 
+		OPT_URL=#{filePath},
+	    OPT_NEW_NAME=#{fileNewName}
+		WHERE TYPE=#{typeParentId}
+    </update>
+    
+	
+    <select id="findByType" resultMap="machine">
+		SELECT TYPE AS type FROM mm_machines WHERE ID = #{id}
+  	</select>
+    <update id="updateType" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_type
+        <set>
+			<if test="buyPrice !=null and buyPrice !=''">
+				BUY_PRICE = #{buyPrice},
+			</if>
+        </set>
+       	where ID = #{id}
+	</update>
+	<update id="update" parameterType="com.bonus.ma.beans.MachineBean">
+		update mm_machines
+        <set>
+            <if test="type != null and type != ''">
+               	TYPE = #{type},
+            </if>
+             <if test="isFixedAssets != null and isFixedAssets != ''">
+              	IS_FIXED_ASSETS = #{isFixedAssets},
+            </if>
+             <if test="houseName != null and houseName != ''">
+              	HOUSE_ID = #{houseName},
+            </if>
+             <if test="position != null and position != ''">
+              	POSITION = #{position},
+            </if>
+             <if test="isTrack != null and isTrack != ''">
+              	IS_TRACK = #{isTrack},
+            </if>
+             <if test="isCheck != null and isCheck != ''">
+               IS_CHECK = #{isCheck},
+            </if>
+            <if test="deviceNum != null and deviceNum != ''">
+              	DEVICE_NUM = #{deviceNum},
+            </if>
+            <if test="tOverhaulTime != null and tOverhaulTime != ''">
+				THIS_CHECK_TIME = #{tOverhaulTime},
+			</if>
+			<if test="tOverhaulPersion != null and tOverhaulPersion != ''">
+				THIS_CHECK_MAN = #{tOverhaulPersion},
+			</if>
+			<if test="nOverhaulTime != null and nOverhaulTime != ''">
+				NEXT_CHECK_TIME = #{nOverhaulTime},
+			</if>
+            <if test="deviceCode != null and deviceCode != ''">
+              DEVICE_CODE = #{deviceCode},
+            </if>
+            <if test="qrcode != null and qrcode != ''">
+              QRCODE = #{qrcode},
+            </if>
+             <if test="outFactortTime != null and outFactortTime != ''">
+              OUT_FAC_TIME = #{outFactortTime},
+            </if>
+             <if test="outFactortNum != null and outFactortNum != ''">
+              OUT_FAC_NUM = #{outFactortNum},
+            </if>
+             <if test="assetNum != null and assetNum != ''">
+              ASSETS_NUM = #{assetNum},
+            </if>
+             <if test="equipmentState != null and equipmentState != ''">
+              DEVICE_STATUS = #{equipmentState},
+            </if>
+             <if test="outInNum != null and outInNum != ''">
+              CYCLE_NUM = #{outInNum},
+            </if>
+             <if test="erpNum != null and erpNum != ''">
+              ERP_NUM = #{erpNum},
+            </if>
+            <if test="batchStatus != null and batchStatus != ''">
+              BATCH_STATUS = #{batchStatus},
+            </if>
+            <if test="gpsCode != null and gpsCode != ''">
+              GPS_CODE = #{gpsCode},
+            </if>
+            <if test="rfidEpc != null and rfidEpc != ''">
+              RFID_EPC = #{rfidEpc},
+            </if>
+            <if test="isScrap != null and isScrap != ''">
+				IS_SCRAP= #{isScrap},
+			</if>
+			<if test="clerk != null and clerk != ''">
+				MACHINES_CLERK = #{clerk},
+			</if>
+			<if test="buyCompany != null and buyCompany != ''">
+				BUY_COMNPANY = #{buyCompany},
+			</if>
+			
+			<if test="mainPara !=null and mainPara != ''">
+				URL = #{mainPara},
+			</if>
+			<if test="venderName !=null and venderName != ''">
+				VENDER_ID = #{venderName},
+			</if>
+			<if test="thisCheckTime !=null and thisCheckTime !=''">
+				THIS_CHECK_TIME = #{thisCheckTime},
+			</if>
+			<if test="nextCheckTime !=null and nextCheckTime !=''">
+				NEXT_CHECK_TIME = #{nextCheckTime},
+			</if>
+			<if test="remarks !=null and remarks !=''">
+				REMARK = #{remarks},
+			</if>
+			<if test="assetNum !=null and assetNum !=''">
+				ASSETS_NUM = #{assetNum},
+			</if>
+        </set>
+       	where ID = #{id}
+        <if test="type != null and type != ''">
+           and TYPE = #{type}
+        </if>
+	</update>
+</mapper>

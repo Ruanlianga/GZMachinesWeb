@@ -1,0 +1,568 @@
+package com.bonus.sys.controller;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.bonus.ma.beans.MachineBean;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseController;
+import com.bonus.sys.GlobalConst;
+import com.bonus.sys.Page;
+import com.bonus.sys.UserShiroHelper;
+import com.bonus.sys.beans.RoleBean;
+import com.bonus.sys.beans.UserBean;
+import com.bonus.sys.beans.ZNode;
+import com.bonus.sys.service.RoleService;
+import com.bonus.sys.service.UserService;
+
+@Controller
+@RequestMapping("/backstage/user/")
+public class UserController extends BaseController<UserBean> {
+
+	@Autowired
+	private UserService service;
+	
+	@Autowired
+	private RoleService roleService;
+
+	@RequestMapping("list")
+	public String index(Model model) {
+		return "/sys/userlist";
+	}
+
+	@RequestMapping("select")
+	public String select(Model model) {
+		return "/newInput/selectPerson";
+	}
+	
+	@RequestMapping("tips")
+	public String tips(Model model) {
+		return "/sys/tips";
+	}
+	
+	@RequestMapping("userTree")
+	public String userTree(Model model) {
+		return "/sys/userTree";
+	}
+	
+	@RequestMapping("checkTree")
+	public String checkTree(Model model) {
+		return "/lease/checkTree";
+	}
+	
+	@RequestMapping("serviceTree")
+	public String serviceTree(Model model) {
+		return "/lease/serviceTree";
+	}
+	@RequestMapping("keeperTree")
+	public String keeperTree(Model model) {
+		return "/sys/keeperTree";
+	}
+	
+	@RequestMapping("findAllPerson")
+	public String findAllPerson(Model model) {
+		return "/newInput/findAllPerson";
+	}
+	
+	/*
+	 * 电子签名上传
+	 */
+	@RequestMapping("imgLoadPage")
+	public String imgLoad(Model model, HttpServletRequest req) {
+		return "/sys/imgLoad";
+	}
+	
+	/*
+	 * 电子签名查看
+	 */
+	@RequestMapping("queryImgPage")
+	public String queryImg(Model model, HttpServletRequest req) {
+		return "/sys/queryImg";
+	}
+
+	@RequestMapping(value = "findByPage", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findByPage(Page<UserBean> page, UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		if (ar.setNoAuth(doSecurityIntercept(GlobalConst.RESOURCES_TYPE_MENU, "/backstage/user/list"))) {
+			try {
+				Page<UserBean> accounts = service.findByPage(o, page);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", accounts);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "findAllByRole", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAllByRole(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		if (ar.setNoAuth(doSecurityIntercept(GlobalConst.RESOURCES_TYPE_MENU, "/backstage/user/list"))) {
+			try {
+				List<UserBean> accounts = service.findAllByRole(o);
+				Map<String, Object> p = new HashMap<String, Object>();
+				p.put("list", accounts);
+				ar.setSucceed(p);
+			} catch (Exception e) {
+				logger.error(e.toString(), e);
+				ar.setFailMsg(GlobalConst.DATA_FAIL);
+			}
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "uploadImg")
+	@ResponseBody
+    public Map<String,Object> upload(@RequestParam("file")MultipartFile file,UserBean o,HttpServletRequest request){
+        String prefix="";
+        String dateStr="";
+        //保存上传
+        OutputStream out = null;
+        InputStream fileInput=null;
+        try{
+            if(file!=null){
+                String fileName = file.getOriginalFilename();
+                Date date = new Date();
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                dateStr = simpleDateFormat.format(date);
+                String filepath = request.getSession().getServletContext().getRealPath("/user");
+               // String filepath = "D:\\mycode\\machine\\images\\" + dateStr+"\\"+fileName;
+
+                File files=new File(filepath);
+                if (!files.exists()) {
+        		      files.mkdirs();
+        		}
+                //打印查看上传路径
+                
+                System.out.println(filepath+"/"+fileName);
+                File dest=new File(files,fileName);
+                file.transferTo(dest);
+                
+                //保存文件名文件路径
+                o.setPicUrl(filepath+"/"+fileName);
+                
+                int res = service.insertPic(o);
+                
+                Map<String,Object> map2=new HashMap<>();
+                Map<String,Object> map=new HashMap<>();
+                map.put("code",0);
+                map.put("msg","");
+                map.put("data",map2);
+                map2.put("src","/images/"+ dateStr+"/"+fileName);
+                return map;
+            }
+
+        }catch (Exception e){
+        	logger.error(e.toString(),e);
+        }finally{
+            try {
+                if(out!=null){
+                    out.close();
+                }
+                if(fileInput!=null){
+                    fileInput.close();
+                }
+            } catch (IOException e) {
+            }
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("code",1);
+        map.put("msg","");
+        return map;
+    }
+	
+	@RequestMapping(value = "downFile")
+	public void ShowImg(HttpServletRequest request, HttpServletResponse response, @RequestParam("headerUrl") String url)
+			throws IOException {
+		FileInputStream fileIs = null;
+		try {
+			fileIs = new FileInputStream(url);
+		} catch (Exception e) {
+			return;
+		}
+		int i = fileIs.available();
+		// 得到文件大小
+		byte data[] = new byte[i];
+		fileIs.read(data);
+		// 读数据
+		response.setContentType("image/*");
+		// 设置返回的文件类型
+		OutputStream outStream = response.getOutputStream();
+		// 得到向客户端输出二进制数据的对象
+		outStream.write(data);
+		// 输出数据
+		outStream.flush();
+		outStream.close();
+		fileIs.close();
+	}
+
+	@RequestMapping(value = "findByOrg", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findByOrg(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<UserBean> accounts = service.findByOrg(o);
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", accounts);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "findCompanyInfo", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findCompanyInfo(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			UserBean obj = service.findCompanyInfo(o);
+			Map<String, Object> p = new HashMap<String, Object>();
+			if(obj!=null){
+				String parentId = obj.getParentId();
+				if("1".equals(parentId) || "0".equals(parentId)){
+					
+				}else{
+					 o.setOrgId(Integer.parseInt(parentId));
+					 obj = service.findCompanyInfo(o);
+				}
+			}
+		
+			p.put("list", obj);
+			
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "orgTree", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes roleTree() {
+		AjaxRes ar = getAjaxRes();
+		try {
+			UserBean user = UserShiroHelper.getRealCurrentUser();
+			List<ZNode> list = service.getOrgBeans(user);
+			ar.setSucceed(list);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "findPerson", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findPerson(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			List<ZNode> list = service.findPerson(o);
+			ar.setSucceed(list);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "findCheckPerson", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findCheckPerson(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+//			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+//			o.setCompanyId(companyId);
+			List<ZNode> list = service.findCheckPerson(o);
+			ar.setSucceed(list);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	/**
+	 * Finds service personnel based on the provided user information.
+	 *
+	 * @param o a UserBean object containing the details required to search for service personnel.
+	 *          The companyId is internally set based on the currently logged-in user.
+	 * @return an AjaxRes object containing the result of the operation.
+	 *         If successful, it includes a list of ZNode objects representing the service personnel.
+	 *         If an error occurs, it contains a failure message.
+	 */
+	@RequestMapping(value = "findServicePerson", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findServicePerson(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			String companyId = UserShiroHelper.getRealCurrentUser().getCompanyId();
+			o.setCompanyId(companyId);
+			List<ZNode> list = service.findServicePerson(o);
+			ar.setSucceed(list);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "find", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes find(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<UserBean> list = service.find(o);
+			UserBean acount = list.get(0);
+			ar.setSucceed(acount);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "updateUsers", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes updateUsers(int roleId, String chks) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.updateUsers(roleId, chks);
+			ar.setSucceedMsg(GlobalConst.SAVE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.SAVE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "update", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes update(UserBean o) {
+		logger.info(o.toString());
+		AjaxRes ar = getAjaxRes();
+		try {
+			o.setUpdateTime(new Date());
+			service.update(o);
+			ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "add", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes add(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			int res = service.insertUser(o);
+			if (res != 0){
+				RoleBean roleBean = new RoleBean();
+				roleBean.setName(o.getName());
+				roleBean.setIsActive("1");
+				roleService.insert(roleBean);
+				o.setId(res);
+				o.setRoleId(roleBean.getId());
+				service.insertUserRole(o);
+				ar.setSucceedMsg(GlobalConst.SAVE_SUCCEED);
+			}else{
+				ar.setFailMsg("登录名已存在");
+			}
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.SAVE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "del", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes del(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.delete(o);
+			ar.setSucceedMsg(GlobalConst.DEL_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DEL_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "delBatch", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes delBatch(String chks) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.deleteBatch(chks);
+			ar.setSucceedMsg(GlobalConst.DEL_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DEL_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "getPerData", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes getPerData(HttpServletRequest req, HttpServletResponse res, HttpSession sess) {
+		AjaxRes ar = getAjaxRes();
+		try {
+		
+			UserBean account = UserShiroHelper.getRealCurrentUser();
+			ar.setSucceed(account);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "setPerData", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes setPerData(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.setPerData(o);
+			ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "setSetting", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes setSetting(String skin) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			service.setSetting(skin);
+			ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "preResetPWD", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes resetPwd(String opwd, String npwd, String qpwd) {
+		AjaxRes ar = getAjaxRes();
+		try {
+			int res = service.preResetPwd(opwd, npwd, qpwd);
+			if (res == 1)
+				ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+			else if (res == 2)
+				ar.setFailMsg("密码不正确");
+			else if (res == 3)
+				ar.setFailMsg("两次密码不一致");
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "resetPwd", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes resetPwd(UserBean o) {
+		AjaxRes ar = getAjaxRes();
+
+		try {
+			o.setPasswd(getPageData().getString("pwd"));
+			int res = service.sysResetPwd(o);
+			if (res == 1)
+				ar.setSucceedMsg(GlobalConst.UPDATE_SUCCEED);
+			else
+				ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.UPDATE_FAIL);
+		}
+
+		return ar;
+	}
+
+	@RequestMapping(value = "findAllUser", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAllUser() {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<UserBean> accounts = service.findAllUser();
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", accounts);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+	
+	@RequestMapping(value = "findAllPerson", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findAllPerson() {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<UserBean> accounts = service.findAllPerson();
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", accounts);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+	@RequestMapping(value = "findByRepair", method = RequestMethod.POST)
+	@ResponseBody
+	public AjaxRes findByRepair() {
+		AjaxRes ar = getAjaxRes();
+		try {
+			List<UserBean> accounts = service.findByRepair();
+			Map<String, Object> p = new HashMap<String, Object>();
+			p.put("list", accounts);
+			ar.setSucceed(p);
+		} catch (Exception e) {
+			logger.error(e.toString(), e);
+			ar.setFailMsg(GlobalConst.DATA_FAIL);
+		}
+		return ar;
+	}
+
+}

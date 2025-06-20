@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.ma.dao.MaLeaseDao">
+	<resultMap type="com.bonus.ma.beans.MaLeaseBean" id="maLease"></resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.ma.beans.MaLeaseBean"
+		resultMap="maLease">
+		SELECT unitName,projectName,agreementCode,typeName as deviceName, typeId,
+		modelName as deviceModel,UNIT as deviceUnit,SUM(leaseNum) as leaseNum,agreementId,modelId,
+		SUM(backNum) as returnNum,SUM(leaseNum) - SUM(backNum) usingNum ,a.bsName as bsName,
+		startTime, DATEDIFF(CURDATE(), startTime) as dayDiff
+		FROM(
+			SELECT  bu.`NAME` as unitName,bp.`NAME` as projectName,
+			wla.`CODE` as agreementCode,mmt.`NAME` as typeName,mt.ID as typeId,
+			mt.`NAME` as modelName,mt.UNIT,SUM(wir.NUM) as leaseNum,
+			"0" as backNum,wla.ID as agreementId,mt.ID as modelId, take.bsName,
+			wla.START_TIME as startTime
+			FROM wf_task_record wtr 
+			LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+			LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID
+			LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN ma_org_relation mor ON mt.ID = mor.TYPE_ID
+			LEFT JOIN (
+			SELECT  wtr2.ID AS taskId,  wtr1.ID,wtr1.NUMBER,bs.`NAME` as bsName 
+		  	from wf_collar_apply wca
+				 LEFT JOIN wf_task_record wtr1 ON wca.APPLY_NUMBER = wtr1.NUMBER
+				 LEFT JOIN wf_task_record wtr2 ON wtr1.ID = wtr2.SUP_ID
+			     LEFT JOIN bm_subcontractors bs ON wca.SUBCONTRACTORS_ID = bs.ID 
+			 	   GROUP BY wtr2.ID
+			) take on wtr.id = take.taskId 
+			WHERE wir.TYPE = 2 and wtr.IS_ACTIVE = 1
+			<if test='param.companyId != 1'>
+				and wtr.ORG_ID = #{param.companyId}
+			</if>
+			<if test="param.bsName != null and param.bsName !='' ">
+				and  take.bsName like concat('%',#{param.bsName},'%')
+			</if>
+			<if test="param.projectName != null and param.projectName !='' ">
+				and bp.`NAME` like concat('%',#{param.projectName},'%')
+			</if>
+			<if test="param.deviceName != null and param.deviceName !='' ">
+				and mmt.`NAME` like concat('%',#{param.deviceName},'%')
+			</if>
+			<if test="param.deviceModel != null and param.deviceModel !='' ">
+				and mt.`NAME` like concat('%',#{param.deviceModel},'%')
+			</if>
+			GROUP BY wla.ID,mt.ID
+			UNION
+			SELECT bu.`NAME` as unitName,bp.`NAME` as projectName,
+		    wla.`CODE` as agreementCode,mmt.`NAME` as typeName,mt.ID as typeId,
+			mt.`NAME` as modelName,mt.UNIT,"0" as leaseNum,
+			SUM(wir.NUM) as backNum,wla.ID as agreementId,mt.ID as modelId ,bs.`NAME` as bsName,
+		    wla.START_TIME as startTime
+			FROM wf_task_record wtr
+			LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+			LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+			LEFT JOIN wf_return_material_details wrd ON wtr.ID = wrd.TASK_ID
+			LEFT JOIN wf_info_record wir ON wrd.ID = wir.SUP_ID
+			LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN ma_org_relation mor ON mt.ID = mor.TYPE_ID
+			LEFT JOIN bm_subcontractors bs ON wtr.SUBCONTRACTORS_ID = bs.ID
+			WHERE wir.TYPE = 4 and wtr.IS_ACTIVE = 1
+			<if test='param.companyId != "1"'>
+				and wtr.ORG_ID = #{param.companyId}
+			</if>
+		    <if test="param.bsName != null and param.bsName !='' ">
+				and bs.`NAME` like concat('%',#{param.bsName},'%')
+			</if>
+			<if test="param.projectName != null and param.projectName !='' ">
+				and bp.`NAME` like concat('%',#{param.projectName},'%')
+			</if>
+			<if test="param.deviceName != null and param.deviceName !='' ">
+				and mmt.`NAME` like concat('%',#{param.deviceName},'%')
+			</if>
+			<if test="param.deviceModel != null and param.deviceModel !='' ">
+				and mt.`NAME` like concat('%',#{param.deviceModel},'%')
+			</if>
+			GROUP BY wla.ID,mt.ID
+		) a
+		where  1=1
+		<if test="param.keyWord != null and param.keyWord !=''">
+			and (
+			    agreementCode like concat('%',#{param.keyWord},'%') OR
+			    unitName like concat('%',#{param.keyWord},'%') OR
+			    projectName like concat('%',#{param.keyWord},'%') OR
+			    typeName like concat('%',#{param.keyWord},'%') OR
+			    modelName like concat('%',#{param.keyWord},'%') 
+			)		
+	  	</if>
+		<if test='param.typeId != null'>
+			and typeId = #{param.typeId}
+		</if>
+	GROUP BY a.agreementId,a.modelId
+	</select>
+	
+	<select id="findleaseCode" parameterType="com.bonus.ma.beans.MaLeaseBean"
+		resultMap="maLease">
+
+	SELECT  
+	        mmt.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mt.UNIT,
+			mm.REMARK AS remark,
+			wla.ID as agreementId,
+			wir.MA_ID,
+			mt.ID as modelId,
+			wir.`CODE`as deviceCode
+			FROM wf_task_record wtr 
+			LEFT JOIN wf_agreement_task wat ON wtr.ID = wat.TASK_ID
+			LEFT JOIN wf_lease_agreement wla ON wat.AGREEMENT_ID = wla.ID
+			LEFT JOIN wf_task_record wte ON wtr.ID = wte.SUP_ID
+			LEFT JOIN wf_info_record wir ON wte.ID = wir.SUP_ID
+			LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+			LEFT JOIN mm_machines mm ON wir.MA_ID = mm.ID 
+			LEFT JOIN ma_org_relation mor ON mt.ID = mor.TYPE_ID
+		   
+			WHERE wir.TYPE = 2   
+            and wla.ID=#{param.agreementId} and wir.MODEL_ID = #{param.modelId}
+
+		<if test="param.keyWord != null and param.keyWord !=''">
+			and (
+			    mm.DEVICE_CODE like concat('%',#{param.keyWord},'%') 
+			   
+			)		
+	  	</if> 
+	  		GROUP BY wir.MA_ID
+
+	</select>
+	
+	<select id="findbackCode" parameterType="com.bonus.ma.beans.MaLeaseBean"
+		resultMap="maLease">
+
+		SELECT
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mm.DEVICE_CODE as deviceCode,
+			mm.REMARK AS remark
+			FROM
+			ma_type_project_storage ps
+			LEFT JOIN mm_type mt on ps.type = mt.id
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+			LEFT JOIN mm_machines mm on ps.machine = mm.ID
+			WHERE ps.agreement_id =#{param.agreementId} and ps.type = #{param.modelId}
+			AND ps.`status` = 0
+
+		<if test="param.keyWord != null and param.keyWord !=''">
+			and (
+			    mm.DEVICE_CODE like concat('%',#{param.keyWord},'%') 
+			   
+			)		
+	  	</if> 
+
+	</select>
+	
+	<select id="finduseCode" parameterType="com.bonus.ma.beans.MaLeaseBean"
+		resultMap="maLease">
+
+		SELECT
+			mt2.`NAME` as deviceName,
+			mt.`NAME` as deviceModel,
+			mm.DEVICE_CODE as deviceCode,
+			mm.REMARK AS remark
+			FROM
+			ma_type_project_storage ps
+			LEFT JOIN mm_type mt on ps.type = mt.id
+			LEFT JOIN mm_type mt2 on mt.PARENT_ID = mt2.ID 
+			LEFT JOIN mm_machines mm on ps.machine = mm.ID
+			WHERE ps.agreement_id =#{param.agreementId} and ps.type = #{param.modelId}
+			AND ps.`status` = '1'
+
+		<if test="param.keyWord != null and param.keyWord !=''">
+			and (
+			    mm.DEVICE_CODE like concat('%',#{param.keyWord},'%') 
+			   
+			)		
+	  	</if> 
+
+	</select>
+	
+	
+	
+	
+	<select id="findByPageTwo" parameterType="com.bonus.ma.beans.MaLeaseBean"
+		resultMap="maLease">
+  		SELECT	DISTINCT  agreementId,agreementCode,unitName,projectName,typeName,deviceName,deviceModel,modelId,deviceUnit,sum(leaseNum) as leaseNum,sum(returnNum) as returnNum,sum(buyPrice) as buyPrice
+		FROM (
+			SELECT 	DISTINCT bma.ID as agreementId,bma.`CODE` AS agreementCode,bmu.`NAME` as unitName,bmp.`NAME` as projectName,mtc.`NAME` as typeName,
+					mtb.`NAME` as deviceName,mta.`NAME` as deviceModel,sum(ttmt.ACTUAL_NUM) as leaseNum,0 as returnNum,mta.UNIT as deviceUnit,
+					mta.ID as modelId,sum(ttmt.ACTUAL_NUM) * mta.BUY_PRICE as buyPrice
+			FROM ba_agreement_task baat
+			LEFT JOIN ba_ma_agreement bma on bma.ID = baat.AGREEMENT_ID
+			LEFT JOIN bm_unit bmu on bmu.ID = bma.LEASE_COMPANY
+			LEFT JOIN bm_project bmp on bmp.ID = bma.PROJECT
+			LEFT JOIN ba_ma_collar bmc on bmc.ID = baat.TASK_ID
+			LEFT JOIN tm_task_ma_type ttmt on ttmt.TASK_ID = bmc.ID
+			LEFT JOIN ma_type mta ON ttmt.MA_TYPE_ID = mta.ID
+			LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+			LEFT JOIN ma_type mtc ON mtb.PARENT_ID = mtc.ID
+			GROUP BY bma.ID,mta.ID
+			HAVING sum(ttmt.ACTUAL_NUM) > 0
+			UNION
+			SELECT 	DISTINCT bma.ID as agreementId,bma.`CODE` AS agreementCode,bmu.`NAME` as unitName,bmp.`NAME` as projectName,mtc.`NAME` as typeName,
+					mtb.`NAME` as deviceName,mta.`NAME` as deviceModel,0 as leaseNum,sum(ttmt.MACHINES_NUM) as returnNum,mta.UNIT as deviceUnit,mta.ID as modelId,
+					0 as buyPrice
+			FROM ba_agreement_task baat
+			LEFT JOIN ba_ma_agreement bma on bma.ID = baat.AGREEMENT_ID
+			LEFT JOIN bm_unit bmu on bmu.ID = bma.LEASE_COMPANY
+			LEFT JOIN bm_project bmp on bmp.ID = bma.PROJECT
+			LEFT JOIN ba_ma_back bmb on bmb.ID = baat.TASK_ID
+			LEFT JOIN tm_task_ma_type ttmt on ttmt.TASK_ID = bmb.ID
+			LEFT JOIN ma_type mta ON ttmt.MA_TYPE_ID = mta.ID
+			LEFT JOIN ma_type mtb ON mta.PARENT_ID = mtb.ID
+			LEFT JOIN ma_type mtc ON mtb.PARENT_ID = mtc.ID
+			GROUP BY bma.ID,mta.ID
+			HAVING sum(ttmt.MACHINES_NUM) > 0
+		) res
+		WHERE res.agreementId = #{param.agreementId}
+		<if test="param.keyWord != null and param.keyWord !=''">
+			and (
+			    res.typeName like concat('%',#{param.keyWord},'%') OR
+			    res.deviceName like concat('%',#{param.keyWord},'%') OR
+			    res.deviceModel like concat('%',#{param.keyWord},'%')
+			)		
+	  	</if>    
+		GROUP BY res.modelId
+	</select>
+</mapper>

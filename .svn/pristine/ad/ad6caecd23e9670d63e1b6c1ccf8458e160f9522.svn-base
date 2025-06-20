@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.lease.dao.BackMachineDao">
+	
+	<resultMap type="com.bonus.lease.beans.BackMachineBean" id="BaseResultMap">
+		<result column="ID" property="taskId" jdbcType="VARCHAR"/>
+		<result column="BACK_COMPANY_ID" property="backCompanyId" jdbcType="VARCHAR"/>
+		<result column="BACKER" property="backer" jdbcType="VARCHAR"/>
+		<result column="BACK_TIME" property="backTime" jdbcType="VARCHAR"/>
+		<result column="PHONE" property="phone" jdbcType="VARCHAR"/>
+		<result column="CREATOR" property="creator" jdbcType="VARCHAR"/>
+		<result column="CREATE_TIME" property="createTime" jdbcType="VARCHAR"/>
+		<result column="REMARK" property="remark" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<select id="findByPage" parameterType="com.bonus.lease.beans.BackMachineBean"
+		resultType="com.bonus.lease.beans.BackMachineBean">
+		SELECT 	bbi.id,bbi.PARENT_ID parentId,bbi.OUT_NUM outNum,bbi.OUT_TIME outTime,
+				pmo.`NAME`,bbi.BACK_TIME as backTime,bmc2.`NAME` pickCompany,
+				bmc1.`NAME` pickProject,bbi.PICK_NUM pickNum,bbi.PROPOSER,
+				bbi.BATCH_STATUS batchStatus
+		FROM ba_back_info bbi
+		LEFT JOIN pm_organization pmo on pmo.ID = bbi.GIVE_COMPANY
+		LEFT JOIN bm_company bmc1 on bmc1.ID = bbi.PICK_PROJECT
+		LEFT JOIN bm_company bmc2 on bmc2.ID = bmc1.PARENT_ID
+		where bbi.PARENT_ID = 0 and bbi.BATCH_STATUS = 0
+		<if test="param.keyword != null and param.keyword != ''">
+			and (
+				bbi.OUT_NUM like concat('%',#{param.keyword},'%')
+				|| bmc2.WORK_NAME like concat('%',#{param.keyword},'%')
+				|| bmc1.WORK_NAME like concat('%',#{param.keyword},'%')
+			)
+		</if>
+	</select>
+
+	<select id="findDetails" parameterType="com.bonus.lease.beans.BackMachineBean"
+		resultType="com.bonus.lease.beans.BackMachineBean">
+		SELECT 	bbi.ID,bbi.OUT_NUM outNum,mam.`NAME` as machinesName,mam.MODEL as model,
+				bbi.OUT_TIME outTime,bbi.PICK_NUM pickNum,bbi.BATCH_STATUS batchStatus,
+				bmc2.`NAME` as pickCompany,bmc2.WORK_NAME as pickProject,bbi.PROPOSER,
+				bbi.PARENT_ID as parentId
+		FROM ba_back_info bbi
+		LEFT JOIN ma_machines mam on mam.ID = bbi.MACHINES_ID
+		LEFT JOIN bm_company bmc1 on bmc1.ID = bbi.PICK_PROJECT
+		LEFT JOIN bm_company bmc2 on bmc2.ID = bmc1.PARENT_ID
+		where bbi.OUT_NUM = #{param.outNum}
+		ORDER BY bbi.PARENT_ID
+	</select>
+
+	<update id="update" parameterType="com.bonus.lease.beans.BackMachineBean">
+		update ba_back_info 
+		set BATCH_STATUS = 6,BACK_TIME = #{backTime} 
+		where OUT_NUM = #{outNum}
+	</update>
+	
+	<update id="trashMachines" parameterType="com.bonus.lease.beans.BackMachineBean">
+		update ba_back_info set 
+		BATCH_STATUS = 6,
+		BACK_TIME = #{backTime} 
+		where id = #{id}
+	</update>
+	
+	<select id="findMachinesByOutNum" resultMap="BaseResultMap">
+		SELECT 	*
+		FROM ba_back_info
+		where OUT_NUM = #{outNum} and PARENT_ID != 0
+	</select>
+
+</mapper>

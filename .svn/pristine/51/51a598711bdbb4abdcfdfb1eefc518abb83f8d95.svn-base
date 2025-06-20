@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.InputDetailsDao" >
+    <resultMap id="inputDetails" type="com.bonus.newInput.beans.InputDetailsBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+		SELECT 	tmt.TASK_ID as batchId,mt.ID as maTypeId,mtb.`NAME` as machineType,mt.`NAME` as model,
+				tmt.MACHINES_NUM as machineNums,mt.UNIT,mt.WEIGHT,mt.BUY_PRICE as buyPrice,
+				mt.LEASE_PRICE as leasePrice,mt.PAY_PRICE as payPrice,mv.`NAME` as vender,
+				tmt.BATCH_STATUS as batchStatus,tmt.pic_url as picUrl
+		FROM tm_task_ma_type tmt
+		LEFT JOIN ma_type mt ON tmt.MA_TYPE_ID = mt.ID
+		LEFT JOIN ma_type mtb ON mt.PARENT_ID = mtb.ID
+		LEFT JOIN ma_vender mv ON tmt.MANUFACTURER_ID = mv.ID
+		WHERE tmt.TASK_id = #{param.batchId}
+		<if test="param.keyWord != null">
+			AND( mtb.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR tmt.MACHINES_NUM LIKE CONCAT('%',#{param.keyWord},'%')
+			OR mt.UNIT LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+
+ 	<select id="find" parameterType="com.bonus.newInput.beans.InputDetailsBean" resultMap="inputDetails">
+ 	   	SELECT 	tmt.TASK_ID as batchId,mt.ID as maTypeId,mtb.`NAME` as machineType,mt.`NAME` as model,
+				tmt.MACHINES_NUM as machineNums,mt.UNIT,mt.WEIGHT,mt.BUY_PRICE as buyPrice,
+				mt.LEASE_PRICE as leasePrice,mt.PAY_PRICE as payPrice,mv.`NAME` as vender,
+				tmt.BATCH_STATUS as batchStatus,tmt.pic_url as picUrl
+		FROM tm_task_ma_type tmt
+		LEFT JOIN ma_type mt ON tmt.MA_TYPE_ID = mt.ID
+		LEFT JOIN ma_type mtb ON mt.PARENT_ID = mtb.ID
+		LEFT JOIN ma_vender mv ON tmt.MANUFACTURER_ID = mv.ID
+		WHERE tmt.TASK_ID = #{batchId} and mt.ID = #{maTypeId}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.newInput.beans.InputDetailsBean" useGeneratedKeys="true" keyProperty="id">
+		insert into TM_TASK_MA_TYPE
+		(TASK_ID,MA_TYPE_ID,MANUFACTURER_ID,MACHINES_NUM,BATCH_STATUS) 
+		values 
+		(#{batchId},#{model},#{vender},#{machineNums},#{batchStatus})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+		update TM_TASK_MA_TYPE
+        <set>
+            <if test="model != null">
+               MA_TYPE_ID = #{model},
+            </if>
+             <if test="vender !=null">
+              MANUFACTURER_ID = #{vender},
+            </if>
+             <if test="machineNums !=null">
+              MACHINES_NUM = #{machineNums},
+            </if>
+             <if test="batchStatus != null">
+              BATCH_STATUS = #{batchStatus},
+            </if>
+             <if test="picUrl != null">
+              PIC_URL = #{picUrl},
+            </if>
+        </set>
+       	where TASK_ID = #{batchId}
+       	<if test="id != null and id != ''">
+       		and MA_TYPE_ID = #{id}
+       	</if>
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.InputDetailsBean">
+		delete from TM_TASK_MA_TYPE
+		where TASK_ID = #{batchId}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM TM_TASK_MA_TYPE WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+</mapper>

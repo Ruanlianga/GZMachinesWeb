@@ -1,0 +1,39 @@
+
+
+var  uname = localStorage.getItem("uname");
+var  pwd = localStorage.getItem("pwd");
+$(function() {
+    
+	
+	checkLogin();
+	
+	
+});
+
+function checkLogin(){
+	$.ajax({
+		type: "post",
+		url: "http://10.1.0.142:1999/gz-aqgqj/login/userLogin",
+		data: {
+			username: uname,
+			password: pwd
+		},
+		success: function(data) {
+	
+			if(data.code == "200") {
+				localStorage.setItem("token", data.token);
+				localStorage.setItem("name", name);
+				//window.open("http://192.168.0.14:21625/gz-gqj/index.html")
+				window.open("http://10.1.0.142:1999/gz-aqgqj/index.html?token="+token)
+
+			} else {
+				alert("没有权限！");
+				
+			}
+
+		},
+		error: function(XMLHttpRequest, textStatus, errorThrown) {
+			alert("未连接到服务器，请检查网络！"+XMLHttpRequest.status);
+		}
+	});
+}

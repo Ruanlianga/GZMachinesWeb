@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sys.dao.StationDao">
+	<resultMap id="BaseResultMap" type="com.bonus.sys.beans.StationBean">
+		<id column="ID" property="id" jdbcType="INTEGER" />
+		<result column="NAME" property="name" jdbcType="VARCHAR" />
+		<result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+		<result column="IS_ACTIVE" property="isActive" jdbcType="CHAR" />
+	</resultMap>
+	<select id="selectByPrimaryKey" resultMap="BaseResultMap"
+		parameterType="java.lang.Integer">
+		select ID,NAME,DESCRIPTION,IS_ACTIVE
+		from   pm_post
+		where ID  = #{id,jdbcType=INTEGER}
+	</select>
+	<select id="findByPage" resultMap="BaseResultMap"
+		parameterType="com.bonus.sys.beans.StationBean">
+		select ID,NAME,DESCRIPTION,IS_ACTIVE
+		from pm_post WHERE IS_ACTIVE='1'
+	</select>
+	<select id="findPostName" resultMap="BaseResultMap" parameterType="com.bonus.sys.beans.StationBean">
+		select ID,NAME from pm_post WHERE IS_ACTIVE='1'     
+	</select>
+	<select id="find" resultMap="BaseResultMap">  
+		select ID,NAME,DESCRIPTION,IS_ACTIVE
+		from pm_post
+		WHERE IS_ACTIVE='1'
+		<if test="id != null ">
+			and ID=#{id}
+		</if>
+	</select>
+	<delete id="deleteByPrimaryKey" parameterType="com.bonus.sys.beans.StationBean">
+		delete from pm_post
+		where ID = #{id,jdbcType=INTEGER}
+	</delete>
+	<insert id="insertBean" parameterType="com.bonus.sys.beans.StationBean">
+		insert into pm_post (ID, NAME, DESCRIPTION,
+		IS_ACTIVE)
+		values (#{id,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR},
+		#{description,jdbcType=VARCHAR},
+		1)
+		<selectKey resultType="int" keyProperty="id">
+			SELECT last_insert_id() as ID;
+		</selectKey>
+	</insert>
+	<insert id="insertSelective" parameterType="com.bonus.sys.beans.StationBean">
+		insert into pm_post
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				ID,
+			</if>
+			<if test="name != null">
+				NAME,
+			</if>
+			<if test="description != null">
+				DESCRIPTION,
+			</if>
+			<if test="isActive != null">
+				IS_ACTIVE,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id,jdbcType=INTEGER},
+			</if>
+			<if test="name != null">
+				#{name,jdbcType=VARCHAR},
+			</if>
+			<if test="description != null">
+				#{description,jdbcType=VARCHAR},
+			</if>
+			<if test="isActive != null">
+				#{isActive,jdbcType=CHAR},
+			</if>
+		</trim>
+	</insert>
+	<update id="updateByPrimaryKeySelective" parameterType="com.bonus.sys.beans.StationBean">
+		update pm_post
+		<set>
+			<if test="name != null">
+				NAME = #{name,jdbcType=VARCHAR},
+			</if>
+			<if test="description != null">
+				DESCRIPTION = #{description,jdbcType=VARCHAR},
+			</if>
+			<if test="isActive != null">
+				IS_ACTIVE = #{isActive,jdbcType=CHAR},
+			</if>
+		</set>
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+	<update id="updateByPrimaryKey" parameterType="com.bonus.sys.beans.StationBean">
+		update pm_post
+		set NAME = #{name,jdbcType=VARCHAR},
+		DESCRIPTION = #{description,jdbcType=VARCHAR},
+		IS_ACTIVE = #{isActive,jdbcType=CHAR}
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+	<update id="update" parameterType="com.bonus.sys.beans.StationBean">
+		update pm_post
+		set NAME = #{name,jdbcType=VARCHAR},
+		DESCRIPTION = #{description,jdbcType=VARCHAR},
+		IS_ACTIVE = 1
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+	<delete id="delete" parameterType="com.bonus.sys.beans.UserBean">
+		delete from pm_post
+		where ID =
+		#{id,jdbcType=INTEGER}
+	</delete>
+	<insert id="insert" parameterType="com.bonus.sys.beans.UserBean">  
+		insert into pm_post (NAME,
+		description,IS_ACTIVE )
+		values ( #{name,jdbcType=VARCHAR},
+		#{description,jdbcType=VARCHAR},
+		1
+		)
+	</insert>
+</mapper>

@@ -1,0 +1,394 @@
+package com.bonus.newInput.service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.print.attribute.standard.RequestingUserName;
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.bonus.core.DateTimeHelper;
+import com.bonus.core.StringHelper;
+import com.bonus.ma.beans.MachineBean;
+import com.bonus.ma.beans.MachineTypeBean;
+import com.bonus.ma.beans.QRCodeBean;
+import com.bonus.ma.dao.MachineDao;
+import com.bonus.ma.dao.MachineTypeDao;
+import com.bonus.ma.dao.QRCodeDao;
+import com.bonus.newInput.beans.InputDetailsBean;
+import com.bonus.newInput.beans.NewInputCheckBean;
+import com.bonus.newInput.beans.NewInputQrcodeBean;
+import com.bonus.newInput.dao.InputDetailsDao;
+import com.bonus.newInput.dao.NewInputQrcodeDao;
+import com.bonus.sys.AjaxRes;
+import com.bonus.sys.BaseServiceImp;
+import com.bonus.sys.GlobalConst;
+import com.bonus.sys.Page;
+
+@Service("newQrcode")
+public class NewInputQrcodeServiceImp extends BaseServiceImp<NewInputQrcodeBean> implements NewInputQrcodeService {
+
+	@Autowired
+	private NewInputQrcodeDao dao;
+
+	@Autowired
+	MachineDao maDao;
+
+	@Autowired
+	MachineTypeDao mtDao;
+	
+	@Autowired
+	InputDetailsDao idDao;
+	
+	@Autowired
+	QRCodeDao qrDao;
+	
+	@Autowired
+	private InputDetailsService idService;
+
+	/**
+	 * 1.判断机具是否计数 2.不计数（生成新购二维码打印任务，生成新购绑定任务，生成生成新购入库任务） 3.计数（生成新购入库任务）
+	 * 
+	 */
+	/*
+	 * @Override public int isSure(NewInputCheckBean o) { MachineTypeBean
+	 * mmtBean = new MachineTypeBean(); mmtBean.setMaModelId(o.getMaModelId());
+	 * MachineTypeBean mBean = mtDao.findByModelId(mmtBean); if
+	 * ("0".equals(mBean.getIsCount())) { TaskRecordBean bean = new
+	 * TaskRecordBean(); bean.setTaskId(o.getTaskId());
+	 * bean.setDefinitionId("15"); List<TaskRecordBean> list =
+	 * trDao.findTaskInfo(bean); if (list != null && list.size() > 0) {
+	 * o.setTaskId(list.get(0).getTaskId()); addQrcodeTaskDetails(o); }else{
+	 * 
+	 * } }else{ //生成新购入库任务 } return 0; }
+	 * 
+	 * 
+	 * private void addQrcodeTask(NewInputCheckBean o){ String userId =
+	 * UserShiroHelper.getRealCurrentUser().getId()+""; TaskRecordBean bean =
+	 * new TaskRecordBean(); bean.setOperationTime(DateTimeHelper.getNowTime());
+	 * bean.setOperationUserId(userId); bean.setDefinitionId("15");
+	 * bean.setProcessId("7"); bean.setIsFinish("0"); trDao.insert(bean);
+	 * o.setTaskId(bean.getId()); // o.setLaunchId(userId); // dao.add(o); }
+	 * private void addQrcodeTaskDetails(NewInputCheckBean o){
+	 * 
+	 * }
+	 */
+
+	@Override
+	public Page<NewInputQrcodeBean> findQrcodeByTaskId(Page<NewInputQrcodeBean> page, NewInputQrcodeBean o) {
+		page.setResults(dao.findQrcodeByTaskId(o, page));
+		return page;
+	}
+
+	@Override
+	public int isSure(NewInputCheckBean o) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	/**
+	 * 新购二维码绑定
+	 * 判断机具是否已经绑定
+	 */
+	@Override
+	public int building(NewInputQrcodeBean o) {
+		int devNum = devicecodenum(o);//
+		if (devNum == 5) {
+			boolean bf = judgeBindNum(o);
+			if(bf){
+				InputDetailsBean bean = new InputDetailsBean();
+				bean.setTaskId(o.getTaskId());
+				bean.setMaModelId(o.getMaModelId());
+				//查询该任务下的该类机具的maId
+				List<InputDetailsBean> list = idDao.findMaIdByTaskBachStatus(bean);
+				if (list != null && list.size() > 0) {
+					MachineBean mBean = new MachineBean();
+					mBean.setId(list.get(0).getId());
+					mBean.setQrcode(o.getQrCode());
+					mBean.setDeviceCode(o.getDeviceCode());
+					mBean.setBatchStatus("4");
+					maDao.update(mBean);
+					//添加绑定时间
+					QRCodeBean qrBean = new QRCodeBean();
+					qrBean.setIsBind("1");
+					qrBean.setBindTime(DateTimeHelper.getNowTime());
+					qrBean.setCode(o.getQrCode());
+					qrDao.update(qrBean);
+					return 1;
+				}else {
+					return -1;//无设备编号
+				}
+			}else{
+				return 2;
+			}
+		}else{
+			return 6;//返回前台，进行提示
+		}	
+	}
+	private boolean judgeBindNum(NewInputQrcodeBean o) {
+			NewInputQrcodeBean bean = dao.findAlBindNum(o);
+			String thisInputNum = "1";
+			String checkNum = bean.getCheckNum();
+			String alreadyBindingNum = bean.getAlreadyBindingNum();
+			if(alreadyBindingNum != null){
+				int thisInputNums = Integer.parseInt(thisInputNum);
+				int alreadyBindingNums = Integer.parseInt(alreadyBindingNum);
+				alreadyBindingNums = alreadyBindingNums + thisInputNums;
+				int checkNums = Integer.parseInt(checkNum);//需检验数量
+				if(checkNums > alreadyBindingNums){
+					
+					return true;
+				}
+				if(checkNums == alreadyBindingNums){
+					dao.updateNewBindTask(o);
+					return true;//绑定数量等于检验数量
+				}
+				if(checkNums < alreadyBindingNums){
+					return false;//入库数量超过绑定数量
+				}
+			}else{
+				int alreadyBindingNums = Integer.parseInt(thisInputNum);
+				int checkNums = Integer.parseInt(checkNum);
+				if(checkNums > alreadyBindingNums){
+					return true;
+				}
+				if(checkNums == alreadyBindingNums){
+					dao.updateNewBindTask(o);
+					return true;//绑定数量等于检验数量
+				}
+				if(checkNums < alreadyBindingNums){
+					return false;//入库数量超过绑定数量
+				}
+			}
+			return true;
+	}
+	
+	/**
+	 * 查询设备编码是否存在
+	 */
+	public  int  devicecodenum(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list  = dao.findInfoByDeviceCode(o);
+		if(list.size() == 0){
+			return 5;//无重复编码
+		}
+		return 6;
+	}
+
+	/**
+	 * 查询机具信息
+	 * 前台判断是否已绑定
+	 */
+	@Override
+	public List<NewInputQrcodeBean> findByQrcode(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.findByQrcode(o);
+		return list;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> findByDevCode(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.findByDevCode(o);
+		return list;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> putInStorageList(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.putInStorageList(o);
+		return list;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> putInStorageDetails(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.putInStorageDetails(o);
+		return list;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> findNewInputList(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.findNewInputList(o);
+		return list;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> findNewInputListDetails(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = new ArrayList<NewInputQrcodeBean>();
+		list = dao.findNewInputListDetails(o);
+		return list;
+	}
+	/**
+	 * 确认入库
+	 */
+	@Override
+	public int confirmStorage(NewInputQrcodeBean o) {
+		int res = 0;
+		int num = dao.findByDevCodeIsExist(o);
+		if(num == 0) {
+			o.setOperationTime(DateTimeHelper.getNowTime());
+			o.setState("5");
+			if (StringHelper.isNotEmpty(o.getQrCode())||StringHelper.isNotEmpty(o.getDeviceCode())) {
+				o.setNums("1");
+				res = insertInfoRecordByCode(o);
+			}else{
+				res = insertInfoRecordByNum(o);
+			}
+			isFinish(o);
+		}else {
+			res = 10;//设备编码已经入库，请更换设备编码
+		}
+		
+		return res;
+	}
+
+	private void isFinish(NewInputQrcodeBean o) {
+		List<NewInputQrcodeBean> list = dao.findIsSure(o);
+		if(list.size() > 0 &&  list != null){
+			
+		}else{
+			dao.updateNewTask(o);
+		}
+	}
+
+	private int insertInfoRecordByNum(NewInputQrcodeBean o) {
+		int res = 0;
+		NewInputQrcodeBean bean = dao.findAlInputInfo(o);
+		String thisInputNum = o.getThisInputNum();
+		String alInputNum = bean.getAlInputNum();
+		String alreadyBindingNum = bean.getQualifiedNum();
+		if(StringHelper.isNotEmpty(alInputNum)){
+			float thisInputNums = Float.parseFloat(thisInputNum);
+			float alInputNums = Float.parseFloat(alInputNum);
+			alInputNums = alInputNums + thisInputNums;
+			o.setAlInputNum(alInputNums+"");
+			float alreadyBindingNums = Float.parseFloat(alreadyBindingNum);
+			o.setNums(thisInputNums+"");
+			if(alreadyBindingNums > alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				res = 1;
+				return res;//入库成功
+			}
+			if(alreadyBindingNums == alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				dao.updateNewInputTask(o);
+				res = 2;
+				return res;//预入数量等于入库数量
+			}
+			if(alreadyBindingNums < alInputNums){
+				res = -1;
+				return res;//入库数量超过预入数量
+			}
+		}else{
+			float alInputNums = Float.parseFloat(thisInputNum);
+			o.setAlInputNum(alInputNums+"");
+			float alreadyBindingNums = Float.parseFloat(alreadyBindingNum);
+			if(alreadyBindingNums > alInputNums){
+				dao.updateAlInputNum(o);
+				o.setNums(alInputNums+"");
+				dao.insertInfoRecord(o);
+				res = 1;
+				return res;//入库成功
+			}
+			if(alreadyBindingNums == alInputNums){
+				dao.updateAlInputNum(o);
+				o.setNums(alInputNums+"");
+				dao.updateNewInputTask(o);
+				dao.insertInfoRecord(o);
+				res = 2;
+				return res;//预入数量等于入库数量
+			}
+			if(alreadyBindingNums < alInputNums){
+				res = -1;
+				return res;//入库数量超过预入数量
+			}
+		}
+		return res;
+		
+	}
+
+	private int insertInfoRecordByCode(NewInputQrcodeBean o) {
+		int res = 0;
+		NewInputQrcodeBean bean = dao.findAlInputInfo(o);
+		String thisInputNum = o.getNums();
+		String alInputNum = bean.getAlInputNum();
+		String alreadyBindingNum = bean.getAlreadyBindingNum();
+		if(alInputNum != null){
+			int thisInputNums = Integer.parseInt(thisInputNum);
+			int alInputNums = Integer.parseInt(alInputNum);
+			alInputNums = alInputNums + thisInputNums;
+			o.setAlInputNum(alInputNums+"");
+			int alreadyBindingNums = Integer.parseInt(alreadyBindingNum);
+			if(alreadyBindingNums > alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				res = 1;
+				return res;//入库成功
+			}
+			if(alreadyBindingNums == alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				dao.updateNewInputTask(o);
+				res = 2;
+				return res;//绑定数量等于入库数量
+			}
+			if(alreadyBindingNums < alInputNums){
+				res = -1;
+				return res;//入库数量超过绑定数量
+			}
+		}else{
+			int alInputNums = Integer.parseInt(thisInputNum);
+			o.setAlInputNum(alInputNums+"");
+			int alreadyBindingNums = Integer.parseInt(alreadyBindingNum);
+			if(alreadyBindingNums > alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				res = 1;
+				return res;//入库成功
+			}
+			if(alreadyBindingNums == alInputNums){
+				dao.updateAlInputNum(o);
+				dao.insertInfoRecord(o);
+				dao.updateNewInputTask(o);
+				res = 2;
+				return res;//绑定数量等于入库数量
+			}
+			if(alreadyBindingNums < alInputNums){
+				res = -1;
+				return res;//入库数量超过绑定数量
+			}
+		}
+		return res;
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> findNewInputByNum(NewInputQrcodeBean o) {
+		// TODO Auto-generated method stub
+		return dao.findNewInputByNum(o);
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> newBindingRecord(NewInputQrcodeBean o) {
+		// TODO Auto-generated method stub
+		return dao.newBindingRecord(o);
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> newInputRecord(NewInputQrcodeBean o) {
+		// TODO Auto-generated method stub
+		return dao.newInputRecord(o);
+	}
+
+	@Override
+	public List<NewInputQrcodeBean> newInputRecordStroageRack(NewInputQrcodeBean o) {
+		// TODO Auto-generated method stub
+		return dao.newInputRecordStroageRack(o);
+	}
+
+
+	
+}

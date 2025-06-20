@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.pis.dao.PutInStorageDao" >
+    <resultMap id="putstorage" type="com.bonus.pis.beans.PutInStorageBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		
+ 	</select>
+ 	
+ 	<select id="putInStorageQuery" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT 	DISTINCT  s.orgId,s.id,s.companyName,s.taskId,s.typeId,s.leaseName,s.projectName,s.machineName,s.machineModel,
+					s.deviceCode,s.putTime,s.putPerson,ROUND(s.thisPutNum) as thisPutNum,s.isCount,s.type,s.remark,s.inputNumber
+			FROM(
+				select DISTINCT  wtr1.ORG_ID as orgId,wir.ID as id,pmo.name as companyName,
+						wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseName,
+						bp.`NAME` AS projectName,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+						wir.`CODE` as deviceCode,wir.TIME as putTime,pu.`NAME` as putPerson,
+						wir.NUM as thisPutNum,mt.IS_COUNT as isCount,wir.TYPE as type,mm.REMARK as remark,wtr1.NUMBER AS inputNumber
+				from wf_info_record wir
+				LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+			 	LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_put_storage_details wpd ON wir.SUP_ID = wpd.TASK_ID
+				LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+				LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+				LEFT JOIN pm_organization pmo ON pmo.id = wtr1.org_id	
+				LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+				where left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime} and (wir.TYPE  = 3 or wir.type = 5) 
+				<if test="param.machineName != null and param.machineName != ''">
+					and mmt.`NAME` like concat('%',#{param.machineName},'%')
+			    </if>
+			    <if test="param.companyId != 1 and param.companyId != '1' and param.companyId !='' and param.companyId !=null ">
+					and wtr1.ORG_ID=#{param.companyId}
+		      	</if> 
+				<if test="param.machineModel != null and param.machineModel != ''">
+					and mt.`NAME` like concat('%',#{param.machineModel},'%')
+				</if>
+				<if test="param.keyWord != null and param.keyWord !='' ">
+					AND(
+						mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+					)
+				</if>
+			 UNION
+				select DISTINCT  wtr.ORG_ID as orgId,wir.ID as id,pmo.name as companyName,
+						wir.SUP_ID as taskId,wir.MODEL_ID as typeId,bu.`NAME` AS leaseName,
+						bp.`NAME` AS projectName,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+						wir.`CODE` as deviceCode,wir.TIME as putTime,pu.`NAME` as putPerson,
+						wir.NUM as thisPutNum,mt.IS_COUNT as isCount,wir.TYPE as type,mm.REMARK as remark,wtr1.NUMBER AS inputNumber
+				from wf_info_record wir
+				LEFT JOIN wf_task_record wtr ON wir.SUP_ID = wtr.ID
+					 	LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+				LEFT JOIN wf_agreement_task wat ON wtr.SUP_ID = wat.TASK_ID
+				LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+				LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+				LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+				LEFT JOIN wf_put_storage_details wpd ON wir.SUP_ID = wpd.TASK_ID
+				LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+				LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+				LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+				LEFT JOIN pm_organization pmo ON pmo.id = wtr.org_id	
+				LEFT JOIN mm_machines mm ON mm.ID = wir.MA_ID
+				where left(wir.TIME,10) BETWEEN #{param.startTime} and #{param.endTime} and (wir.TYPE  = 3 or wir.type = 5) 
+				<if test="param.machineName != null and param.machineName != ''">
+					and mmt.`NAME` like concat('%',#{param.machineName},'%')
+			    </if>
+			    <if test="param.companyId != 1 and param.companyId != '1' and param.companyId !='' and param.companyId !=null ">
+					and wtr.ORG_ID=#{param.companyId}
+		      	</if> 
+				<if test="param.machineModel != null and param.machineModel != ''">
+					and mt.`NAME` like concat('%',#{param.machineModel},'%')
+				</if>
+				<if test="param.keyWord != null and param.keyWord !='' ">
+					AND(
+						mmt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+						OR mt.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR bu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR bp.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')	
+						OR pu.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')	
+					)
+				</if>
+			) s
+
+    		GROUP BY s.ID 
+		ORDER BY s.putTime desc
+ 	</select>
+ 	
+ 	<select id="findBackMachine" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+	SELECT DISTINCT wrd.TASK_ID as supId
+     FROM wf_info_record wir
+     LEFT JOIN wf_return_material_details wrd ON wir.SUP_ID = wrd.ID
+   where wir.TYPE = 4  AND wir.`CODE` = #{deviceCode} AND wir.MODEL_ID = #{typeId}
+   ORDER BY wir.TIME DESC
+   LIMIT 1
+ 	</select>
+ 	
+ 	<select id="putInStorageList" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+	SELECT wtr1.ID AS supId,wpsd.TASK_ID AS taskId,bu.`NAME` AS leaseName,bp.`NAME` AS projectName,wtr.OPERATION_TIME AS applyTime,
+		wtr1.NUMBER AS applyNumber,wtr.IS_FINISH as isFinish,if(mtt.`NAME` is not null,GROUP_CONCAT(DISTINCT mtt.`NAME` SEPARATOR ','),'') AS machineName,
+		wtr.NUMBER AS inputNumber,wtr.DEFINITION_ID AS definitionId
+		FROM wf_put_storage_details wpsd
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wpsd.TASK_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr.SUP_ID = wtr1.ID
+		LEFT JOIN wf_return_material_details wrmd ON wrmd.TASK_ID = wtr1.ID
+ 		LEFT JOIN wf_agreement_task wat ON  wtr.SUP_ID = wat.TASK_ID
+		LEFT JOIN wf_lease_agreement wla ON  wat.AGREEMENT_ID = wla.ID
+		LEFT JOIN bm_unit bu ON wla.LEASE_COMPANY = bu.ID
+		LEFT JOIN bm_project bp ON wla.PROJECT = bp.ID
+		LEFT JOIN mm_type mt ON mt.ID = wpsd.MODEL_ID
+		LEFT JOIN mm_type mtt ON mtt.ID = mt.PARENT_ID
+		where  wtr.IS_FINISH = #{isFinish} and wpsd.CUSTOMER_SERVICE_REP = #{putPersonId}
+		 <if test="companyId != '1'">
+			 <if test="companyId != '' and companyId != null">
+				AND wtr1.ORG_ID = #{companyId}
+			</if>
+	     </if> 
+		<if test='isFinish == "1"'>
+		 	and left(wtr.OPERATION_TIME,10) = #{applyTime} 
+		</if>
+		GROUP BY wtr.ID
+ 	</select>
+ 	
+ 	<select id="putInStorageDetails" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+	SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId, wtr.SUP_ID as supId,wpd.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			sum(wpd.PRE_PUT_NUM) as prePutNum,sum(wpd.AL_PUT_NUM) as alPutNum,wpd.CUSTOMER_SERVICE_REP as putPersonId,pu.`NAME` as putPerson,mt.IS_COUNT as isCount,
+		    wpd.IS_SURE as isSure
+			FROM wf_put_storage_details wpd
+            LEFT JOIN wf_task_record wtr ON wpd.TASK_ID = wtr.ID 
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+            LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.TASK_ID = #{taskId} and wpd.CUSTOMER_SERVICE_REP = #{putPersonId}
+		GROUP BY wpd.MODEL_ID
+ 	</select>
+ 	
+	<select id="getPutRecordList" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+	select DISTINCT wir.ID as id,wir.SUP_ID as taskId,wir.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+		wir.`CODE` as deviceCode,wir.TIME as putTime,ROUND(wir.NUM) as thisPutNum,wir.TYPE as type
+		from wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpd ON wir.SUP_ID = wpd.TASK_ID
+		LEFT JOIN mm_type mt ON wir.MODEL_ID = mt.ID
+		LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+		where wir.SUP_ID  =#{taskId} and wir.MODEL_ID=#{typeId}
+ 	</select>
+ 	
+ 	<select id="getAlPutNum" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId,wpd.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			wpd.PRE_PUT_NUM as prePutNum,wpd.AL_PUT_NUM as alPutNum,wpd.CUSTOMER_SERVICE_REP as putPersonId,pu.`NAME` as putPerson,mt.IS_COUNT as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+        LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.ID=#{id}
+ 	</select>
+ 	
+ 	<select id="confirmPutTask" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId,wpd.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			ROUND(wpd.PRE_PUT_NUM) as prePutNum,ifnull(ROUND(wpd.AL_PUT_NUM)) as alPutNum,wpd.CUSTOMER_SERVICE_REP as putPersonId,pu.`NAME` as putPerson,mt.IS_COUNT as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+        LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.ID=#{id}
+ 	</select>
+ 	
+	<select id="getPutInfoByNum" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+	  SELECT DISTINCT wpd.ID as id,wpd.TASK_ID as taskId,wpd.MODEL_ID as typeId,mmt.`NAME` as machineName,mt.`NAME` as machineModel,
+			ROUND(wpd.PRE_PUT_NUM) as prePutNum,ROUND(wpd.AL_PUT_NUM) as alPutNum,wpd.CUSTOMER_SERVICE_REP as putPersonId,pu.`NAME` as putPerson,mt.IS_COUNT as isCount
+			FROM wf_put_storage_details wpd
+			LEFT JOIN mm_type mt ON wpd.MODEL_ID = mt.ID
+			LEFT JOIN mm_type mmt ON mt.PARENT_ID = mmt.ID
+          LEFT JOIN pm_user pu ON wpd.CUSTOMER_SERVICE_REP = pu.ID
+		where wpd.ID=#{id}
+ 	</select>
+ 	
+ 	<select id="findIsFinish" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT wpd.TASK_ID AS taskId,wpd.ID AS id
+			FROM wf_put_storage_details wpd 
+			WHERE wpd.TASK_ID = #{taskId} AND wpd.IS_SURE = '0'
+ 	</select>
+ 	
+ 	<update id="updateAlPutNum" parameterType="com.bonus.pis.beans.PutInStorageBean">
+		update wf_put_storage_details
+        set AL_PUT_NUM = #{alPutNum}
+       	where ID =#{id}
+	</update>
+	
+	<update id="updatePutTask" parameterType="com.bonus.pis.beans.PutInStorageBean">
+		update wf_put_storage_details
+        set IS_SURE = 1
+       	where ID =#{id}
+	</update>
+	
+	<insert id="addPutRecord" parameterType="com.bonus.pis.beans.PutInStorageBean" useGeneratedKeys="true" >
+		insert into wf_info_record
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				SUP_ID,
+			</if>
+			<if test="typeId != null">
+				MODEL_ID,
+			</if>
+			<if test="putTime != null">
+				TIME,
+			</if>
+			<if test="deviceCode != null">
+				CODE,
+			</if>
+			<if test="type != null">
+				TYPE,
+			</if>
+			<if test="thisPutNum != null">
+				NUM,
+			</if>
+			<if test="rmStatus != null">
+				RM_STATUS
+			</if>
+			
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="taskId != null">
+				#{taskId},
+			</if>
+			<if test="typeId != null">
+				#{typeId},
+			</if>
+			<if test="putTime != null">
+				#{putTime},
+			</if>
+			<if test="deviceCode != null">
+				#{deviceCode},
+			</if>
+			<if test="type != null">
+				#{type},
+			</if>
+			<if test="thisPutNum != null">
+				#{thisPutNum},
+			</if>
+			<if test="rmStatus != null">
+				#{rmStatus}
+			</if>
+		</trim>
+	</insert>
+	
+	<select id="machinePutInStorageList" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT 
+			wpsd.ID as id,
+			wpsd.TASK_ID as taskId,
+			wpsd.MODEL_ID as modelId,
+			ifnull(wtr.NUMBER,wtr1.NUMBER) as inputNumber,
+			mt.`NAME` as machineModel,
+			mt2.`NAME` as machineName,
+			ROUND(wpsd.PRE_PUT_NUM) as prePutNum,
+			ROUND(wpsd.AL_PUT_NUM) as alPutNum, 
+			pu.`NAME` leaseName,
+			wpsd.IS_SURE isSure,
+			wpsd.PUT_TIME putTime,
+			wpsd.MODEL_ID as modelId,
+			wpsd.PUT_TIME as operationTime,
+			mt.IS_COUNT isCount
+		FROM wf_put_storage_details wpsd
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wpsd.TASK_ID
+		LEFT JOIN wf_task_record wtr1 ON wtr1.ID =  wtr.SUP_ID
+		LEFT JOIN mm_type mt ON mt.ID = wpsd.MODEL_ID
+		LEFT JOIN mm_type mt2 ON mt2.ID = mt.PARENT_ID
+		LEFT JOIN pm_user pu ON pu.ID = wpsd.CUSTOMER_SERVICE_REP
+		where  wpsd.IS_SURE = #{isSure} and wpsd.CUSTOMER_SERVICE_REP =#{putPersonId}
+		<if test="isSure =='1' or isSure ==1">
+		    and DATE_FORMAT(wpsd.PUT_TIME,"%Y-%m-%d") BETWEEN #{startTime} AND #{endTime}
+		</if>
+		<if test="keyWord != null and keyWord !='' ">
+					AND(
+						mt2`NAME` LIKE CONCAT('%',#{keyWord},'%')
+						OR mt.`NAME` LIKE CONCAT('%',#{keyWord},'%')	
+						OR wtr.NUMBER LIKE CONCAT('%',#{keyWord},'%')	
+						OR wtr1.NUMBER LIKE CONCAT('%',#{keyWord},'%')	
+					)
+		</if>
+		ORDER BY wpsd.PUT_TIME DESC
+	</select>
+	
+	<select id="machinePutInStorageDetails" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT 
+			wpsd.TASK_ID as taskId,
+			wpsd.MODEL_ID as modelId,
+			wir.`CODE` as deviceCode,
+			mt.`NAME` as machineModel,
+			mt2.`NAME` as machineName,
+			mm.BATCH_STATUS as batchStatus,
+			ROUND(wpsd.AL_PUT_NUM) as alPutNum,
+			ROUND(wpsd.PRE_PUT_NUM) as prePutNum,
+			wtr.SUP_ID as supId,
+			wpsd.MODEL_ID as machineModel,
+			wpsd.CUSTOMER_SERVICE_REP as putPersonId
+		FROM wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpsd ON wir.MODEL_ID = wpsd.MODEL_ID AND wir.SUP_ID = wpsd.TASK_ID
+		LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+		LEFT JOIN mm_type mt2 ON mt2.ID = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.DEVICE_CODE = wir.`CODE`
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wpsd.TASK_ID
+		where wpsd.ID = #{id} and wir.TYPE = 3 and wir.RM_STATUS = 12
+		<if test="deviceCode != null and deviceCode != '' ">
+			wir.`CODE` LIKE CONCAT('%',#{param.keyWord},'%')
+		</if>
+	</select>
+	
+	<update id="updateMachineNum" parameterType="com.bonus.pis.beans.PutInStorageBean">
+ 		update 
+ 			mm_type 
+ 		<set>
+ 		  <if test="thisPutNum !=null and thisPutNum !=''">
+ 		   NUM =(ifnull(NUM,0)) + #{thisPutNum}
+ 		  </if>
+ 		</set>	
+ 		where 
+ 			id= #{typeId}
+ 	</update>
+ 	
+	<update id="updatePutRecordTwo" parameterType="com.bonus.pis.beans.PutInStorageBean">
+ 		update 
+ 			wf_info_record 
+ 		set rm_status = 13	
+ 		where 
+ 			sup_id= #{taskId} and model_id = #{typeId} and code = #{deviceCode}
+ 	</update>
+ 	
+ 	<update id="updateIsExample" parameterType="com.bonus.pis.beans.PutInStorageBean">
+ 		update 
+ 			wf_put_storage_details
+ 		<set>
+ 		  IS_EXAMINE = '1',AUDIT_TIME = now()
+ 		</set>	
+ 		where 
+ 			id= #{id}
+ 	</update>
+ 	
+ 	<update id="updateIsSure" parameterType="com.bonus.pis.beans.PutInStorageBean">
+ 		update 
+ 			wf_put_storage_details
+ 		<set>
+ 		  IS_SURE = '1'
+ 		</set>	
+ 		where 
+ 			id= #{id}
+ 	</update>
+ 	
+ 	<select id="machinePutInStorageDetailsFinish" parameterType="com.bonus.pis.beans.PutInStorageBean" resultMap="putstorage">
+		SELECT 
+			wpsd.TASK_ID as taskId,
+			wpsd.MODEL_ID as modelId,
+			wir.`CODE` as deviceCode,
+			mt.`NAME` as machineModel,
+			mt2.`NAME` as machineName,
+			wir.TIME as putTime,
+			mm.REMARK as remark,
+			mm.BATCH_STATUS as batchStatus,
+			ROUND(wpsd.AL_PUT_NUM) as alPutNum,
+			ROUND(wpsd.PRE_PUT_NUM) as prePutNum,
+			wtr.SUP_ID as supId,
+			wpsd.MODEL_ID as machineModel,
+			wpsd.CUSTOMER_SERVICE_REP as putPersonId,
+			wir.TIME as putTime,
+			mm.REMARK
+		FROM wf_info_record wir
+		LEFT JOIN wf_put_storage_details wpsd ON wir.MODEL_ID = wpsd.MODEL_ID AND wir.SUP_ID = wpsd.TASK_ID
+		LEFT JOIN mm_type mt ON mt.ID = wir.MODEL_ID
+		LEFT JOIN mm_type mt2 ON mt2.ID = mt.PARENT_ID
+		LEFT JOIN mm_machines mm ON mm.DEVICE_CODE = wir.`CODE`
+		LEFT JOIN wf_task_record wtr ON wtr.ID = wpsd.TASK_ID
+		where wpsd.ID = #{id} and wir.TYPE = 3 and wir.RM_STATUS = 13
+		<if test="deviceCode != null and deviceCode != '' ">
+			wir.`CODE` LIKE CONCAT('%',#{deviceCode},'%')
+		</if>
+	</select>
+	
+</mapper>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.WarehousingReportDao" >
+    <resultMap id="new" type="com.bonus.newInput.beans.WarehousingReportBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.WarehousingReportBean" resultMap="new">
+		select DISTINCT matt.ID as prentId,matt.`NAME` as prentName,mat.ID as typeId,
+		mat.`NAME` as typeName,mam.ID,mam.BUY_TIME,
+		COUNT(mam.TYPE) as counts
+		from ma_machines mam 
+		LEFT JOIN ma_type mat on mat.ID = mam.TYPE
+		LEFT JOIN ma_type matt on matt.ID = mat.PARENT_ID
+		where 1=1 
+		    <![CDATA[
+			and mam.BUY_TIME >#{param.startTime} 
+			and mam.BUY_TIME < #{param.endTime}
+			]]>
+		GROUP BY mam.TYPE
+ 	</select>
+
+ 	<select id="find" parameterType="com.bonus.newInput.beans.WarehousingReportBean" resultMap="new">
+ 	   
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.newInput.beans.WarehousingReportBean" useGeneratedKeys="true" keyProperty="batchId">
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.newInput.beans.WarehousingReportBean">
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.WarehousingReportBean">
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+		</foreach>
+	</delete>
+	
+</mapper>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.newInput.dao.NewInputDao" >
+    <resultMap id="new" type="com.bonus.newInput.beans.NewInputBean"></resultMap>
+    
+    <select id="findByPage" parameterType="com.bonus.newInput.beans.NewInputBean" resultMap="new">
+		SELECT bms.ID,bms.BUY_TIME as buyTime,bms.BUYER,
+		p.`NAME` as acceptor,bms.ACCEPT_TIME as acceptTime,
+		bms.CREATOR,bms.CREATE_TIME,bms.REMARK
+		FROM ba_ma_shop bms 
+		LEFT JOIN pm_user p ON bms.ACCEPTOR = p.ID
+		WHERE 1 = 1
+		<if test="param.time!= null">
+		    AND (
+		    bms.BUY_TIME LIKE CONCAT('%',#{param.time},'%')
+		    OR bms.CREATE_TIME LIKE CONCAT('%',#{param.time},'%')
+		    )
+		</if>
+		
+		<if test="param.keyWord!= null">
+			AND( bms.BUYER LIKE CONCAT('%',#{param.keyWord},'%')
+			OR p.`NAME` LIKE CONCAT('%',#{param.keyWord},'%')
+			OR bms.CREATOR LIKE CONCAT('%',#{param.keyWord},'%')
+			OR bms.REMARK LIKE CONCAT('%',#{param.keyWord},'%')
+			)
+		</if>
+		
+ 	</select>
+
+ 	<select id="find" parameterType="com.bonus.newInput.beans.NewInputBean" resultMap="new">
+ 	   	SELECT bms.ID,bms.BUY_TIME as buyTime,bms.BUYER,
+		p.`NAME` as acceptor,bms.ACCEPT_TIME as acceptTime,
+		bms.CREATOR,bms.CREATE_TIME,bms.REMARK
+		FROM ba_ma_shop bms 
+		LEFT JOIN pm_user p ON bms.ACCEPTOR = p.ID
+		and bms.ID = #{id}
+ 	</select>
+ 	
+ 	<insert id="insertBean" parameterType="com.bonus.newInput.beans.NewInputBean" useGeneratedKeys="true" keyProperty="batchId">
+		insert into ba_ma_shop
+		(ID,BUY_TIME,BUYER,ACCEPTOR,ACCEPT_TIME,CREATOR,CREATE_TIME,REMARK) 
+		values 
+		(#{id},#{buyTime},#{buyer},#{acceptor},#{acceptTime},#{creator},#{createTime},#{remark})
+	</insert>
+	
+ 	<update id="update" parameterType="com.bonus.newInput.beans.NewInputBean">
+		update ba_ma_shop set
+		BUY_TIME = #{buyTime},
+		BUYER = #{buyer},
+		ACCEPTOR = #{acceptor},
+		ACCEPT_TIME = #{acceptTime},
+		CREATOR = #{creator},
+		CREATE_TIME = #{createTime},
+		REMARK = #{remark}
+		where ID = #{id}
+	</update>
+	
+ 	<delete id="delete" parameterType="com.bonus.newInput.beans.NewInputBean">
+		delete from ba_ma_shop
+		where ID = #{id}
+	</delete>
+	
+	<delete id="deleteBatch" parameterType="java.util.List">
+		DELETE FROM ba_ma_shop WHERE id in(
+		<foreach item="o" collection="list" open="" separator=","
+			close="">
+			#{o.id}
+		</foreach>
+		)
+	</delete>
+	
+</mapper>

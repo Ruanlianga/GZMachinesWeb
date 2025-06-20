@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.bonus.sys.dao.RoleDao" >
+  <resultMap id="BaseResultMap" type="com.bonus.sys.beans.RoleBean" >
+    <id column="ID" property="id" jdbcType="INTEGER" />
+    <result column="NAME" property="name" jdbcType="VARCHAR" />
+    <result column="IS_ACTIVE" property="isActive" jdbcType="CHAR" />
+  </resultMap>
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select ID,NAME,IS_ACTIVE 
+    from pm_role
+    where ID = #{id,jdbcType=INTEGER}
+  </select>
+  
+  <resultMap id="ZNode" type="com.bonus.sys.beans.ZNode"></resultMap>
+  
+  <select id="getRoleBeans" resultMap="ZNode">
+		SELECT ID,`NAME`,'0' as pId FROM pm_role WHERE IS_ACTIVE = '1'
+  </select>
+  
+  <delete id="deleteByPrimaryKey" parameterType="com.bonus.sys.beans.RoleBean" >
+    delete from pm_role
+    where ID = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insertBean" parameterType="com.bonus.sys.beans.RoleBean" >
+    insert into pm_role (ID, NAME, IS_ACTIVE
+      )
+    values (#{id,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, "1"
+      )
+    <selectKey resultType="int" keyProperty="id" >
+      SELECT last_insert_id() as ID;
+    </selectKey>
+  </insert>
+  <insert id="insertSelective" parameterType="com.bonus.sys.beans.RoleBean" >
+    insert into pm_role
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        ID,
+      </if>
+      <if test="name != null" >
+        NAME,
+      </if>
+      <if test="isActive != null" >
+        IS_ACTIVE,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="name != null" >
+        #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="isActive != null" >
+        #{isActive,jdbcType=CHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.bonus.sys.beans.RoleBean" >
+    update pm_role
+    <set >
+      <if test="name != null" >
+        NAME = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="isActive != null" >
+        IS_ACTIVE = #{isActive,jdbcType=CHAR},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.bonus.sys.beans.RoleBean" >
+    update pm_role
+    set NAME = #{name,jdbcType=VARCHAR},
+      IS_ACTIVE = #{isActive,jdbcType=CHAR}
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>

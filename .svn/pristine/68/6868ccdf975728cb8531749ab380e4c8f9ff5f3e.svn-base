@@ -1,0 +1,48 @@
+package com.bonus.index.dao;
+
+import java.util.List;
+
+import com.bonus.core.BonusBatis;
+import com.bonus.index.beans.IndexHomeBean;
+import com.bonus.index.beans.IndexHomeResourseBean;
+import com.bonus.index.beans.PartFiveBean;
+import com.bonus.index.beans.PartOneBean;
+import com.bonus.index.beans.PartThreeBean;
+import com.bonus.index.beans.PartTwoBean;
+import com.bonus.sys.BaseDao;
+
+
+@BonusBatis
+public interface IndexHomeDao extends BaseDao<IndexHomeBean>{
+
+	List<IndexHomeBean> getPartOneData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartTwoData(IndexHomeBean o);
+
+	List<PartThreeBean> getPartThreeData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartFourData(IndexHomeBean o);
+
+	List<PartFiveBean> getPartFiveData(IndexHomeBean o);
+
+	List<IndexHomeBean> getPartSixData(IndexHomeBean o);
+
+	PartOneBean getOverview();
+
+	int insertPartOne(PartOneBean one);
+
+	PartTwoBean getInputview();
+
+	PartTwoBean getTypeview();
+
+	int insertPartTwo(PartTwoBean two);
+
+	List<IndexHomeResourseBean> getHomeResource(IndexHomeResourseBean o);
+
+	List<IndexHomeResourseBean> getResource(IndexHomeResourseBean o);
+
+	void deleteResourse(IndexHomeResourseBean o);
+
+	void insertResourse(IndexHomeResourseBean o);
+    
+}
